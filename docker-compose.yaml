@@ -1,0 +1,14 @@
+services:
+  api:
+    container_name: fastapi
+    build: ./api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/app/output
+    environment:
+      - OUTPUT_DIR=/app/output
+
+volumes:
+  output:
+

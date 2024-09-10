@@ -50,6 +50,11 @@ def configure_render(output_path):
     scene.render.image_settings.file_format = 'PNG'
     scene.render.filepath = output_path
 
+    scene.cycles.device = 'CPU'  # Force rendering on the CPU
+
+    # Ensure denoising is disabled
+    scene.cycles.use_denoising = False
+
 
 def render_image():
     """Render the image and save it to the specified path."""
