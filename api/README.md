@@ -20,11 +20,9 @@ C:\Program Files\Blender Foundation\Blender X.X\
 pip install -r requirements.txt
 ````
 
-## Run FAST API
+## Run FastAPI
 
 ### DEV
-
-1. Run the following command to start the server
 
 ````text
 fastapi dev main.py
@@ -32,10 +30,10 @@ fastapi dev main.py
 
 ### PROD
 
-1. Run the following command to start the server
-
 ````text
 fastapi run main.py
 ````
 
-2. Open the browser and navigate to [localhost:8000/docs](http://localhost:8000/docs) to access the API documentation.
+### API Documentation
+
+Open the browser and navigate to [localhost:8000/docs](http://localhost:8000/docs) to access the API documentation.
