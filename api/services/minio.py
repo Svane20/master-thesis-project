@@ -14,7 +14,6 @@ MINIO_ENDPOINT = "http://minio.minio:9000"
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "minioadmin"
 MINIO_BUCKET_BLENDER = "blender-files"
-MINIO_BUCKET_IMAGES = "blender-images"
 
 # Initialize MinIO client using boto3
 s3_client = boto3.client(
