@@ -2,12 +2,12 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File
+from fastapi import FastAPI, HTTPException, Request, UploadFile, File, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from services.blender_engine import run_blender
+from services.blender_engine import run_blender, start_rendering_process
 from services.minio import upload_file_to_minio, download_file_from_minio, get_minio_files, delete_file_from_minio
 
 # Configure logging
@@ -30,7 +30,6 @@ class RenderRequest(BaseModel):
 
 class RenderResponse(BaseModel):
     message: str
-    image_path: Optional[str] = None
 
 
 @app.get("/api/files")
@@ -83,19 +82,14 @@ async def delete_file(filename: str):
 
 
 @app.post("/api/render", response_model=RenderResponse)
-async def render_scene(request: Request, render_request: RenderRequest):
+async def render_scene(request: Request, render_request: RenderRequest, background_tasks: BackgroundTasks):
     filename = render_request.filename
-    output_path = OUTPUT_DIR / filename
+    output_path = str(OUTPUT_DIR / filename)
     params = {"objects": ["cube", "sphere"]}
 
-    # Call Blender rendering function
-    await run_blender(str(output_path), params)
+    background_tasks.add_task(start_rendering_process, output_path, params, filename)
 
-    if not output_path.is_file():
-        raise HTTPException(status_code=500, detail="Rendered image not found.")
-
-    image_url = str(request.url_for("output", path=filename))
-    return RenderResponse(message="Rendered image saved successfully.", image_path=image_url)
+    return RenderResponse(message="Rendering process started")
 
 
 def handle_minio_response(response, success_message: Optional[dict] = None):

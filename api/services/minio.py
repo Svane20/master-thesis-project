@@ -65,6 +65,25 @@ def upload_file_to_minio(file: UploadFile, bucket_name: str = MINIO_BUCKET_BLEND
         return handle_minio_error(e)
 
 
+def upload_file_to_minio_from_path(file_path: str, key: str, bucket_name: str = MINIO_BUCKET_IMAGES) -> Dict[str, Any]:
+    try:
+        # Ensure the bucket exists or create it
+        if not bucket_exists(bucket_name):
+            logger.info(f"Bucket {bucket_name} does not exist. Creating bucket.")
+            s3_client.create_bucket(Bucket=bucket_name)
+
+        # Upload file
+        with open(file_path, 'rb') as file_data:
+            s3_client.upload_fileobj(file_data, bucket_name, key)
+
+        file_url = f"{MINIO_ENDPOINT}/{bucket_name}/{key}"
+        logger.info(f"File {key} uploaded successfully to {file_url}.")
+        return {"status": "success", "file_url": file_url}
+    except Exception as e:
+        logger.error(f"Failed to upload {file_path} to MinIO: {e}")
+        return handle_minio_error(e)
+
+
 def download_file_from_minio(file_name: str, bucket_name: str = MINIO_BUCKET_BLENDER) -> Dict[str, Any]:
     try:
         response = s3_client.get_object(Bucket=bucket_name, Key=file_name)

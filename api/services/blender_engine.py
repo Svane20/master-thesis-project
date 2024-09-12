@@ -6,6 +6,8 @@ import os
 
 from fastapi import HTTPException
 
+from services.minio import upload_file_to_minio_from_path
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -23,6 +25,29 @@ if BLENDER_EXECUTABLE is None:
     raise SystemExit("Blender executable not found. Ensure Blender is installed and accessible in the system PATH.")
 else:
     logger.info(f"Blender executable found at: {BLENDER_EXECUTABLE}")
+
+
+async def start_rendering_process(output_path: str, params: dict, filename: str):
+    """
+    Function that handles rendering the image and uploading it to MinIO in the background.
+    """
+    try:
+        await run_blender(output_path, params)
+
+        minio_key = filename
+        upload_result = upload_file_to_minio_from_path(output_path, minio_key)
+
+        if upload_result['status'] == 'success':
+            logger.info(f"Rendered image uploaded to MinIO at {upload_result['file_url']}")
+        else:
+            logger.error(f"Failed to upload rendered image to MinIO: {upload_result['error']}")
+
+        if os.path.exists(output_path):
+            os.remove(output_path)
+            logger.info(f"Local file {output_path} removed after upload.")
+
+    except Exception as e:
+        logger.error(f"An error occurred while processing the render job: {e}")
 
 
 async def run_blender(output_path: str, params: dict):
