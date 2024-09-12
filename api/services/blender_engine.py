@@ -16,9 +16,6 @@ BLENDER_EXECUTABLE = shutil.which("blender")
 BLENDER_SCRIPT_DIR = os.path.dirname(__file__)
 BLENDER_SCRIPT = os.path.join(BLENDER_SCRIPT_DIR, '..', 'blender', 'blender_operations.py')
 
-# MINIO Configuration
-MINIO_BUCKET = "rendered-images"
-
 if BLENDER_EXECUTABLE is None:
     logger.error("Blender executable not found")
     raise SystemExit("Blender executable not found. Ensure Blender is installed and accessible in the system PATH.")
