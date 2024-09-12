@@ -1,5 +1,11 @@
 # master-thesis-project
 
+## Setup Run Scripts for FastAPI
+
+1. Go to `Run` -> `Edit Configurations` -> `+` -> `FastAPI`
+
+2. Add the full filepath to main.py in the field `Application file`
+
 ## Run Blender Python API as Standalone Module 
 
 ### Windows
