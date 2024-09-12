@@ -2,12 +2,12 @@ import logging
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File, BackgroundTasks
+from fastapi import FastAPI, HTTPException, UploadFile, File, BackgroundTasks
 from fastapi.responses import StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from services.blender_engine import run_blender, start_rendering_process
+from services.blender_engine import start_rendering_process
 from services.minio import upload_file_to_minio, download_file_from_minio, get_minio_files, delete_file_from_minio
 
 # Configure logging

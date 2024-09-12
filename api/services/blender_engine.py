@@ -5,7 +5,6 @@ import logging
 import os
 
 from fastapi import HTTPException
-
 from services.minio import upload_file_to_minio_from_path
 
 # Configure logging
