@@ -13,12 +13,6 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Cache Docker layers
-        uses: docker/cache-action@v2
-        with:
-          path: |
-            ~/.cache/docker
-
       - name: Build Docker image
         run: |
           docker build -t my-docker-image:latest .
