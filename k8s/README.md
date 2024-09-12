@@ -45,3 +45,33 @@ kubectl port-forward svc/minio-console 9001:9001 --namespace minio
 ```bash
 helm uninstall minio --namespace minio
 ```
+
+# Monitoring
+
+## Prometheus & Grafana
+
+1. Enable metrics-server in Minikube
+
+```bash
+minikube addons enable metrics-server
+```
+
+2. Install Prometheus & Grafana
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo add grafana https://grafana.github.io/helm-charts
+helm repo update
+```
+
+3. Deploy Prometheus
+
+```bash
+helm install prometheus prometheus-community/prometheus --namespace monitoring --create-namespace
+```
+
+4. Deploy Grafana
+
+```bash
+helm install grafana grafana/grafana --namespace monitoring --create-namespace
+```

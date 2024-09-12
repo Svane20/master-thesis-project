@@ -34,10 +34,13 @@ kubectl port-forward svc/blender-web-api-service 8000:80
 
 ## MiniKube Tunnel (Ingress)
 
-1. Add the following line to the `/etc/hosts` file:
+1. Add the following line to the `C:\Windows\System32\drivers\etc\hosts` file:
 
 ````text
 127.0.0.1 blender.local
+127.0.0.1 minio.local
+127.0.0.1 grafana.local
+127.0.0.1 prometheus.local
 ````
 
 2. Run this command to enable the MiniKube tunnel:
