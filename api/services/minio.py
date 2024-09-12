@@ -9,7 +9,8 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(level
 logger = logging.getLogger(__name__)
 
 # Minio Configuration
-MINIO_ENDPOINT = "http://127.0.0.1:9000"
+# MINIO_ENDPOINT = "http://127.0.0.1:9000"
+MINIO_ENDPOINT = "http://minio.minio:9000"
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "minioadmin"
 MINIO_BUCKET = "blender-files"
