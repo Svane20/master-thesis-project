@@ -82,7 +82,7 @@ async def delete_file(filename: str):
 
 
 @app.post("/api/render", response_model=RenderResponse)
-async def render_scene(request: Request, render_request: RenderRequest, background_tasks: BackgroundTasks):
+async def render_scene(render_request: RenderRequest, background_tasks: BackgroundTasks):
     filename = render_request.filename
     output_path = str(OUTPUT_DIR / filename)
     params = {"objects": ["cube", "sphere"]}
