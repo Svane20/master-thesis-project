@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # Global Blender configuration
 BLENDER_EXECUTABLE = shutil.which("blender")
 BLENDER_SCRIPT_DIR = os.path.dirname(__file__)
-BLENDER_SCRIPT = os.path.join(BLENDER_SCRIPT_DIR, 'blender', 'blender_operations.py')
+BLENDER_SCRIPT = os.path.join(BLENDER_SCRIPT_DIR, '..', 'blender', 'blender_operations.py')
 
 # MINIO Configuration
 MINIO_BUCKET = "rendered-images"
@@ -78,6 +78,9 @@ async def run_blender(output_path: str, params: dict):
         )
 
         logger.info(f"Blender rendering completed successfully. Output: {result.stdout}")
+        if result.stderr:
+            logger.error(f"Blender rendering errors: {result.stderr}")
+
         return result.stdout
 
     except subprocess.CalledProcessError as e:

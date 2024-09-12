@@ -1,19 +1,22 @@
 import bpy
 import sys
 import json
+import logging
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger(__name__)
 
 def clear_scene():
     """Remove all objects from the current scene."""
     bpy.ops.object.select_all(action='SELECT')
     bpy.ops.object.delete(use_global=False)
 
-
 def setup_scene(params):
     """Set up the scene with objects, camera, and lighting based on input parameters."""
     clear_scene()
 
-    print("Setting up scene with objects: ", params.get('objects', []))
+    logging.info(f"Setting up scene with objects: {params.get('objects', [])}")
 
     # Add objects based on the object parameter
     for obj_type in params.get('objects', []):
@@ -22,7 +25,7 @@ def setup_scene(params):
         elif obj_type == 'sphere':
             bpy.ops.mesh.primitive_uv_sphere_add(radius=1, location=(3, 0, 0))
         else:
-            print(f"Unsupported object type: {obj_type}")
+            logger.exception("Unsupported object type: %s", obj_type)
 
     # Add lighting
     bpy.ops.object.light_add(type='POINT', location=(0, 0, 5))
@@ -41,7 +44,6 @@ def setup_scene(params):
     # Set the camera as the active camera
     bpy.context.scene.camera = camera
 
-
 def configure_render(output_path):
     """Configure render settings."""
     scene = bpy.context.scene
@@ -55,7 +57,6 @@ def configure_render(output_path):
     # Ensure denoising is disabled
     scene.cycles.use_denoising = False
 
-
 def render_image():
     """Render the image and save it to the specified path."""
     argv = sys.argv
@@ -66,8 +67,10 @@ def render_image():
 
     output_path = argv[0] if len(argv) > 0 else "output.png"
 
+    logger.info("Output path: %s", output_path)
+
     if len(argv) < 1:
-        print("No parameters provided. Using default values.")
+        logger.info("No parameters provided. Using default values.")
         params = {}
     else:
         params = json.loads(argv[1])
@@ -76,7 +79,6 @@ def render_image():
     setup_scene(params)
     configure_render(output_path)
     bpy.ops.render.render(write_still=True)
-    print(f"Rendered image saved to {output_path}")
-
+    logger.info("Rendered image saved to %s", output_path)
 
 render_image()
