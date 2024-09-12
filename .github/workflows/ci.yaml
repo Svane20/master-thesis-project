@@ -25,5 +25,5 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker tag my-docker-image:latest ${{ secrets.DOCKER_HUB_USERNAME }}/blender-web-api:latest
+          docker tag blender-web-api:latest ${{ secrets.DOCKER_HUB_USERNAME }}/blender-web-api:latest
           docker push ${{ secrets.DOCKER_HUB_USERNAME }}/blender-web-api:latest
