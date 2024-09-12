@@ -15,7 +15,7 @@ jobs:
 
       - name: Build Docker image
         run: |
-          docker build -t my-docker-image:latest .
+          docker build -t blender-web-api:latest .
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -25,5 +25,5 @@ jobs:
 
       - name: Push Docker image
         run: |
-          docker tag my-docker-image:latest ${{ secrets.DOCKER_HUB_USERNAME }}/my-docker-image:latest
-          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/my-docker-image:latest
+          docker tag my-docker-image:latest ${{ secrets.DOCKER_HUB_USERNAME }}/blender-web-api:latest
+          docker push ${{ secrets.DOCKER_HUB_USERNAME }}/blender-web-api:latest
