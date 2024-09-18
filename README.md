@@ -34,7 +34,14 @@ kubectl port-forward svc/blender-web-api-service 8000:80
 
 ## MiniKube Tunnel (Ingress)
 
-1. Add the following line to the `C:\Windows\System32\drivers\etc\hosts` file:
+1. Enable Ingress and Ingress-DNS:
+
+````bash
+minikube addons enable ingress
+minikube addons enable ingress-dns
+````
+
+2. Add the following line to the `C:\Windows\System32\drivers\etc\hosts` file:
 
 ````text
 127.0.0.1 blender.local
@@ -43,13 +50,18 @@ kubectl port-forward svc/blender-web-api-service 8000:80
 127.0.0.1 prometheus.local
 ````
 
-2. Run this command to enable the MiniKube tunnel:
+3. Run this command to enable the MiniKube tunnel:
 
 ````bash
 minikube tunnel
 ````
 
+4. Visit the following URLs:
 
+- [Blender WebAPI](http://blender.local)
+- [Minio](https://minio.local)
+- [Grafana](https://grafana.local)
+- [Prometheus](https://prometheus.local)
 
 # Running Docker Compose
 

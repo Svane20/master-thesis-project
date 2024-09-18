@@ -28,6 +28,12 @@ s3_client = boto3.client(
 def get_minio_files(bucket_name: str = MINIO_BUCKET_BLENDER) -> Dict[str, Any]:
     """Get a list of files in the MinIO bucket."""
     try:
+        # Ensure the bucket exists or create it
+        if not bucket_exists(bucket_name):
+            logger.info(f"Bucket {bucket_name} does not exist. Creating bucket.")
+            s3_client.create_bucket(Bucket=bucket_name)
+
+        # List objects in the bucket
         response = s3_client.list_objects_v2(Bucket=bucket_name)
         if 'Contents' not in response:
             return {"status": "success", "files": []}
