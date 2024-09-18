@@ -1,5 +1,7 @@
 from typing import Dict, Any
 import logging
+import os
+from dotenv import load_dotenv
 
 import boto3
 from fastapi import UploadFile
@@ -8,13 +10,19 @@ from fastapi import UploadFile
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
+if os.getenv('ENVIRONMENT') == 'PROD':
+    load_dotenv('.env.prod')
+else:
+    load_dotenv('.env.dev')
+
 # Minio Configuration
-# MINIO_ENDPOINT = "http://127.0.0.1:9000"
-MINIO_ENDPOINT = "http://minio.minio:9000"
+MINIO_ENDPOINT = os.getenv('MINIO_URL')
 MINIO_ACCESS_KEY = "minioadmin"
 MINIO_SECRET_KEY = "minioadmin"
 MINIO_BUCKET_BLENDER = "blender-files"
 MINIO_BUCKET_IMAGES = "rendered-images"
+
+print(f'Minio url: {MINIO_ENDPOINT}')
 
 # Initialize MinIO client using boto3
 s3_client = boto3.client(
