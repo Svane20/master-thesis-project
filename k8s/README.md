@@ -75,3 +75,17 @@ helm install prometheus prometheus-community/prometheus --namespace monitoring -
 ```bash
 helm install grafana grafana/grafana --namespace monitoring --create-namespace
 ```
+
+# Blender WebAPI
+
+## Deploy
+
+```bash
+kubectl apply -f web-service.yaml
+```
+
+## Upgrade
+
+```bash
+kubectl rollout restart deployment blender-web-api
+```
