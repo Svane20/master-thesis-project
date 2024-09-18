@@ -14,6 +14,9 @@ data:
       filename: /var/flamenco/output/flamenco-manager.db
     jobs:
       output_dir: /var/flamenco/output
+    shared_storage_path: /var/flamenco/output  # <--- Update this path
+    shaman:
+      enabled: false  # Disable Shaman unless you want job isolation
 ---
 apiVersion: apps/v1
 kind: Deployment

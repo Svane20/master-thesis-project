@@ -18,7 +18,7 @@ metadata:
   labels:
     app: flamenco-worker
 spec:
-  replicas: 3 # You can adjust this to scale workers
+  replicas: 1
   selector:
     matchLabels:
       app: flamenco-worker
@@ -32,7 +32,7 @@ spec:
           image: svane222/flamenco-worker:latest
           resources:
             limits:
-              memory: "4Gi"
+              memory: "1Gi"
               cpu: "2000m"
           volumeMounts:
             - name: flamenco-output
