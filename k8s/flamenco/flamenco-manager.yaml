@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flamenco-manager-config
+  namespace: flamenco
+data:
+  config.yaml: |
+    webserver:
+      host: 0.0.0.0
+      port: 8080
+      flamenco_url: http://flamenco-manager.flamenco:8080
+    database:
+      type: sqlite3
+      filename: /var/flamenco/output/flamenco-manager.db
+    jobs:
+      output_dir: /var/flamenco/output
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flamenco-manager
+  namespace: flamenco
+  labels:
+    app: flamenco-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flamenco-manager
+  template:
+    metadata:
+      labels:
+        app: flamenco-manager
+    spec:
+      containers:
+        - name: flamenco-manager
+          image: svane222/flamenco-manager:latest
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: flamenco-output
+              mountPath: /var/flamenco/output
+            - name: flamenco-config
+              mountPath: /opt/flamenco/config.yaml
+              subPath: config.yaml
+      volumes:
+        - name: flamenco-output
+          persistentVolumeClaim:
+            claimName: flamenco-storage
+        - name: flamenco-config
+          configMap:
+            name: flamenco-manager-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: flamenco-manager
+  namespace: flamenco
+spec:
+  selector:
+    app: flamenco-manager
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP
