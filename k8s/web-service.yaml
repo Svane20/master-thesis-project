@@ -18,6 +18,9 @@ spec:
         - name: blender-web-api
           image: svane222/blender-web-api:latest
           imagePullPolicy: Always
+          env:
+            - name: ENVIRONMENT
+              value: "PROD"
           ports:
             - containerPort: 8000
 ---
