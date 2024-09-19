@@ -130,10 +130,10 @@ def setup_outputs(
     output_file_node.base_path = output_dir.as_posix()
 
     if render_image:
-        setup_image_render(node_tree, render_layers, output_file_node)
+        setup_image_file_slot(node_tree, render_layers, output_file_node)
 
 
-def setup_image_render(
+def setup_image_file_slot(
         node_tree: bpy.types.CompositorNodeTree,
         render_layers: bpy.types.CompositorNodeRLayers,
         output_file_node: bpy.types.CompositorNodeOutputFile,
