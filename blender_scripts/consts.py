@@ -17,6 +17,8 @@ class Constants:
         CONFIG_DIR: Path = BASE_DIR / "configs"
         CONFIG_PATH: Path = CONFIG_DIR / "config.json"
 
+        TEMP_DIR: Path = BASE_DIR / "tmp"
+
         OUTPUT_DIR: Path = BASE_DIR / "output"
         OUTPUT_PATH: Path = OUTPUT_DIR / "output.png"
 

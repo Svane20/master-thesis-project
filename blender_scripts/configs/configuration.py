@@ -23,7 +23,7 @@ class CameraConfiguration(BaseModel):
 class RenderConfiguration(BaseModel):
     gpu_indices: List[int] = [0, 2]
     render: RenderType = RenderType.Cycles
-    tmp_folder: str = "tmp"
+    tmp_folder: str = Constants.Directory.TEMP_DIR.as_posix()
     n_cycles: int = 128
 
     camera_cull_margin: float = 1.0

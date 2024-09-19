@@ -130,14 +130,14 @@ def setup_outputs(
     output_file_node.base_path = output_dir.as_posix()
 
     if render_image:
-        output_file_node = setup_image_render(node_tree, render_layers, output_file_node)
+        setup_image_render(node_tree, render_layers, output_file_node)
 
 
 def setup_image_render(
         node_tree: bpy.types.CompositorNodeTree,
         render_layers: bpy.types.CompositorNodeRLayers,
         output_file_node: bpy.types.CompositorNodeOutputFile,
-) -> bpy.types.CompositorNodeTree:
+) -> None:
     image_name_const = RenderingConstants.NodeTree.FileSlots.IMAGE
 
     output_file_node.file_slots.new(image_name_const)
@@ -150,8 +150,6 @@ def setup_image_render(
 
     image_output = render_layers.outputs.get(image_name_const)
     _ = node_tree.links.new(image_output, output_file_node.inputs[image_name_const])
-
-    return output_file_node
 
 
 def setup_cuda(render_configuration: RenderConfiguration) -> None:

@@ -50,14 +50,12 @@ def save_blend_file(path: Path) -> None:
         bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
-def save_image_file(path: Path) -> None:
+def save_image_file(directory_path: Path = Constants.Directory.OUTPUT_DIR) -> None:
     """Saves the current render as an image file."""
     try:
         # Ensure the directory exists
-        path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        bpy.context.scene.render.filepath = str(path)
+        directory_path = Path(directory_path)
+        directory_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Render and save the image
         bpy.ops.render.render(write_still=True)
