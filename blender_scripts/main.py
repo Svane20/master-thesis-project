@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import bpy
 
 from consts import Constants
