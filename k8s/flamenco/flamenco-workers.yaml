@@ -25,6 +25,11 @@ spec:
             limits:
               memory: "1Gi"
               cpu: "1000m"
+          env:
+            - name: FLAMENCO_MANAGER_URL
+              value: "http://flamenco-manager:8080"
+            - name: FLAMENCO_JOB_STORAGE
+              value: "/var/flamenco/output"
           volumeMounts:
             - name: flamenco-output
               mountPath: /var/flamenco/output
