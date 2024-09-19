@@ -1,6 +1,5 @@
 import bpy
 
-from consts import Constants
 from main import setup
 from utils import save_image_file
 
