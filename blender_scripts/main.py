@@ -1,8 +1,9 @@
 import bpy
 
-from consts import CONFIG_PATH, OUTPUT_PATH
+from consts import CONFIG_PATH, OUTPUT_PATH, BLENDER_FILES_PATH
 from rendering import setup_rendering
 from settings import Settings, save_settings, load_settings, RenderType
+from utils import save_blend_file
 
 
 def clear_cube() -> None:
@@ -30,4 +31,4 @@ setup_rendering(
     world_size=int(terrain_settings.world_size)
 )
 
-# bpy.ops.render.render(write_still=True)
+save_blend_file(path=BLENDER_FILES_PATH)

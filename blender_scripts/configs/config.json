@@ -18,5 +18,10 @@
         "camera_fov_std_deg": 10,
         "image_width": 2048,
         "image_height": 2048
+    },
+    "terrain": {
+        "world_size": 100,
+        "image_size": 2048,
+        "prob_of_trees": 0.25
     }
 }
