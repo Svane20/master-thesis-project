@@ -4,19 +4,46 @@ metadata:
   name: flamenco-manager-config
   namespace: flamenco
 data:
-  config.yaml: |
-    webserver:
-      host: 0.0.0.0
-      port: 8080
-      flamenco_url: http://flamenco-manager.flamenco:8080
-    database:
-      type: sqlite3
-      filename: /var/flamenco/output/flamenco-manager.db
-    jobs:
-      output_dir: /var/flamenco/output
-    shared_storage_path: /var/flamenco/output  # <--- Update this path
+  flamenco-manager.yaml: |
+    _meta:
+      version: 3
+    manager_name: Flamenco
+    database: /var/flamenco/output/flamenco-manager.sqlite
+    database_check_period: 10m0s
+    listen: :8080
+    autodiscoverable: true
+    local_manager_storage_path: /var/flamenco/output/flamenco-manager-storage
+    shared_storage_path: /var/flamenco/output
     shaman:
-      enabled: false  # Disable Shaman unless you want job isolation
+      enabled: false
+    task_timeout: 10m0s
+    worker_timeout: 1m0s
+    blocklist_threshold: 3
+    task_fail_after_softfail_count: 3
+    mqtt:
+      client:
+        broker: ""
+        clientID: flamenco
+        topic_prefix: flamenco
+        username: ""
+        password: ""
+    variables:
+      blender:
+        values:
+          - audience: all
+            platform: linux
+            value: blender
+          - audience: all
+            platform: windows
+            value: blender.exe
+          - audience: all
+            platform: darwin
+            value: blender
+      blenderArgs:
+        values:
+          - audience: all
+            platform: all
+            value: -b -y
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -44,8 +71,8 @@ spec:
             - name: flamenco-output
               mountPath: /var/flamenco/output
             - name: flamenco-config
-              mountPath: /opt/flamenco/config.yaml
-              subPath: config.yaml
+              mountPath: /opt/flamenco/flamenco-manager.yaml
+              subPath: flamenco-manager.yaml
       volumes:
         - name: flamenco-output
           persistentVolumeClaim:
