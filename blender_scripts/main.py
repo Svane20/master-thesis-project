@@ -15,7 +15,7 @@ def clear_cube() -> None:
         bpy.ops.object.delete()
 
 
-def setup(output_dir: Path = Constants.Directory.OUTPUT_DIR) -> None:
+def setup(output_name: str = None) -> None:
     clear_cube()
 
     # Save the existing settings
@@ -30,7 +30,7 @@ def setup(output_dir: Path = Constants.Directory.OUTPUT_DIR) -> None:
     setup_rendering(
         render_configuration=configuration.render_configuration,
         camera_configuration=configuration.camera_configuration,
-        output_dir=output_dir,
+        output_name=output_name,
         render_object_index=True,
         world_size=int(terrain_configuration.world_size)
     )

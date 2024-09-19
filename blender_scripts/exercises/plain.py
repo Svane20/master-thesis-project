@@ -4,8 +4,6 @@ from consts import Constants
 from main import setup
 from utils import save_image_file
 
-OUTPUT_DIR = Constants.Directory.OUTPUT_DIR / "plain"
-
 def remove_default_objects() -> None:
     bpy.ops.object.select_all(action='DESELECT')
     bpy.ops.object.select_by_type(type='MESH')
@@ -13,7 +11,7 @@ def remove_default_objects() -> None:
 
 
 def main() -> None:
-    setup(OUTPUT_DIR)
+    setup(output_name="plain")
 
     remove_default_objects()
 

@@ -57,6 +57,7 @@ def setup_rendering(
         render_configuration: RenderConfiguration,
         camera_configuration: CameraConfiguration,
         output_dir: Path = Constants.Directory.OUTPUT_DIR,
+        output_name: str = None,
         render_image: bool = True,
         render_object_index: bool = True,
         render_material_index: bool = False,
@@ -93,6 +94,7 @@ def setup_rendering(
         render_normal=render_normal,
         render_mist=render_mist,
         output_dir=output_dir,
+        output_name=output_name,
         world_size=world_size,
     )
 
@@ -106,6 +108,7 @@ def setup_outputs(
         render_normal: bool = True,
         world_size: int = 100,
         output_dir: Path = Constants.Directory.OUTPUT_DIR,
+        output_name: str = None
 ) -> None:
     """Sets up the render outputs for the Blender scene."""
     scene = bpy.context.scene
@@ -130,13 +133,14 @@ def setup_outputs(
     output_file_node.base_path = output_dir.as_posix()
 
     if render_image:
-        setup_image_file_slot(node_tree, render_layers, output_file_node)
+        setup_image_file_slot(node_tree, render_layers, output_file_node, output_name)
 
 
 def setup_image_file_slot(
         node_tree: bpy.types.CompositorNodeTree,
         render_layers: bpy.types.CompositorNodeRLayers,
         output_file_node: bpy.types.CompositorNodeOutputFile,
+        output_name: str
 ) -> None:
     """Sets up the file output node for the image render pass."""
     image_name_const = RenderingConstants.NodeTree.FileSlots.IMAGE
@@ -149,7 +153,11 @@ def setup_image_file_slot(
     image_file_slot.use_node_format = False
     image_file_slot.format.file_format = RenderingConstants.ImageSettings.FILE_FORMAT
     image_file_slot.format.color_mode = RenderingConstants.ImageSettings.COLOR_MODE
-    image_file_slot.path = image_name_const
+
+    if output_name is not None:
+        image_file_slot.path = output_name
+    else:
+        image_file_slot.path = image_name_const
 
     # Get the image output from the render layers
     image_output = render_layers.outputs.get(image_name_const)
