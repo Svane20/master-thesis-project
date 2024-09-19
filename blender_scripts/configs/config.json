@@ -1,5 +1,5 @@
 {
-    "render_settings": {
+    "render_configuration": {
         "gpu_indices": [
             0,
             2
@@ -13,14 +13,14 @@
         "shadow_ray_count": 4,
         "shadow_step_count": 12
     },
-    "camera_settings": {
+    "camera_configuration": {
         "camera_fov_mu_deg": 60.0,
         "camera_fov_std_deg": 10,
         "image_width": 2048,
         "image_height": 2048
     },
-    "terrain": {
-        "world_size": 100,
+    "terrain_configuration": {
+        "world_size": 100.0,
         "image_size": 2048,
         "prob_of_trees": 0.25
     }

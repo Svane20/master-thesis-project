@@ -1,9 +1,9 @@
 import bpy
 
-from consts import CONFIG_PATH, OUTPUT_PATH, BLENDER_FILES_PATH
-from rendering import setup_rendering
-from settings import Settings, save_settings, load_settings, RenderType
-from utils import save_blend_file
+from consts import Constants
+from rendering.rendering import setup_rendering, set_noise_threshold
+from configs.configuration import Configuration, save_configuration, load_configuration
+from utils import save_blend_file, open_blend_file_in_blender
 
 
 def clear_cube() -> None:
@@ -13,22 +13,29 @@ def clear_cube() -> None:
         bpy.ops.object.delete()
 
 
-clear_cube()
+def main() -> None:
+    clear_cube()
 
-# Save the existing settings
-settings = Settings()
-save_settings(settings.model_dump(), CONFIG_PATH)
+    # Save the existing settings
+    configuration = Configuration()
+    save_configuration(configuration=configuration.model_dump(), path=Constants.Directory.CONFIG_PATH)
 
-# Load settings
-config = load_settings(CONFIG_PATH)
-settings = Settings(**config)
-terrain_settings = settings.terrain
+    # Load settings
+    config = load_configuration(path=Constants.Directory.CONFIG_PATH)
+    configuration = Configuration(**config)
+    terrain_configuration = configuration.terrain_configuration
 
-setup_rendering(
-    settings.render_settings,
-    settings.camera_settings,
-    render_object_index=True,
-    world_size=int(terrain_settings.world_size)
-)
+    setup_rendering(
+        render_configuration=configuration.render_configuration,
+        camera_configuration=configuration.camera_configuration,
+        render_object_index=True,
+        world_size=int(terrain_configuration.world_size)
+    )
+    set_noise_threshold(Constants.Default.NOISE_THRESHOLD)
 
-save_blend_file(path=BLENDER_FILES_PATH)
+    save_blend_file(path=Constants.Directory.BLENDER_FILES_PATH)
+    # open_blend_file_in_blender(blender_file=Constants.Directory.BLENDER_FILES_PATH)
+
+
+if __name__ == "__main__":
+    main()

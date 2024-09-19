@@ -1,10 +1,67 @@
 import bpy
+import shutil
+import subprocess
 
-def save_blend_file(path: str) -> None:
+from pathlib import Path
+
+from consts import Constants
+
+BLENDER_EXECUTABLE = shutil.which("blender")
+
+if BLENDER_EXECUTABLE is None:
+    print("Blender executable not found")
+    raise SystemExit("Blender executable not found. Ensure Blender is installed and accessible in the system PATH.")
+
+
+def open_blend_file_in_blender(blender_file: Path) -> None:
+    """Opens a .blend file."""
+    try:
+        result = subprocess.run(
+            [
+                BLENDER_EXECUTABLE,
+                blender_file,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+
+        print(f"Blender rendering completed successfully. Output: {result.stdout}")
+        if result.stderr:
+            print(f"Blender rendering errors: {result.stderr}")
+    except subprocess.CalledProcessError as e:
+        print(f"Blender rendering failed: {e.stderr}")
+    except Exception as e:
+        print(f"An error occurred while running the Blender process: {e}")
+
+
+def save_blend_file(path: Path) -> None:
     """Saves the current Blender scene as a .blend file."""
-    bpy.ops.wm.save_as_mainfile(filepath=path)
-    print(f"File saved successfully to {path}")
+    try:
+        # Ensure the directory exists
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
-def save_image_file() -> None:
-    """Saves the current Blender scene as a .png file."""
-    bpy.ops.render.render(write_still=True)
+        bpy.ops.wm.save_as_mainfile(filepath=str(path))
+    except Exception as e:
+        print(f"Failed to save blend file: {e}")
+    finally:
+        bpy.ops.wm.read_factory_settings(use_empty=True)
+
+
+def save_image_file(path: Path) -> None:
+    """Saves the current render as an image file."""
+    try:
+        # Ensure the directory exists
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+
+        bpy.context.scene.render.filepath = str(path)
+
+        # Render and save the image
+        bpy.ops.render.render(write_still=True)
+    except Exception as e:
+        print(f"Failed to save image file: {e}")
+    finally:
+        bpy.ops.wm.read_factory_settings(use_empty=True)

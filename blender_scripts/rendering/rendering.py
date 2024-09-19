@@ -1,0 +1,214 @@
+from pathlib import Path
+
+import bpy
+from consts import Constants
+from configs.configuration import RenderConfiguration, CameraConfiguration
+
+
+class RenderingConstants:
+    class Render:
+        SOLUTION_PERCENTAGE: int = 100
+        THREADS_MODE: str = "FIXED"
+        THREADS: int = 54
+
+    class ImageSettings:
+        FILE_FORMAT: str = "PNG"
+        COLOR_MODE: str = "RGBA"
+        COMPRESSION: int = 0
+
+    class Scene:
+        CYCLES_FEATURE_SET: str = "SUPPORTED"
+        CYCLES_DEVICE: str = "GPU"
+        CYCLES_TILE_SIZE: int = 4096
+        CYCLES_TIME_LIMIT: int = 240
+        VIEW_SETTINGS_VIEW_TRANSFORM: str = "Khronos PBR Neutral"
+
+    class Preferences:
+        COMPUTE_DEVICE_TYPE: str = "CUDA"
+
+    class NodeTree:
+        RENDER_LAYERS: str = "Render Layers"
+        COMPOSITOR_NODE_OUTPUT_FILE: str = "CompositorNodeOutputFile"
+        FILE_OUTPUT: str = "File Output"
+
+        class FileSlots:
+            IMAGE: str = "Image"
+            OBJECT_INDEX: str = "Object Index"
+            MATERIAL_INDEX: str = "Material Index"
+            DEPTH: str = "Depth"
+            NORMAL: str = "Normal"
+            MIST: str = "Mist"
+
+
+def set_noise_threshold(noise_threshold: float = Constants.Default.NOISE_THRESHOLD) -> None:
+    """Sets the noise threshold for adaptive sampling in the Cycles engine."""
+    cycles = bpy.context.scene.cycles
+
+    if noise_threshold > 0:
+        cycles.use_adaptive_sampling = True
+        cycles.adaptive_threshold = noise_threshold
+    else:
+        cycles.use_adaptive_sampling = False
+
+    cycles.time_limit = RenderingConstants.Scene.CYCLES_TIME_LIMIT
+
+
+def setup_rendering(
+        render_configuration: RenderConfiguration,
+        camera_configuration: CameraConfiguration,
+        output_dir: Path = Constants.Directory.OUTPUT_DIR,
+        render_image: bool = True,
+        render_object_index: bool = True,
+        render_material_index: bool = False,
+        render_depth: bool = False,
+        render_mist: bool = False,
+        render_normal: bool = False,
+        world_size: int = Constants.Default.WORLD_SIZE,
+) -> None:
+    """Sets up rendering configuration in Blender using the provided settings."""
+    scene = bpy.context.scene
+    render = scene.render
+    cycles = scene.cycles
+
+    # Render configuration
+    render.engine = render_configuration.render.value
+    render.resolution_x = int(camera_configuration.image_width)
+    render.resolution_y = int(camera_configuration.image_height)
+
+    # Cycles configuration
+    cycles.camera_cull_margin = render_configuration.camera_cull_margin
+    cycles.distance_cull_margin = render_configuration.distance_cull_margin
+    cycles.use_camera_cull = True
+    cycles.use_distance_cull = True
+
+    # Setup CUDA if applicable
+    setup_cuda(render_configuration)
+
+    # Output configuration
+    setup_outputs(
+        render_image=render_image,
+        render_object_index=render_object_index,
+        render_material_index=render_material_index,
+        render_depth=render_depth,
+        render_normal=render_normal,
+        render_mist=render_mist,
+        output_dir=output_dir,
+        world_size=world_size,
+    )
+
+
+def setup_outputs(
+        render_image: bool = True,
+        render_object_index: bool = True,
+        render_material_index: bool = True,
+        render_mist: bool = True,
+        render_depth: bool = True,
+        render_normal: bool = True,
+        world_size: int = 100,
+        output_dir: Path = Constants.Directory.OUTPUT_DIR,
+) -> None:
+    """Sets up the render outputs for the Blender scene."""
+    scene = bpy.context.scene
+    view_layer = scene.view_layers[0]
+
+    # Configure view layer passes
+    view_layer.use_pass_object_index = render_object_index
+    view_layer.use_pass_material_index = render_material_index
+    view_layer.use_pass_normal = render_normal
+    view_layer.use_pass_z = render_depth
+
+    # Configure scene settings
+    scene.render.use_persistent_data = True
+    scene.use_nodes = True
+
+    node_tree = scene.node_tree
+    render_layers = node_tree.nodes.get(RenderingConstants.NodeTree.RENDER_LAYERS)
+
+    node_tree.nodes.new(type=RenderingConstants.NodeTree.COMPOSITOR_NODE_OUTPUT_FILE)
+    output_file_node = node_tree.nodes.get(RenderingConstants.NodeTree.FILE_OUTPUT)
+    output_file_node.inputs.clear()
+    output_file_node.base_path = output_dir.as_posix()
+
+    if render_image:
+        output_file_node = setup_image_render(node_tree, render_layers, output_file_node)
+
+
+def setup_image_render(
+        node_tree: bpy.types.CompositorNodeTree,
+        render_layers: bpy.types.CompositorNodeRLayers,
+        output_file_node: bpy.types.CompositorNodeOutputFile,
+) -> bpy.types.CompositorNodeTree:
+    image_name_const = RenderingConstants.NodeTree.FileSlots.IMAGE
+
+    output_file_node.file_slots.new(image_name_const)
+    image_file_slot = output_file_node.file_slots[image_name_const]
+
+    image_file_slot.use_node_format = False
+    image_file_slot.format.file_format = RenderingConstants.ImageSettings.FILE_FORMAT
+    image_file_slot.format.color_mode = RenderingConstants.ImageSettings.COLOR_MODE
+    image_file_slot.path = image_name_const
+
+    image_output = render_layers.outputs.get(image_name_const)
+    _ = node_tree.links.new(image_output, output_file_node.inputs[image_name_const])
+
+    return output_file_node
+
+
+def setup_cuda(render_configuration: RenderConfiguration) -> None:
+    """Configures CUDA settings for the rendering process."""
+    scene = bpy.data.scenes["Scene"]
+    render = scene.render
+
+    # General Render configuration
+    configure_render_settings(render)
+    configure_cycles_settings(render_configuration)
+
+    preferences = bpy.context.preferences.addons[render.engine.lower()].preferences
+    configure_cuda_devices(render_configuration, preferences)
+
+
+def configure_render_settings(render: bpy.types.RenderSettings) -> None:
+    """Configures general render settings."""
+    render.resolution_percentage = RenderingConstants.Render.SOLUTION_PERCENTAGE
+    render.image_settings.file_format = RenderingConstants.ImageSettings.FILE_FORMAT
+    render.use_border = True
+    render.use_persistent_data = True
+    render.threads_mode = RenderingConstants.Render.THREADS_MODE
+    render.threads = RenderingConstants.Render.THREADS
+    render.image_settings.compression = RenderingConstants.ImageSettings.COMPRESSION
+
+
+def configure_cycles_settings(render_configuration: RenderConfiguration) -> None:
+    """Configures Cycles-specific settings."""
+    cycles = bpy.context.scene.cycles
+    cycles.feature_set = RenderingConstants.Scene.CYCLES_FEATURE_SET
+    cycles.device = RenderingConstants.Scene.CYCLES_DEVICE
+    cycles.tile_size = RenderingConstants.Scene.CYCLES_TILE_SIZE
+    cycles.samples = max(1, render_configuration.n_cycles)
+    cycles.use_denoising = True
+    cycles.denoising_use_gpu = True
+
+    bpy.context.scene.view_settings.view_transform = RenderingConstants.Scene.VIEW_SETTINGS_VIEW_TRANSFORM
+
+
+def configure_cuda_devices(
+        render_configuration: RenderConfiguration,
+        preferences: bpy.types.AddonPreferences,
+) -> None:
+    """Configures CUDA devices based on the render configuration."""
+    preferences.compute_device_type = RenderingConstants.Preferences.COMPUTE_DEVICE_TYPE
+
+    devices = preferences.get_devices() or preferences.devices
+    assert devices is not None, "No CUDA devices found"
+
+    # Disable all devices first
+    for device in devices:
+        device.use = False
+
+    # Enable the specified devices
+    for index in render_configuration.gpu_indices:
+        devices[index].use = True
+
+    # Ensure at least one device is used
+    if not any(device.use for device in devices):
+        devices[-1].use = True
