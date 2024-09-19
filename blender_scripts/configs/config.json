@@ -1,11 +1,11 @@
 {
-    "render_settings": {
+    "render_configuration": {
         "gpu_indices": [
             0,
             2
         ],
         "render": "CYCLES",
-        "tmp_folder": "tmp",
+        "tmp_folder": "C:/Users/svane/Desktop/master-thesis-project/blender_scripts/tmp",
         "n_cycles": 128,
         "camera_cull_margin": 1.0,
         "distance_cull_margin": 200.0,
@@ -13,10 +13,15 @@
         "shadow_ray_count": 4,
         "shadow_step_count": 12
     },
-    "camera_settings": {
+    "camera_configuration": {
         "camera_fov_mu_deg": 60.0,
         "camera_fov_std_deg": 10,
         "image_width": 2048,
         "image_height": 2048
+    },
+    "terrain_configuration": {
+        "world_size": 100.0,
+        "image_size": 2048,
+        "prob_of_trees": 0.25
     }
 }
