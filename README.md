@@ -45,7 +45,8 @@ minikube addons enable ingress-dns
 
 ````text
 127.0.0.1 blender.local
-127.0.0.1 minio.local
+127.0.0.1 flamenco-manager.local
+127.0.0.1 minio-console.local
 127.0.0.1 grafana.local
 127.0.0.1 prometheus.local
 ````
@@ -59,7 +60,8 @@ minikube tunnel
 4. Visit the following URLs:
 
 - [Blender WebAPI](http://blender.local)
-- [Minio](https://minio.local)
+- [Flamenco Manager](https://flamenco-manager.local)
+- [Minio Console](https://minio-console.local)
 - [Grafana](https://grafana.local)
 - [Prometheus](https://prometheus.local)
 

@@ -22,8 +22,6 @@ MINIO_SECRET_KEY = "minioadmin"
 MINIO_BUCKET_BLENDER = "blender-files"
 MINIO_BUCKET_IMAGES = "rendered-images"
 
-print(f'Minio url: {MINIO_ENDPOINT}')
-
 # Initialize MinIO client using boto3
 s3_client = boto3.client(
     's3',
