@@ -16,11 +16,13 @@ ENV BLENDER_VERSION_PREFIX=4.1
 WORKDIR /tmp
 RUN wget https://download.blender.org/release/Blender${BLENDER_VERSION_PREFIX}/blender-${BLENDER_VERSION}-linux-x64.tar.xz -O blender.tar.xz && \
     tar -xf blender.tar.xz && \
-    mv blender-${BLENDER_VERSION}-linux-x64 blender
+    mv blender-${BLENDER_VERSION}-linux-x64 blender && \
+    rm blender.tar.xz
 
 # Download and extract the precompiled Flamenco package (manager and worker)
 RUN wget https://flamenco.blender.org/downloads/flamenco-3.5-linux-amd64.tar.gz -O flamenco.tar.gz && \
-    tar -xzf flamenco.tar.gz
+    tar -xzf flamenco.tar.gz && \
+    rm flamenco.tar.gz
 
 # Stage 2: Final image
 FROM ubuntu:22.04
@@ -50,11 +52,8 @@ COPY --from=downloader /tmp/blender /opt/blender
 # Copy Flamenco files from the downloader stage
 COPY --from=downloader /tmp/flamenco-3.5-linux-amd64 /opt/flamenco
 
-# Copy Blender Flamenco add-on from the local context (make sure this file is in the same directory as your Dockerfile)
+# Copy Blender Flamenco add-on from the local context
 COPY flamenco-addon.zip /opt/flamenco-addon.zip
-
-# Install Flamenco add-on into Blender
-RUN mkdir -p /root/.config/blender/${BLENDER_VERSION}/scripts/addons
 
 # Create a symbolic link to make Blender available globally
 RUN ln -s /opt/blender/blender /usr/bin/blender
@@ -70,7 +69,7 @@ RUN blender --background --python-expr "import bpy; bpy.ops.preferences.addon_in
 RUN blender --background --python-expr "import bpy; print('Installed add-ons:', bpy.context.preferences.addons.keys())"
 
 # Clean up unnecessary files from Flamenco installation
-RUN rm -rf /opt/flamenco/{CHANGELOG.md,README.md,LICENSE}
+RUN rm /opt/flamenco-addon.zip && rm -rf /opt/flamenco/{CHANGELOG.md,README.md,LICENSE}
 
 # Set the working directory for Flamenco Worker
 WORKDIR /opt/flamenco
