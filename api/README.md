@@ -43,3 +43,10 @@ fastapi run main.py
 ### API Documentation
 
 Open the browser and navigate to [localhost:8000/docs](http://localhost:8000/docs) to access the API documentation.
+
+## Running Kubernetes services locally
+
+````bash
+kubectl port-forward svc/minio -n minio 9000:9000
+kubectl port-forward svc/flamenco-manager -n flamenco 8080:8080
+````

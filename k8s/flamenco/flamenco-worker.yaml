@@ -1,3 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: flamenco-worker-config
+  namespace: flamenco
+data:
+  flamenco-worker.yaml: |
+    manager_url: http://flamenco-manager:8080/
+    task_types: [blender, ffmpeg, file-management, misc]
+    restart_exit_code: 47
+
+    # Linux only
+    oom_score_adjust: 500
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -33,7 +47,13 @@ spec:
           volumeMounts:
             - name: flamenco-output
               mountPath: /var/flamenco/output
+            - name: flamenco-config
+              mountPath: /opt/flamenco/flamenco-worker.yaml
+              subPath: flamenco-worker.yaml
       volumes:
         - name: flamenco-output
           persistentVolumeClaim:
             claimName: flamenco-storage
+        - name: flamenco-config
+          configMap:
+            name: flamenco-worker-config
