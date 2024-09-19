@@ -1,0 +1,3 @@
+bpy~=4.2.0
+fake-bpy-module-latest~=20240919
+pydantic~=2.8.2
