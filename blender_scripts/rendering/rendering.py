@@ -138,17 +138,26 @@ def setup_image_file_slot(
         render_layers: bpy.types.CompositorNodeRLayers,
         output_file_node: bpy.types.CompositorNodeOutputFile,
 ) -> None:
+    """Sets up the file output node for the image render pass."""
     image_name_const = RenderingConstants.NodeTree.FileSlots.IMAGE
 
+    # Create a new file slot for the image render pass
     output_file_node.file_slots.new(image_name_const)
     image_file_slot = output_file_node.file_slots[image_name_const]
 
+    # Configure the image file slot with custom format settings
     image_file_slot.use_node_format = False
     image_file_slot.format.file_format = RenderingConstants.ImageSettings.FILE_FORMAT
     image_file_slot.format.color_mode = RenderingConstants.ImageSettings.COLOR_MODE
     image_file_slot.path = image_name_const
 
+    # Get the image output from the render layers
     image_output = render_layers.outputs.get(image_name_const)
+    if image_output is None:
+        print(f"Render layer output '{image_name_const}' not found")
+        return
+
+    # Link the render layer image output to the file output node
     _ = node_tree.links.new(image_output, output_file_node.inputs[image_name_const])
 
 
