@@ -1,5 +1,7 @@
 import bpy
+from mathutils import Vector
 
+from camera import update_camera_position
 from main import setup
 from utils import save_image_file
 
@@ -17,10 +19,8 @@ def main() -> None:
     # 1. Add a plane to the scene
     bpy.ops.mesh.primitive_plane_add(size=3, enter_editmode=False, align='WORLD', location=(0, 0, 0))
 
-    # Step 2: Add a camera and set its position and rotation
-    bpy.ops.object.camera_add(location=(5, -5, 5), rotation=(1.1, 0, 0.8))
-    camera = bpy.context.object
-    bpy.context.scene.camera = camera
+    # Step 2: Update camera position
+    bpy.context.scene.camera = update_camera_position(location=Vector((0, -5, 5)))
 
     # Step 3: Add a light source
     bpy.ops.object.light_add(type='SUN', location=(10, -10, 10))
