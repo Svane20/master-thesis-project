@@ -223,12 +223,12 @@ def configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:
     for index in get_gpu_indices(devices):
         devices[index].use = True
 
-    # Ensure at least one device is used
+    # Ensure at least the primary device is enabled
     if not any(device.use for device in devices):
-        devices[-1].use = True
+        devices[0].use = True
 
 
-def get_gpu_indices(devices) -> List[int]:
+def get_gpu_indices(devices: List[bpy.types.bpy_prop_collection]) -> List[int]:
     """Returns the indices of the GPU devices."""
     num_devices = len(devices)
     if num_devices == 0:
