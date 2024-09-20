@@ -234,7 +234,7 @@ def get_gpu_indices(devices) -> List[int]:
     if num_devices == 0:
         return []
 
-    # Always include the primary device (GPU or CPU)
+    # Always include the primary device
     gpu_indices = [0]
 
     if num_devices > 2:
