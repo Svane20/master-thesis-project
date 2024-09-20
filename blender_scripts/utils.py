@@ -1,16 +1,14 @@
-from typing import Union
-
 import bpy
 import shutil
 import subprocess
 
+from typing import Union
 from pathlib import Path
 
 from configs.configuration import RenderConfiguration
 from consts import Constants
 
 BLENDER_EXECUTABLE = shutil.which("blender")
-
 if BLENDER_EXECUTABLE is None:
     print("Blender executable not found")
     raise SystemExit("Blender executable not found. Ensure Blender is installed and accessible in the system PATH.")
@@ -71,7 +69,7 @@ def save_image_file(directory_path: Path = Constants.Directory.OUTPUT_DIR) -> No
 def get_temporary_file_path(file_name: Union[str | None], render_configuration: RenderConfiguration) -> str:
     temp_dir = Path(render_configuration.tmp_folder)
 
-    path = temp_dir / (file_name or "temp")
+    path = temp_dir / (file_name or "render")
     path.parent.mkdir(parents=True, exist_ok=True)
 
     return path.as_posix()

@@ -45,7 +45,7 @@ class RenderingConstants:
 
 def set_noise_threshold(noise_threshold: float = Constants.Default.NOISE_THRESHOLD) -> None:
     """Sets the noise threshold for adaptive sampling in the Cycles engine."""
-    cycles = bpy.context.scene.cycles
+    cycles: bpy.types.CyclesRenderSettings = bpy.context.scene.cycles
 
     if noise_threshold > 0:
         cycles.use_adaptive_sampling = True
@@ -70,9 +70,9 @@ def setup_rendering(
         world_size: int = Constants.Default.WORLD_SIZE,
 ) -> None:
     """Sets up rendering configuration in Blender using the provided settings."""
-    scene = bpy.context.scene
-    render = scene.render
-    cycles = scene.cycles
+    scene: bpy.types.Scene = bpy.context.scene
+    render: bpy.types.RenderSettings = scene.render
+    cycles: bpy.types.CyclesRenderSettings = scene.cycles
 
     # Render configuration
     render.engine = render_configuration.render.value
@@ -115,8 +115,8 @@ def setup_outputs(
         output_name: str = None
 ) -> None:
     """Sets up the render outputs for the Blender scene."""
-    scene = bpy.context.scene
-    view_layer = scene.view_layers[0]
+    scene: bpy.types.Scene = bpy.context.scene
+    view_layer: bpy.types.ViewLayer = scene.view_layers[0]
 
     # Configure view layer passes
     view_layer.use_pass_object_index = render_object_index
@@ -128,11 +128,16 @@ def setup_outputs(
     scene.render.use_persistent_data = True
     scene.use_nodes = True
 
-    node_tree = scene.node_tree
-    render_layers = node_tree.nodes.get(RenderingConstants.NodeTree.RENDER_LAYERS)
+    node_tree: bpy.types.NodeTree = scene.node_tree
+    nodes: bpy.types.Nodes = node_tree.nodes
+    render_layers: bpy.types.CompositorNodeRLayers = nodes.get(RenderingConstants.NodeTree.RENDER_LAYERS)
 
-    node_tree.nodes.new(type=RenderingConstants.NodeTree.COMPOSITOR_NODE_OUTPUT_FILE)
-    output_file_node = node_tree.nodes.get(RenderingConstants.NodeTree.FILE_OUTPUT)
+    nodes.new(type=RenderingConstants.NodeTree.COMPOSITOR_NODE_OUTPUT_FILE)
+    output_file_node: bpy.types.CompositorNodeOutputFile = nodes.get(RenderingConstants.NodeTree.FILE_OUTPUT)
+    if output_file_node is None:
+        print("Output file node not found")
+        return
+
     output_file_node.inputs.clear()
     output_file_node.base_path = output_dir.as_posix()
 
@@ -141,7 +146,7 @@ def setup_outputs(
 
 
 def setup_image_file_slot(
-        node_tree: bpy.types.CompositorNodeTree,
+        node_tree: bpy.types.NodeTree,
         render_layers: bpy.types.CompositorNodeRLayers,
         output_file_node: bpy.types.CompositorNodeOutputFile,
         output_name: str
@@ -151,7 +156,7 @@ def setup_image_file_slot(
 
     # Create a new file slot for the image render pass
     output_file_node.file_slots.new(image_name_const)
-    image_file_slot = output_file_node.file_slots[image_name_const]
+    image_file_slot: bpy.types.NodeOutputFileSlotFile = output_file_node.file_slots[image_name_const]
 
     # Configure the image file slot with custom format settings
     image_file_slot.use_node_format = False
@@ -164,7 +169,7 @@ def setup_image_file_slot(
         image_file_slot.path = image_name_const
 
     # Get the image output from the render layers
-    image_output = render_layers.outputs.get(image_name_const)
+    image_output: bpy.types.NodeSocket = render_layers.outputs.get(image_name_const)
     if image_output is None:
         print(f"Render layer output '{image_name_const}' not found")
         return
@@ -175,14 +180,14 @@ def setup_image_file_slot(
 
 def setup_cuda(render_configuration: RenderConfiguration) -> None:
     """Configures CUDA settings for the rendering process."""
-    scene = bpy.data.scenes[RenderingConstants.Scene.NAME]
-    render = scene.render
+    scene: bpy.types.Scene = bpy.data.scenes[RenderingConstants.Scene.NAME]
+    render: bpy.types.RenderSettings = scene.render
 
     # General Render configuration
     configure_render_settings(render)
     configure_cycles_settings(render_configuration)
 
-    preferences = bpy.context.preferences.addons[render.engine.lower()].preferences
+    preferences: bpy.types.CyclesPreferences = bpy.context.preferences.addons[render.engine.lower()].preferences
     configure_cuda_devices(preferences)
 
 
@@ -199,7 +204,7 @@ def configure_render_settings(render: bpy.types.RenderSettings) -> None:
 
 def configure_cycles_settings(render_configuration: RenderConfiguration) -> None:
     """Configures Cycles-specific settings."""
-    cycles = bpy.context.scene.cycles
+    cycles: bpy.types.CyclesRenderSettings = bpy.context.scene.cycles
     cycles.feature_set = RenderingConstants.Scene.CYCLES_FEATURE_SET
     cycles.device = RenderingConstants.Scene.CYCLES_DEVICE
     cycles.tile_size = RenderingConstants.Scene.CYCLES_TILE_SIZE
@@ -209,12 +214,12 @@ def configure_cycles_settings(render_configuration: RenderConfiguration) -> None
 
     bpy.context.scene.view_settings.view_transform = RenderingConstants.Scene.VIEW_SETTINGS_VIEW_TRANSFORM
 
-
+# bpy.types.CyclesPreferences is not supported as input type but is a subclass of bpy.types.AddonPreferences
 def configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:
     """Configures CUDA devices based on the render configuration."""
     preferences.compute_device_type = RenderingConstants.Preferences.COMPUTE_DEVICE_TYPE
 
-    devices = preferences.get_devices() or preferences.devices
+    devices: List[bpy.types.bpy_prop_collection] = preferences.get_devices() or preferences.devices
     assert devices is not None, "No CUDA devices found"
 
     # Disable all devices first
@@ -222,7 +227,7 @@ def configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:
         device.use = False
 
     # Enable the specified devices
-    for index in get_gpu_indices(devices):
+    for index in get_gpu_indices(devices, preferences.default_device()):
         devices[index].use = True
 
     # Ensure at least the primary device is enabled
@@ -230,14 +235,14 @@ def configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:
         devices[0].use = True
 
 
-def get_gpu_indices(devices: List[bpy.types.bpy_prop_collection]) -> List[int]:
+def get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_device: int) -> List[int]:
     """Returns the indices of the GPU devices."""
     num_devices = len(devices)
     if num_devices == 0:
         return []
 
     # Primary device
-    gpu_indices = [0]
+    gpu_indices = [default_device]
 
     if num_devices > 2:
         # If there are more than 2 devices, skip the second index (CPU)
