@@ -1,11 +1,7 @@
 {
     "render_configuration": {
-        "gpu_indices": [
-            0,
-            2
-        ],
         "render": "CYCLES",
-        "tmp_folder": "C:/Users/svane/Desktop/master-thesis-project/blender_scripts/tmp",
+        "tmp_folder": "C:/Users/ks/Desktop/master-thesis-project/blender_scripts/tmp",
         "n_cycles": 128,
         "camera_cull_margin": 1.0,
         "distance_cull_margin": 200.0,

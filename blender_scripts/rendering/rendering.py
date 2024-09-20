@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import List
 
 import bpy
 from consts import Constants
@@ -17,6 +18,7 @@ class RenderingConstants:
         COMPRESSION: int = 0
 
     class Scene:
+        NAME: str = "Scene"
         CYCLES_FEATURE_SET: str = "SUPPORTED"
         CYCLES_DEVICE: str = "GPU"
         CYCLES_TILE_SIZE: int = 4096
@@ -171,7 +173,7 @@ def setup_image_file_slot(
 
 def setup_cuda(render_configuration: RenderConfiguration) -> None:
     """Configures CUDA settings for the rendering process."""
-    scene = bpy.data.scenes["Scene"]
+    scene = bpy.data.scenes[RenderingConstants.Scene.NAME]
     render = scene.render
 
     # General Render configuration
@@ -179,7 +181,7 @@ def setup_cuda(render_configuration: RenderConfiguration) -> None:
     configure_cycles_settings(render_configuration)
 
     preferences = bpy.context.preferences.addons[render.engine.lower()].preferences
-    configure_cuda_devices(render_configuration, preferences)
+    configure_cuda_devices(preferences)
 
 
 def configure_render_settings(render: bpy.types.RenderSettings) -> None:
@@ -206,10 +208,7 @@ def configure_cycles_settings(render_configuration: RenderConfiguration) -> None
     bpy.context.scene.view_settings.view_transform = RenderingConstants.Scene.VIEW_SETTINGS_VIEW_TRANSFORM
 
 
-def configure_cuda_devices(
-        render_configuration: RenderConfiguration,
-        preferences: bpy.types.AddonPreferences,
-) -> None:
+def configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:
     """Configures CUDA devices based on the render configuration."""
     preferences.compute_device_type = RenderingConstants.Preferences.COMPUTE_DEVICE_TYPE
 
@@ -221,9 +220,25 @@ def configure_cuda_devices(
         device.use = False
 
     # Enable the specified devices
-    for index in render_configuration.gpu_indices:
+    for index in get_gpu_indices(devices):
         devices[index].use = True
 
     # Ensure at least one device is used
     if not any(device.use for device in devices):
         devices[-1].use = True
+
+
+def get_gpu_indices(devices) -> List[int]:
+    """Returns the indices of the GPU devices."""
+    num_devices = len(devices)
+    if num_devices == 0:
+        return []
+
+    # Always include the primary device (GPU or CPU)
+    gpu_indices = [0]
+
+    if num_devices > 2:
+        # If there are more than 2 devices, skip the second index (CPU)
+        gpu_indices.append(2)
+
+    return gpu_indices

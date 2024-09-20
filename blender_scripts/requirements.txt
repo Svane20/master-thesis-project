@@ -2,5 +2,5 @@ bpy~=4.2.0
 fake-bpy-module-latest
 pydantic~=2.8.2
 numpy~=2.1.1
-pillow~=10.4.0
-mathutils~=3.3.0
+pillow
+mathutils

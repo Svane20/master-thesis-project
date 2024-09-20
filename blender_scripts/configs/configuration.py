@@ -1,6 +1,6 @@
 from pathlib import Path
 from pydantic import BaseModel
-from typing import List, Union
+from typing import Union
 
 from enum import Enum
 import json
@@ -21,7 +21,6 @@ class CameraConfiguration(BaseModel):
 
 
 class RenderConfiguration(BaseModel):
-    gpu_indices: List[int] = [0, 2]
     render: RenderType = RenderType.Cycles
     tmp_folder: str = Constants.Directory.TEMP_DIR.as_posix()
     n_cycles: int = 128
