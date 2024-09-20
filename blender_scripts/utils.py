@@ -1,9 +1,12 @@
+from typing import Union
+
 import bpy
 import shutil
 import subprocess
 
 from pathlib import Path
 
+from configs.configuration import RenderConfiguration
 from consts import Constants
 
 BLENDER_EXECUTABLE = shutil.which("blender")
@@ -63,3 +66,12 @@ def save_image_file(directory_path: Path = Constants.Directory.OUTPUT_DIR) -> No
         print(f"Failed to save image file: {e}")
     finally:
         bpy.ops.wm.read_factory_settings(use_empty=True)
+
+
+def get_temporary_file_path(file_name: Union[str | None], render_configuration: RenderConfiguration) -> str:
+    temp_dir = Path(render_configuration.tmp_folder)
+
+    path = temp_dir / (file_name or "temp")
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    return path.as_posix()

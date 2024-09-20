@@ -4,6 +4,7 @@ from typing import List
 import bpy
 from consts import Constants
 from configs.configuration import RenderConfiguration, CameraConfiguration
+from utils import get_temporary_file_path
 
 
 class RenderingConstants:
@@ -75,6 +76,7 @@ def setup_rendering(
 
     # Render configuration
     render.engine = render_configuration.render.value
+    render.filepath = get_temporary_file_path(output_name, render_configuration)
     render.resolution_x = int(camera_configuration.image_width)
     render.resolution_y = int(camera_configuration.image_height)
 
