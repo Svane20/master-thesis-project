@@ -1,7 +1,7 @@
 import bpy
 from mathutils import Vector
 
-import math
+from math import radians
 
 from consts import Constants
 from rendering.camera import update_camera_position
@@ -62,7 +62,7 @@ def _add_house_elements() -> None:
     )
     roof = bpy.context.object
     roof.name = "Roof"
-    roof.rotation_euler = (0, 0, math.radians(45))
+    roof.rotation_euler = (0, 0, radians(45))
 
     # Add door
     bpy.ops.mesh.primitive_cube_add(size=0.5, enter_editmode=False, align='WORLD', location=(0, -1.01, 0.25))
@@ -107,7 +107,7 @@ def main() -> None:
     # Update camera position
     bpy.context.scene.camera = update_camera_position(
         location=Vector((0.0, -7.0, 2.0)),
-        rotation=Vector((math.radians(80), 0.0, 0.0))
+        rotation=Vector((radians(80), 0.0, 0.0))
     )
 
     # Add a light to the scene
