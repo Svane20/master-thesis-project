@@ -7,7 +7,7 @@ from consts import Constants
 from rendering.camera import update_camera_position
 from main import setup
 from rendering.light import create_light, LightType
-from utils import save_blend_file, open_blend_file_in_blender, save_image_file
+from utils import save_blend_file, open_blend_file_in_blender, save_image_file, run_blender_file
 
 
 def _remove_default_objects() -> None:
@@ -120,6 +120,7 @@ def main() -> None:
     # Save the blend file and open it in Blender
     # save_blend_file(path=Constants.Directory.BLENDER_FILES_PATH)
     # open_blend_file_in_blender(blender_file=Constants.Directory.BLENDER_FILES_PATH)
+    # run_blender_file(Constants.Directory.BLENDER_FILES_PATH)
 
     # Save the blend file as a PNG image
     save_image_file()

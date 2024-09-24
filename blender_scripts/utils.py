@@ -37,6 +37,38 @@ def open_blend_file_in_blender(blender_file: Path) -> None:
         print(f"An error occurred while running the Blender process: {e}")
 
 
+def run_blender_file(blender_file: Path) -> None:
+    """Runs a .blend file."""
+    try:
+        result = subprocess.run(
+            [
+                BLENDER_EXECUTABLE,
+                "--background",
+                blender_file,
+                "--render-output",
+                f"{Constants.Directory.OUTPUT_DIR}/output",
+                "--render-format",
+                "PNG",
+                "--use-extension",
+                "1",
+                "--render-frame",
+                "1",
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            check=True
+        )
+
+        print(f"Blender rendering completed successfully. Output: {result.stdout}")
+        if result.stderr:
+            print(f"Blender rendering errors: {result.stderr}")
+    except subprocess.CalledProcessError as e:
+        print(f"Blender rendering failed: {e.stderr}")
+    except Exception as e:
+        print(f"An error occurred while running the Blender process: {e}")
+
+
 def save_blend_file(path: Path) -> None:
     """Saves the current Blender scene as a .blend file."""
     try:
