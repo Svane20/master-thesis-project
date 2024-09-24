@@ -24,3 +24,7 @@ class Constants:
 
         BLENDER_FILES_DIR: Path = BASE_DIR / "blender_files"
         BLENDER_FILES_PATH: Path = BLENDER_FILES_DIR / "output.blend"
+
+        ASSETS_DIR: Path = BASE_DIR / "assets"
+        ASSETS_TEXTURES_DIR: Path = ASSETS_DIR / "textures"
+        ASSETS_TEXTURES_GRASS_DIR: Path = ASSETS_TEXTURES_DIR / "grass"

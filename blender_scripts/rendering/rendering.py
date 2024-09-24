@@ -87,10 +87,10 @@ def setup_rendering(
     cycles.use_distance_cull = True
 
     # Setup CUDA if applicable
-    setup_cuda(render_configuration)
+    _setup_cuda(render_configuration)
 
     # Output configuration
-    setup_outputs(
+    _setup_outputs(
         render_image=render_image,
         render_object_index=render_object_index,
         render_material_index=render_material_index,
@@ -103,7 +103,7 @@ def setup_rendering(
     )
 
 
-def setup_outputs(
+def _setup_outputs(
         render_image: bool = True,
         render_object_index: bool = True,
         render_material_index: bool = True,
@@ -142,10 +142,10 @@ def setup_outputs(
     output_file_node.base_path = output_dir.as_posix()
 
     if render_image:
-        setup_image_file_slot(node_tree, render_layers, output_file_node, output_name)
+        _setup_image_file_slot(node_tree, render_layers, output_file_node, output_name)
 
 
-def setup_image_file_slot(
+def _setup_image_file_slot(
         node_tree: bpy.types.NodeTree,
         render_layers: bpy.types.CompositorNodeRLayers,
         output_file_node: bpy.types.CompositorNodeOutputFile,
@@ -178,20 +178,20 @@ def setup_image_file_slot(
     _ = node_tree.links.new(image_output, output_file_node.inputs[image_name_const])
 
 
-def setup_cuda(render_configuration: RenderConfiguration) -> None:
+def _setup_cuda(render_configuration: RenderConfiguration) -> None:
     """Configures CUDA settings for the rendering process."""
     scene: bpy.types.Scene = bpy.data.scenes[RenderingConstants.Scene.NAME]
     render: bpy.types.RenderSettings = scene.render
 
     # General Render configuration
-    configure_render_settings(render)
-    configure_cycles_settings(render_configuration)
+    _configure_render_settings(render)
+    _configure_cycles_settings(render_configuration)
 
     preferences: bpy.types.CyclesPreferences = bpy.context.preferences.addons[render.engine.lower()].preferences
-    configure_cuda_devices(preferences)
+    _configure_cuda_devices(preferences)
 
 
-def configure_render_settings(render: bpy.types.RenderSettings) -> None:
+def _configure_render_settings(render: bpy.types.RenderSettings) -> None:
     """Configures general render settings."""
     render.resolution_percentage = RenderingConstants.Render.SOLUTION_PERCENTAGE
     render.image_settings.file_format = RenderingConstants.ImageSettings.FILE_FORMAT
@@ -202,7 +202,7 @@ def configure_render_settings(render: bpy.types.RenderSettings) -> None:
     render.image_settings.compression = RenderingConstants.ImageSettings.COMPRESSION
 
 
-def configure_cycles_settings(render_configuration: RenderConfiguration) -> None:
+def _configure_cycles_settings(render_configuration: RenderConfiguration) -> None:
     """Configures Cycles-specific settings."""
     cycles: bpy.types.CyclesRenderSettings = bpy.context.scene.cycles
     cycles.feature_set = RenderingConstants.Scene.CYCLES_FEATURE_SET
@@ -215,7 +215,7 @@ def configure_cycles_settings(render_configuration: RenderConfiguration) -> None
     bpy.context.scene.view_settings.view_transform = RenderingConstants.Scene.VIEW_SETTINGS_VIEW_TRANSFORM
 
 # bpy.types.CyclesPreferences is not supported as input type but is a subclass of bpy.types.AddonPreferences
-def configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:
+def _configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:
     """Configures CUDA devices based on the render configuration."""
     preferences.compute_device_type = RenderingConstants.Preferences.COMPUTE_DEVICE_TYPE
 
@@ -227,7 +227,7 @@ def configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:
         device.use = False
 
     # Enable the specified devices
-    for index in get_gpu_indices(devices, preferences.default_device()):
+    for index in _get_gpu_indices(devices, preferences.default_device()):
         devices[index].use = True
 
     # Ensure at least the primary device is enabled
@@ -235,7 +235,7 @@ def configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:
         devices[0].use = True
 
 
-def get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_device: int) -> List[int]:
+def _get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_device: int) -> List[int]:
     """Returns the indices of the GPU devices."""
     num_devices = len(devices)
     if num_devices == 0:
