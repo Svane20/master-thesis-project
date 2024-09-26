@@ -5,7 +5,7 @@ import numpy as np
 import random
 from math import radians
 
-from bpy_ops import render_image
+from bpy_ops import render_image, save_as_blend_file
 from consts import Constants
 from main import setup
 from rendering.camera import update_camera_position
@@ -155,6 +155,7 @@ def place_object_on_ground(obj: bpy.types.Object):
 def render_from_angles(image_name: str, angles):
     """Render images from multiple camera angles."""
     output_dir = Constants.Directory.OUTPUT_DIR
+    blender_dir = Constants.Directory.BLENDER_FILES_DIR
 
     for i, angle in enumerate(angles):
         # Update camera position and rotation
@@ -163,17 +164,16 @@ def render_from_angles(image_name: str, angles):
             rotation=angle['rotation']
         )
 
-        unique_image_name = f"{image_name}_angle_{i + 1}.png"
+        unique_image_name = f"{image_name}_{i + 1}"
 
         # Set the render filepath to the desired output path with the unique name
-        bpy.context.scene.render.filepath = str(output_dir / unique_image_name)
+        bpy.context.scene.render.filepath = str(output_dir / f"{unique_image_name}.{Constants.Default.IMAGE_FORMAT}")
 
         # Render and save the image
         render_image()
 
-    # Remove temporary files
-    remove_temporary_files(output_dir, f"{image_name}0001")
-    remove_temporary_files()
+        # Save the current scene as a .blend file
+        save_as_blend_file(unique_image_name, blender_dir)
 
 
 def main() -> None:
@@ -194,6 +194,10 @@ def main() -> None:
     spawn_random_cubes(num_objects=NUM_CUBE_OBJECTS, add_rotation=True)
 
     render_from_angles(RENDERED_IMAGE_NAME, CAMERA_ANGLES)
+
+    # Remove temporary files
+    remove_temporary_files(directory=Constants.Directory.OUTPUT_DIR, image_name=f"{RENDERED_IMAGE_NAME}0001")
+    remove_temporary_files(directory=Constants.Directory.TEMP_DIR)
 
 
 if __name__ == "__main__":

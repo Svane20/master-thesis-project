@@ -4,9 +4,11 @@ from pathlib import Path
 class Constants:
     class Default:
         WORLD_SIZE: float = 100.0
+
         IMAGE_SIZE: int = 2048
         IMAGE_WIDTH: int = 2048
         IMAGE_HEIGHT: int = 2048
+        IMAGE_FORMAT: str = "png"
 
         NOISE_THRESHOLD: float = 0.01
         NOISE_BASIS: str = "PERLIN_ORIGINAL"
