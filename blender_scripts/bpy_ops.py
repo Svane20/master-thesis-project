@@ -1,4 +1,4 @@
-import bpy
+from bpy import ops
 
 from pathlib import Path
 
@@ -14,7 +14,7 @@ def render_image(directory_path: Path = Constants.Directory.OUTPUT_DIR, write_st
         output_dir.parent.mkdir(parents=True, exist_ok=True)
 
         # Render and save the image
-        bpy.ops.render.render(write_still=write_still)
+        ops.render.render(write_still=write_still)
     except Exception as e:
         print(f"Failed to save image file: {e}")
 
@@ -28,7 +28,7 @@ def save_as_blend_file(image_name: str, directory_path: Path = Constants.Directo
 
         # Save the blend file
         output_path = output_dir / f"{image_name}.blend"
-        bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
+        ops.wm.save_as_mainfile(filepath=str(output_path))
 
         print(f"Saved: '{output_path}'")
 
