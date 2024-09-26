@@ -18,12 +18,11 @@ def clear_cube() -> None:
 def setup(output_name: str = None) -> None:
     clear_cube()
 
-    # Save the existing settings
-    configuration = Configuration()
-    save_configuration(configuration=configuration.model_dump(), path=Constants.Directory.CONFIG_PATH)
-
     # Load settings
     config = load_configuration(path=Constants.Directory.CONFIG_PATH)
+    if config is None:
+        config = save_configuration(configuration=Configuration().model_dump(), path=Constants.Directory.CONFIG_PATH)
+
     configuration = Configuration(**config)
     terrain_configuration = configuration.terrain_configuration
 

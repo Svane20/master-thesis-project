@@ -11,6 +11,7 @@ from consts import Constants
 class RenderType(str, Enum):
     Cycles = "CYCLES"
     Eevee = "BLENDER_EEVEE_NEXT"
+    Workbench = "BLENDER_WORKBENCH"
 
 
 class CameraConfiguration(BaseModel):
@@ -21,7 +22,7 @@ class CameraConfiguration(BaseModel):
 
 
 class RenderConfiguration(BaseModel):
-    render: RenderType = RenderType.Cycles
+    render: RenderType = RenderType.Eevee
     tmp_folder: str = Constants.Directory.TEMP_DIR.as_posix()
     n_cycles: int = 128
 
@@ -45,21 +46,30 @@ class Configuration(BaseModel):
     terrain_configuration: TerrainConfiguration = TerrainConfiguration()
 
 
-def load_configuration(path: Union[str, Path]) -> dict:
+def load_configuration(path: Union[str, Path]) -> Union[dict, None]:
     """Load settings from a JSON file."""
     try:
         with Path(path).open('r') as f:
-            settings = json.load(f)
+            configuration = json.load(f)
 
-        return settings
+        print(f"Configuration loaded:\n{json.dumps(configuration, indent=4)}")
+
+        return configuration
     except Exception as e:
-        print(f"Failed to load settings: {e}")
+        print(f"Configuration have not been set: {e}")
+        return None
 
 
-def save_configuration(configuration: dict, path: Union[str, Path]) -> None:
+def save_configuration(configuration: dict, path: Union[str, Path]) -> dict:
     """Save settings to a JSON file."""
     try:
+        print("Saving configuration...")
+
         with Path(path).open('w') as f:
             json.dump(configuration, f, indent=4)
+
+        print(f"Configuration saved:\n{json.dumps(configuration, indent=4)}")
+
+        return configuration
     except Exception as e:
         print(f"Failed to save settings: {e}")

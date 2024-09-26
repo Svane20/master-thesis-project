@@ -8,6 +8,11 @@ from utils import get_temporary_file_path
 
 
 class RenderingConstants:
+    class Engine:
+        CYCLES: str = "CYCLES"
+        EEVEE: str = "BLENDER_EEVEE_NEXT"
+        WORKBENCH: str = "BLENDER_WORKBENCH"
+
     class Render:
         SOLUTION_PERCENTAGE: int = 100
         THREADS_MODE: str = "FIXED"
@@ -187,8 +192,11 @@ def _setup_cuda(render_configuration: RenderConfiguration) -> None:
     _configure_render_settings(render)
     _configure_cycles_settings(render_configuration)
 
-    preferences: bpy.types.CyclesPreferences = bpy.context.preferences.addons[render.engine.lower()].preferences
-    _configure_cuda_devices(preferences)
+    if render.engine == RenderingConstants.Engine.CYCLES:
+        preferences: bpy.types.CyclesPreferences = bpy.context.preferences.addons[render.engine.lower()].preferences
+        _configure_cuda_devices(preferences)
+    else:
+        print(f"No CUDA setup required for render engine: {render.engine}")
 
 
 def _configure_render_settings(render: bpy.types.RenderSettings) -> None:
@@ -213,6 +221,7 @@ def _configure_cycles_settings(render_configuration: RenderConfiguration) -> Non
     cycles.denoising_use_gpu = True
 
     bpy.context.scene.view_settings.view_transform = RenderingConstants.Scene.VIEW_SETTINGS_VIEW_TRANSFORM
+
 
 # bpy.types.CyclesPreferences is not supported as input type but is a subclass of bpy.types.AddonPreferences
 def _configure_cuda_devices(preferences: bpy.types.AddonPreferences) -> None:

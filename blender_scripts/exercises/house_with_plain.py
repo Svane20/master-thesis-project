@@ -93,7 +93,7 @@ def _add_house_elements() -> None:
 
 
 def main() -> None:
-    setup(output_name="plain")
+    setup(output_name="house_with_plain")
 
     _remove_default_objects()
 

@@ -4,5 +4,6 @@ __pycache__
 
 temp
 output
+blender_scripts/configs/*.json
 repo
 blender_files
