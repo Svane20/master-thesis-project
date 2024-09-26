@@ -15,7 +15,7 @@ def get_temporary_file_path(file_name: Union[str | None], render_configuration: 
 
 
 def remove_temporary_files(
-        directory: Path = Constants.Directory.TEMP_DIR,
+        directory: Path,
         image_name: str = None,
         extension: str = "png"
 ) -> None:
@@ -34,7 +34,7 @@ def remove_temporary_files(
 
         for temp_file in directory.glob(f"{image_name}.{extension}"):
             try:
-                temp_file.unlink()  # Delete the file
+                temp_file.unlink()
                 print(f"Deleted temporary file: {temp_file}")
             except Exception as e:
                 print(f"Could not delete {temp_file}: {e}")

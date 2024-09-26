@@ -19,7 +19,6 @@ class Constants:
         CONFIG_DIR: Path = BASE_DIR / "configs"
         CONFIG_PATH: Path = CONFIG_DIR / "config.json"
 
-        TEMP_DIR: Path = BASE_DIR / "temp"
         OUTPUT_DIR: Path = BASE_DIR / "output"
         BLENDER_FILES_DIR: Path = BASE_DIR / "blender_files"
 

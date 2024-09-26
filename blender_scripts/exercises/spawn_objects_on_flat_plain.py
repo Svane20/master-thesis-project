@@ -6,18 +6,16 @@ import random
 from math import radians
 
 from bpy_ops import render_image
-from consts import Constants
 from main import setup
 from rendering.camera import update_camera_position
 from rendering.light import create_light, LightType
-from utils import remove_temporary_files
 
 NUM_CYLINDER_OBJECTS = 2
 NUM_CUBE_OBJECTS = 2
 NUM_CONE_OBJECTS = 2
 PLANE_SIZE = 10
 
-RENDERED_IMAGE_NAME = "spawn_objects_on_flat_plain"
+IMAGE_NAME = "spawn_objects_on_flat_plain"
 
 CAMERA_ANGLES: list[dict[str | Vector, str | Vector]] = [
     {"location": Vector((14.0, 0.0, 11.0)), "rotation": Vector((radians(50), radians(0), radians(90)))},
@@ -154,8 +152,6 @@ def place_object_on_ground(obj: bpy.types.Object):
 
 def render_from_angles(image_name: str, angles: list[dict[str | Vector, str | Vector]]):
     """Render images from multiple camera angles."""
-    output_dir = Constants.Directory.OUTPUT_DIR
-
     for i, angle in enumerate(angles):
         # Update camera position and rotation
         bpy.context.scene.camera = update_camera_position(
@@ -165,18 +161,15 @@ def render_from_angles(image_name: str, angles: list[dict[str | Vector, str | Ve
 
         unique_image_name = f"{image_name}_{i + 1}"
 
-        # Set the render filepath to the desired output path with the unique name
-        bpy.context.scene.render.filepath = str(output_dir / f"{unique_image_name}.{Constants.Default.IMAGE_FORMAT}")
-
         # Render and save the image
-        render_image()
+        render_image(image_name=f"{image_name}_{i + 1}")
 
         # Save the current scene as a .blend file
         # save_as_blend_file(image_name=unique_image_name, directory_path=Constants.Directory.BLENDER_FILES_DIR)
 
 
 def main() -> None:
-    setup(RENDERED_IMAGE_NAME)
+    setup(IMAGE_NAME)
 
     _set_scene()
 
@@ -192,11 +185,7 @@ def main() -> None:
     spawn_random_cylinders(num_objects=NUM_CYLINDER_OBJECTS, add_rotation=False)
     spawn_random_cubes(num_objects=NUM_CUBE_OBJECTS, add_rotation=True)
 
-    render_from_angles(RENDERED_IMAGE_NAME, CAMERA_ANGLES)
-
-    # Remove temporary files
-    remove_temporary_files(directory=Constants.Directory.OUTPUT_DIR, image_name=f"{RENDERED_IMAGE_NAME}0001")
-    remove_temporary_files(directory=Constants.Directory.TEMP_DIR)
+    render_from_angles(IMAGE_NAME, CAMERA_ANGLES)
 
 
 if __name__ == "__main__":

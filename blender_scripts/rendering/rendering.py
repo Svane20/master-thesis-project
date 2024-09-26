@@ -4,7 +4,6 @@ from typing import List
 import bpy
 from consts import Constants
 from configs.configuration import RenderConfiguration, CameraConfiguration
-from utils import get_temporary_file_path
 
 
 class RenderingConstants:
@@ -81,7 +80,6 @@ def setup_rendering(
 
     # Render configuration
     render.engine = render_configuration.render.value
-    render.filepath = get_temporary_file_path(output_name, render_configuration)
     render.resolution_x = int(camera_configuration.image_width)
     render.resolution_y = int(camera_configuration.image_height)
 
@@ -94,18 +92,19 @@ def setup_rendering(
     # Setup CUDA if applicable
     _setup_cuda(render_configuration)
 
+    # todo: Come back to this to understand the use-case
     # Output configuration
-    _setup_outputs(
-        render_image=render_image,
-        render_object_index=render_object_index,
-        render_material_index=render_material_index,
-        render_depth=render_depth,
-        render_normal=render_normal,
-        render_mist=render_mist,
-        output_dir=output_dir,
-        output_name=output_name,
-        world_size=world_size,
-    )
+    # _setup_outputs(
+    #     render_image=render_image,
+    #     render_object_index=render_object_index,
+    #     render_material_index=render_material_index,
+    #     render_depth=render_depth,
+    #     render_normal=render_normal,
+    #     render_mist=render_mist,
+    #     output_dir=output_dir,
+    #     output_name=output_name,
+    #     world_size=world_size,
+    # )
 
 
 def _setup_outputs(

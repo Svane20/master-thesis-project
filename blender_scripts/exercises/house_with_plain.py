@@ -3,12 +3,11 @@ from mathutils import Vector
 
 from math import radians
 
-from bpy_ops import render_image
+from bpy_ops import render_image, save_as_blend_file
 from consts import Constants
 from rendering.camera import update_camera_position
 from main import setup
 from rendering.light import create_light, LightType
-from utils import remove_temporary_files
 
 IMAGE_NAME = "house_with_plain"
 
@@ -122,13 +121,10 @@ def main() -> None:
     )
 
     # Save the blend file as a PNG image
-    render_image()
+    render_image(image_name=IMAGE_NAME)
 
     # Save the blend file
-    # save_as_blend_file(image_name=IMAGE_NAME)
-
-    # Remove temporary files
-    remove_temporary_files()
+    save_as_blend_file(image_name=IMAGE_NAME)
 
 
 if __name__ == "__main__":

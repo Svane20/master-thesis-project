@@ -23,7 +23,6 @@ class CameraConfiguration(BaseModel):
 
 class RenderConfiguration(BaseModel):
     render: RenderType = RenderType.Eevee
-    tmp_folder: str = Constants.Directory.TEMP_DIR.as_posix()
     n_cycles: int = 128
 
     camera_cull_margin: float = 1.0

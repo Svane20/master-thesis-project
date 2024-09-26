@@ -2,7 +2,6 @@
 __pycache__
 .idea/
 
-temp
 output
 blender_scripts/configs/*.json
 repo
