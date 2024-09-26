@@ -1,71 +1,8 @@
-import shutil
-from subprocess import CalledProcessError, CompletedProcess, run, PIPE
-
 from typing import Union
 from pathlib import Path
 
 from configs.configuration import RenderConfiguration
 from consts import Constants
-
-BLENDER_EXECUTABLE = shutil.which("blender")
-if BLENDER_EXECUTABLE is None:
-    print("Blender executable not found")
-    raise SystemExit("Blender executable not found. Ensure Blender is installed and accessible in the system PATH.")
-
-
-def open_blend_file_in_blender(blender_file: Path) -> None:
-    """Opens a .blend file."""
-    try:
-        result: CompletedProcess[str] = run(
-            [
-                BLENDER_EXECUTABLE,
-                blender_file,
-            ],
-            stdout=PIPE,
-            stderr=PIPE,
-            text=True,
-            check=True
-        )
-
-        print(f"Blender rendering completed successfully. Output: {result.stdout}")
-        if result.stderr:
-            print(f"Blender rendering errors: {result.stderr}")
-    except CalledProcessError as e:
-        print(f"Blender rendering failed: {e.stderr}")
-    except Exception as e:
-        print(f"An error occurred while running the Blender process: {e}")
-
-
-def run_blender_file(blender_file: Path) -> None:
-    """Runs a .blend file."""
-    try:
-        result = run(
-            [
-                BLENDER_EXECUTABLE,
-                "--background",
-                blender_file,
-                "--render-output",
-                f"{Constants.Directory.OUTPUT_DIR}/output",
-                "--render-format",
-                "PNG",
-                "--use-extension",
-                "1",
-                "--render-frame",
-                "1",
-            ],
-            stdout=PIPE,
-            stderr=PIPE,
-            text=True,
-            check=True
-        )
-
-        print(f"Blender rendering completed successfully. Output: {result.stdout}")
-        if result.stderr:
-            print(f"Blender rendering errors: {result.stderr}")
-    except CalledProcessError as e:
-        print(f"Blender rendering failed: {e.stderr}")
-    except Exception as e:
-        print(f"An error occurred while running the Blender process: {e}")
 
 
 def get_temporary_file_path(file_name: Union[str | None], render_configuration: RenderConfiguration) -> str:
