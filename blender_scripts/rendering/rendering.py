@@ -92,7 +92,7 @@ def setup_rendering(
     # Setup CUDA if applicable
     _setup_cuda(render_configuration)
 
-    # todo: Come back to this to understand the use-case
+    # @Todo: Come back to this to understand the use-case
     # Output configuration
     # _setup_outputs(
     #     render_image=render_image,
