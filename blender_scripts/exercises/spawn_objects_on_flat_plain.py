@@ -5,7 +5,7 @@ import numpy as np
 import random
 from math import radians
 
-from bpy_ops import render_image, save_as_blend_file
+from bpy_ops import render_image
 from consts import Constants
 from main import setup
 from rendering.camera import update_camera_position
@@ -155,7 +155,6 @@ def place_object_on_ground(obj: bpy.types.Object):
 def render_from_angles(image_name: str, angles):
     """Render images from multiple camera angles."""
     output_dir = Constants.Directory.OUTPUT_DIR
-    blender_dir = Constants.Directory.BLENDER_FILES_DIR
 
     for i, angle in enumerate(angles):
         # Update camera position and rotation
@@ -173,7 +172,7 @@ def render_from_angles(image_name: str, angles):
         render_image()
 
         # Save the current scene as a .blend file
-        save_as_blend_file(unique_image_name, blender_dir)
+        # save_as_blend_file(image_name=unique_image_name, directory_path=Constants.Directory.BLENDER_FILES_DIR)
 
 
 def main() -> None:

@@ -3,7 +3,7 @@ from mathutils import Vector
 
 from math import radians
 
-from bpy_ops import render_image, save_as_blend_file
+from bpy_ops import render_image
 from consts import Constants
 from rendering.camera import update_camera_position
 from main import setup
@@ -123,7 +123,9 @@ def main() -> None:
 
     # Save the blend file as a PNG image
     render_image()
-    save_as_blend_file(image_name=IMAGE_NAME)
+
+    # Save the blend file
+    # save_as_blend_file(image_name=IMAGE_NAME)
 
     # Remove temporary files
     remove_temporary_files()
