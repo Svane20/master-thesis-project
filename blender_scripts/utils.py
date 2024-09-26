@@ -1,6 +1,6 @@
 import bpy
 import shutil
-import subprocess
+from subprocess import CalledProcessError, CompletedProcess, run, PIPE
 
 from typing import Union
 from pathlib import Path
@@ -17,13 +17,13 @@ if BLENDER_EXECUTABLE is None:
 def open_blend_file_in_blender(blender_file: Path) -> None:
     """Opens a .blend file."""
     try:
-        result = subprocess.run(
+        result: CompletedProcess[str] = run(
             [
                 BLENDER_EXECUTABLE,
                 blender_file,
             ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
             text=True,
             check=True
         )
@@ -31,7 +31,7 @@ def open_blend_file_in_blender(blender_file: Path) -> None:
         print(f"Blender rendering completed successfully. Output: {result.stdout}")
         if result.stderr:
             print(f"Blender rendering errors: {result.stderr}")
-    except subprocess.CalledProcessError as e:
+    except CalledProcessError as e:
         print(f"Blender rendering failed: {e.stderr}")
     except Exception as e:
         print(f"An error occurred while running the Blender process: {e}")
@@ -40,7 +40,7 @@ def open_blend_file_in_blender(blender_file: Path) -> None:
 def run_blender_file(blender_file: Path) -> None:
     """Runs a .blend file."""
     try:
-        result = subprocess.run(
+        result = run(
             [
                 BLENDER_EXECUTABLE,
                 "--background",
@@ -54,8 +54,8 @@ def run_blender_file(blender_file: Path) -> None:
                 "--render-frame",
                 "1",
             ],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=PIPE,
+            stderr=PIPE,
             text=True,
             check=True
         )
@@ -63,7 +63,7 @@ def run_blender_file(blender_file: Path) -> None:
         print(f"Blender rendering completed successfully. Output: {result.stdout}")
         if result.stderr:
             print(f"Blender rendering errors: {result.stderr}")
-    except subprocess.CalledProcessError as e:
+    except CalledProcessError as e:
         print(f"Blender rendering failed: {e.stderr}")
     except Exception as e:
         print(f"An error occurred while running the Blender process: {e}")
@@ -73,7 +73,7 @@ def save_blend_file(path: Path) -> None:
     """Saves the current Blender scene as a .blend file."""
     try:
         # Ensure the directory exists
-        path = Path(path)
+        path: Path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
         bpy.ops.wm.save_as_mainfile(filepath=str(path))
@@ -87,7 +87,7 @@ def save_image_file(directory_path: Path = Constants.Directory.OUTPUT_DIR) -> No
     """Saves the current render as an image file."""
     try:
         # Ensure the directory exists
-        directory_path = Path(directory_path)
+        directory_path: Path = Path(directory_path)
         directory_path.parent.mkdir(parents=True, exist_ok=True)
 
         # Render and save the image
@@ -99,7 +99,7 @@ def save_image_file(directory_path: Path = Constants.Directory.OUTPUT_DIR) -> No
 
 
 def get_temporary_file_path(file_name: Union[str | None], render_configuration: RenderConfiguration) -> str:
-    temp_dir = Path(render_configuration.tmp_folder)
+    temp_dir: Path = Path(render_configuration.tmp_folder)
 
     path = temp_dir / (file_name or "render")
     path.parent.mkdir(parents=True, exist_ok=True)

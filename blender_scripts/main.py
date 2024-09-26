@@ -8,8 +8,10 @@ from utils import save_blend_file
 
 def clear_cube() -> None:
     """Clear the cube object if it exists"""
-    if bpy.data.objects.get("Cube"):
-        bpy.data.objects["Cube"].select_set(True)
+    cube: bpy.types.Object = bpy.data.objects.get("Cube")
+
+    if cube is not None:
+        cube.select_set(True)
         bpy.ops.object.delete()
 
 
