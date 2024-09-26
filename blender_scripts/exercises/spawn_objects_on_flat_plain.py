@@ -19,7 +19,7 @@ PLANE_SIZE = 10
 
 RENDERED_IMAGE_NAME = "spawn_objects_on_flat_plain"
 
-CAMERA_ANGLES = [
+CAMERA_ANGLES: list[dict[str | Vector, str | Vector]] = [
     {"location": Vector((14.0, 0.0, 11.0)), "rotation": Vector((radians(50), radians(0), radians(90)))},
     {"location": Vector((14.0, 10.0, 11.0)), "rotation": Vector((radians(55), radians(0), radians(126)))},
     {"location": Vector((0.0, 0.0, 25)), "rotation": Vector((radians(0), radians(0), radians(0)))},
@@ -152,7 +152,7 @@ def place_object_on_ground(obj: bpy.types.Object):
     obj.location.z -= min_z
 
 
-def render_from_angles(image_name: str, angles):
+def render_from_angles(image_name: str, angles: list[dict[str | Vector, str | Vector]]):
     """Render images from multiple camera angles."""
     output_dir = Constants.Directory.OUTPUT_DIR
 
