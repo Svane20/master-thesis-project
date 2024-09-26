@@ -190,13 +190,12 @@ def _setup_cuda(render_configuration: RenderConfiguration) -> None:
 
     # General Render configuration
     _configure_render_settings(render)
-    _configure_cycles_settings(render_configuration)
 
     if render.engine == RenderingConstants.Engine.CYCLES:
+        # Cycles-specific configuration
+        _configure_cycles_settings(render_configuration)
         preferences: bpy.types.CyclesPreferences = bpy.context.preferences.addons[render.engine.lower()].preferences
         _configure_cuda_devices(preferences)
-    else:
-        print(f"No CUDA setup required for render engine: {render.engine}")
 
 
 def _configure_render_settings(render: bpy.types.RenderSettings) -> None:

@@ -18,12 +18,8 @@ class Constants:
         CONFIG_PATH: Path = CONFIG_DIR / "config.json"
 
         TEMP_DIR: Path = BASE_DIR / "temp"
-
         OUTPUT_DIR: Path = BASE_DIR / "output"
-        OUTPUT_PATH: Path = OUTPUT_DIR / "output.png"
-
         BLENDER_FILES_DIR: Path = BASE_DIR / "blender_files"
-        BLENDER_FILES_PATH: Path = BLENDER_FILES_DIR / "output.blend"
 
         ASSETS_DIR: Path = BASE_DIR / "assets"
         ASSETS_TEXTURES_DIR: Path = ASSETS_DIR / "textures"

@@ -3,7 +3,6 @@ import bpy
 from consts import Constants
 from rendering.rendering import setup_rendering, set_noise_threshold
 from configs.configuration import Configuration, save_configuration, load_configuration
-from utils import save_blend_file
 
 
 def clear_cube() -> None:
@@ -38,9 +37,6 @@ def setup(output_name: str = None) -> None:
 
 def main() -> None:
     setup()
-
-    save_blend_file(path=Constants.Directory.BLENDER_FILES_PATH)
-    # open_blend_file_in_blender(blender_file=Constants.Directory.BLENDER_FILES_PATH)
 
 
 if __name__ == "__main__":

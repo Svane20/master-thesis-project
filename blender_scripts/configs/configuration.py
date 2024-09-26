@@ -52,8 +52,6 @@ def load_configuration(path: Union[str, Path]) -> Union[dict, None]:
         with Path(path).open('r') as f:
             configuration = json.load(f)
 
-        print(f"Configuration loaded:\n{json.dumps(configuration, indent=4)}")
-
         return configuration
     except Exception as e:
         print(f"Configuration have not been set: {e}")
@@ -63,12 +61,8 @@ def load_configuration(path: Union[str, Path]) -> Union[dict, None]:
 def save_configuration(configuration: dict, path: Union[str, Path]) -> dict:
     """Save settings to a JSON file."""
     try:
-        print("Saving configuration...")
-
         with Path(path).open('w') as f:
             json.dump(configuration, f, indent=4)
-
-        print(f"Configuration saved:\n{json.dumps(configuration, indent=4)}")
 
         return configuration
     except Exception as e:

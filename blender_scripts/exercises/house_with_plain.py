@@ -3,14 +3,18 @@ from mathutils import Vector
 
 from math import radians
 
+from bpy_ops import render_image, save_as_blend_file
 from consts import Constants
 from rendering.camera import update_camera_position
 from main import setup
 from rendering.light import create_light, LightType
-from utils import save_blend_file, open_blend_file_in_blender, save_image_file, run_blender_file
+from utils import remove_temporary_files
+
+IMAGE_NAME = "house_with_plain"
 
 
 def _remove_default_objects() -> None:
+    """Remove default objects from the scene"""
     bpy.ops.object.select_all(action='DESELECT')
     bpy.ops.object.select_by_type(type='MESH')
     bpy.ops.object.delete()
@@ -117,13 +121,12 @@ def main() -> None:
         energy=5.0,
     )
 
-    # Save the blend file and open it in Blender
-    # save_blend_file(path=Constants.Directory.BLENDER_FILES_PATH)
-    # open_blend_file_in_blender(blender_file=Constants.Directory.BLENDER_FILES_PATH)
-    # run_blender_file(Constants.Directory.BLENDER_FILES_PATH)
-
     # Save the blend file as a PNG image
-    save_image_file()
+    render_image()
+    save_as_blend_file(image_name=IMAGE_NAME)
+
+    # Remove temporary files
+    remove_temporary_files()
 
 
 if __name__ == "__main__":

@@ -1,4 +1,3 @@
-import bpy
 import shutil
 from subprocess import CalledProcessError, CompletedProcess, run, PIPE
 
@@ -69,35 +68,6 @@ def run_blender_file(blender_file: Path) -> None:
         print(f"An error occurred while running the Blender process: {e}")
 
 
-def save_blend_file(path: Path) -> None:
-    """Saves the current Blender scene as a .blend file."""
-    try:
-        # Ensure the directory exists
-        path: Path = Path(path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-
-        bpy.ops.wm.save_as_mainfile(filepath=str(path))
-    except Exception as e:
-        print(f"Failed to save blend file: {e}")
-    finally:
-        bpy.ops.wm.read_factory_settings(use_empty=True)
-
-
-def save_image_file(directory_path: Path = Constants.Directory.OUTPUT_DIR) -> None:
-    """Saves the current render as an image file."""
-    try:
-        # Ensure the directory exists
-        directory_path: Path = Path(directory_path)
-        directory_path.parent.mkdir(parents=True, exist_ok=True)
-
-        # Render and save the image
-        bpy.ops.render.render(write_still=True)
-    except Exception as e:
-        print(f"Failed to save image file: {e}")
-    finally:
-        bpy.ops.wm.read_factory_settings(use_empty=True)
-
-
 def get_temporary_file_path(file_name: Union[str | None], render_configuration: RenderConfiguration) -> str:
     temp_dir: Path = Path(render_configuration.tmp_folder)
 
@@ -105,3 +75,29 @@ def get_temporary_file_path(file_name: Union[str | None], render_configuration: 
     path.parent.mkdir(parents=True, exist_ok=True)
 
     return path.as_posix()
+
+
+def remove_temporary_files(
+        directory: Path = Constants.Directory.TEMP_DIR,
+        image_name: str = None,
+        extension: str = "png"
+) -> None:
+    """Remove temporary files that match a specific pattern."""
+    if image_name is None:
+        print(f"\nDeleting all temporary files with extension {extension} in {directory}")
+
+        for temp_file in directory.glob(f"*.{extension}"):
+            try:
+                temp_file.unlink()
+                print(f"Deleted temporary file: {temp_file}")
+            except Exception as e:
+                print(f"Could not delete {temp_file}: {e}")
+    else:
+        print(f"\nDeleting temporary files with name {image_name}.{extension} in {directory}")
+
+        for temp_file in directory.glob(f"{image_name}.{extension}"):
+            try:
+                temp_file.unlink()  # Delete the file
+                print(f"Deleted temporary file: {temp_file}")
+            except Exception as e:
+                print(f"Could not delete {temp_file}: {e}")
