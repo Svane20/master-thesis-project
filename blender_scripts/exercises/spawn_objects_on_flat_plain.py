@@ -162,7 +162,7 @@ def render_from_angles(image_name: str, angles: list[dict[str | Vector, str | Ve
         unique_image_name = f"{image_name}_{i + 1}"
 
         # Render and save the image
-        render_image(image_name=f"{image_name}_{i + 1}")
+        render_image(image_name=unique_image_name)
 
         # Save the current scene as a .blend file
         # save_as_blend_file(image_name=unique_image_name, directory_path=Constants.Directory.BLENDER_FILES_DIR)
