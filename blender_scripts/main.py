@@ -6,7 +6,10 @@ from consts import Constants
 from rendering.rendering import setup_rendering
 from configs.configuration import Configuration, save_configuration, load_configuration
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
 logger = logging.getLogger(__name__)
 
 
