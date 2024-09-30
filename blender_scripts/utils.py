@@ -1,8 +1,12 @@
 from typing import Union
 from pathlib import Path
+import logging
 
 from configs.configuration import RenderConfiguration
 from consts import Constants
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def get_temporary_file_path(file_name: Union[str | None], render_configuration: RenderConfiguration) -> str:
@@ -17,24 +21,26 @@ def get_temporary_file_path(file_name: Union[str | None], render_configuration: 
 def remove_temporary_files(
         directory: Path,
         image_name: str = None,
-        extension: str = "png"
+        extension: str = Constants.FileExtension.PNG
 ) -> None:
     """Remove temporary files that match a specific pattern."""
     if image_name is None:
-        print(f"\nDeleting all temporary files with extension {extension} in {directory}")
+        logger.info(f"\nDeleting all temporary files with extension {extension} in {directory}")
 
         for temp_file in directory.glob(f"*.{extension}"):
             try:
                 temp_file.unlink()
-                print(f"Deleted temporary file: {temp_file}")
+                logger.info(f"Deleted temporary file: {temp_file}")
             except Exception as e:
-                print(f"Could not delete {temp_file}: {e}")
+                logger.error(f"Could not delete {temp_file}: {e}")
+                raise
     else:
-        print(f"\nDeleting temporary files with name {image_name}.{extension} in {directory}")
+        logger.info(f"\nDeleting temporary files with name {image_name}.{extension} in {directory}")
 
         for temp_file in directory.glob(f"{image_name}.{extension}"):
             try:
                 temp_file.unlink()
-                print(f"Deleted temporary file: {temp_file}")
+                logger.info(f"Deleted temporary file: {temp_file}")
             except Exception as e:
-                print(f"Could not delete {temp_file}: {e}")
+                logger.error(f"Could not delete {temp_file}: {e}")
+                raise

@@ -1,9 +1,10 @@
 import bpy
 from mathutils import Vector, Euler
 
+import logging
 
-class CameraConstants:
-    CAMERA_NAME = "Camera"
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def update_camera_position(
@@ -12,10 +13,10 @@ def update_camera_position(
         focus_point: Vector = Vector((0.0, 0.0, 0.0))
 ) -> bpy.types.Object:
     """Update the camera's location and rotation."""
-    camera: bpy.types.Object = bpy.data.objects[CameraConstants.CAMERA_NAME]
+    camera: bpy.types.Object = bpy.data.objects["Camera"]
     if camera is None:
-        print("Camera not found")
-        return
+        logger.error("Camera not found")
+        raise ValueError("Camera not found")
 
     if location is not None:
         camera.location = location
@@ -25,5 +26,7 @@ def update_camera_position(
     else:
         current_direction: Vector = camera.location - focus_point
         camera.rotation_euler: Euler = current_direction.to_track_quat("Z", "Y").to_euler()
+
+    logger.info(f"Camera has been updated to location: {camera.location}, rotation: {camera.rotation_euler}")
 
     return camera

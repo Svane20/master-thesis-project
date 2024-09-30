@@ -169,7 +169,7 @@ def render_from_angles(image_name: str, angles: list[dict[str | Vector, str | Ve
 
 
 def main() -> None:
-    setup(IMAGE_NAME)
+    setup()
 
     _set_scene()
 

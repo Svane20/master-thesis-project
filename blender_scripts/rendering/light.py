@@ -2,6 +2,10 @@ import bpy
 from mathutils import Vector, Euler
 
 from enum import Enum
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class LightType(Enum):
@@ -12,36 +16,62 @@ class LightType(Enum):
 
 
 def _delete_all_lights():
-    bpy.ops.object.select_all(action="DESELECT")
-    bpy.ops.object.select_by_type(type="LIGHT")
-    bpy.ops.object.delete()
+    lights = [obj for obj in bpy.data.objects if obj.type == 'LIGHT']
+
+    for light in lights:
+        bpy.data.objects.remove(light, do_unlink=True)
+
+    logger.info("All lights have been deleted.")
 
 
 def create_light(
         light_name: str,
         light_type: LightType,
         energy: float,
-        location: Vector = Vector((0.0, 0.0, 0.0)),
-        rotation: Euler = Euler((0.0, 0.0, 0.0)),
+        location: Vector = None,
+        rotation: Euler = None,
         use_shadow: bool = True,
         specular_factor: float = 1.0,
+        scene: bpy.types.Scene = None,
+        delete_existing_lights: bool = False
 ) -> bpy.types.Object:
-    _delete_all_lights()
+    if location is None:
+        location = Vector((0.0, 0.0, 0.0))
 
-    # Create a new light and the corresponding object
-    new_light: bpy.types.Light = bpy.data.lights.new(name=light_name, type=light_type.value)
-    new_light_object: bpy.types.Object = bpy.data.objects.new(name=light_name, object_data=new_light)
+    if rotation is None:
+        rotation = Euler((0.0, 0.0, 0.0))
 
-    # Add the light object to the scene
-    bpy.context.collection.objects.link(new_light_object)
+    if scene is None:
+        scene = bpy.context.scene
 
-    # Set bpy.types.Object properties
-    new_light_object.location = location
-    new_light_object.rotation_euler = rotation
+    if delete_existing_lights:
+        _delete_all_lights()
 
-    # Set bpy.types.Light properties
-    new_light.use_shadow = use_shadow
-    new_light.specular_factor = specular_factor
-    new_light.energy = energy
+    try:
+        data_lights = bpy.data.lights
+        data_objects = bpy.data.objects
 
-    return new_light_object
+        # Create a new light data block
+        new_light = data_lights.new(name=light_name, type=light_type.value)
+
+        # Create a new object with the light data block
+        new_light_object = data_objects.new(name=light_name, object_data=new_light)
+
+        # Link the object to the scene's collection
+        scene.collection.objects.link(new_light_object)
+
+        # Set object properties
+        new_light_object.location = location
+        new_light_object.rotation_euler = rotation
+
+        # Set light properties
+        new_light.use_shadow = use_shadow
+        new_light.specular_factor = specular_factor
+        new_light.energy = energy
+
+        logger.info(f"Light '{light_name}' created successfully.")
+        return new_light_object
+
+    except Exception as e:
+        logger.error(f"Failed to create light '{light_name}': {e}")
+        raise

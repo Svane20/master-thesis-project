@@ -1,20 +1,24 @@
 import bpy
 
+import logging
+
 from consts import Constants
-from rendering.rendering import setup_rendering, set_noise_threshold
+from rendering.rendering import setup_rendering
 from configs.configuration import Configuration, save_configuration, load_configuration
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def clear_cube() -> None:
     """Clear the cube object if it exists"""
     cube: bpy.types.Object = bpy.data.objects.get("Cube")
-
     if cube is not None:
         cube.select_set(True)
         bpy.ops.object.delete()
 
 
-def setup(output_name: str = None) -> None:
+def setup() -> None:
     clear_cube()
 
     # Load settings
@@ -23,16 +27,11 @@ def setup(output_name: str = None) -> None:
         config = save_configuration(configuration=Configuration().model_dump(), path=Constants.Directory.CONFIG_PATH)
 
     configuration = Configuration(**config)
-    terrain_configuration = configuration.terrain_configuration
 
     setup_rendering(
         render_configuration=configuration.render_configuration,
         camera_configuration=configuration.camera_configuration,
-        output_name=output_name,
-        render_object_index=True,
-        world_size=int(terrain_configuration.world_size)
     )
-    set_noise_threshold(Constants.Default.NOISE_THRESHOLD)
 
 
 def main() -> None:

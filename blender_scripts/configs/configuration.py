@@ -4,8 +4,12 @@ from typing import Union
 
 from enum import Enum
 import json
+import logging
 
 from consts import Constants
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 class RenderType(str, Enum):
@@ -53,7 +57,7 @@ def load_configuration(path: Union[str, Path]) -> Union[dict, None]:
 
         return configuration
     except Exception as e:
-        print(f"Configuration have not been set: {e}")
+        logger.info(f"Configuration have not been set: {e}")
         return None
 
 
@@ -65,4 +69,5 @@ def save_configuration(configuration: dict, path: Union[str, Path]) -> dict:
 
         return configuration
     except Exception as e:
-        print(f"Failed to save settings: {e}")
+        logger.error(f"Failed to save settings: {e}")
+        raise
