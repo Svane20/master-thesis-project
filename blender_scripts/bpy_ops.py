@@ -17,6 +17,17 @@ def render_image(
         directory_path: Path = Constants.Directory.OUTPUT_DIR,
         write_still: bool = True
 ) -> None:
+    """
+    Renders the current scene as an image.
+
+    Args:
+        image_name: The name of the image.
+        directory_path: The directory path.
+        write_still: Whether to write the image to disk.
+
+    Raises:
+        Exception: If the image fails to render.
+    """
     try:
         output_dir = Path(directory_path)
         output_dir.parent.mkdir(parents=True, exist_ok=True)
@@ -41,7 +52,17 @@ def save_as_blend_file(
         directory_path: Path = Constants.Directory.BLENDER_FILES_DIR,
         allow_overwrite: bool = True
 ) -> None:
-    """Saves the current Blender scene as a .blend file."""
+    """
+    Saves the current Blender scene as a .blend file.
+
+    Args:
+        image_name: The name of the image.
+        directory_path: The directory path.
+        allow_overwrite: Whether to allow overwriting the file.
+
+    Raises:
+        Exception: If the blend file fails to save.
+    """
     try:
         # Ensure the directory exists
         output_dir: Path = Path(directory_path)

@@ -6,3 +6,5 @@ pillow
 mathutils
 polydown
 pydelatin
+trimesh
+matplotlib

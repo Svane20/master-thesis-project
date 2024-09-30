@@ -18,15 +18,6 @@ class LightType(Enum):
     SUN = "SUN"
 
 
-def _delete_all_lights():
-    lights = [obj for obj in bpy.data.objects if obj.type == 'LIGHT']
-
-    for light in lights:
-        bpy.data.objects.remove(light, do_unlink=True)
-
-    logger.info("All lights have been deleted.")
-
-
 def create_light(
         light_name: str,
         light_type: LightType,
@@ -38,6 +29,27 @@ def create_light(
         scene: bpy.types.Scene = None,
         delete_existing_lights: bool = False
 ) -> bpy.types.Object:
+    """
+    Creates a new light in the scene.
+
+    Args:
+        light_name: The name of the light.
+        light_type: The type of light.
+        energy: The light energy.
+        location: The light location.
+        rotation: The light rotation.
+        use_shadow: Whether to use shadows.
+        specular_factor: The specular factor.
+        scene: The scene.
+        delete_existing_lights: Whether to delete existing lights.
+
+    Returns:
+        The light object.
+
+    Raises:
+        Exception: If the light fails to create.
+    """
+
     if location is None:
         location = Vector((0.0, 0.0, 0.0))
 
@@ -78,3 +90,18 @@ def create_light(
     except Exception as e:
         logger.error(f"Failed to create light '{light_name}': {e}")
         raise
+
+
+def _delete_all_lights():
+    """
+    Deletes all lights in the scene.
+
+    Raises:
+        Exception: If the lights fail to delete.
+    """
+    lights = [obj for obj in bpy.data.objects if obj.type == 'LIGHT']
+
+    for light in lights:
+        bpy.data.objects.remove(light, do_unlink=True)
+
+    logger.info("All lights have been deleted.")
