@@ -17,6 +17,16 @@ def setup_rendering(
         render_configuration: RenderConfiguration,
         camera_configuration: CameraConfiguration,
 ) -> None:
+    """
+    Sets up rendering configuration.
+
+    Args:
+        render_configuration: The render configuration.
+        camera_configuration: The camera configuration.
+
+    Raises:
+        Exception: If the render engine is not supported.
+    """
     logger.info("Setting up rendering configuration...")
 
     scene = bpy.context.scene
@@ -31,14 +41,26 @@ def setup_rendering(
     logger.info("Rendering configuration set up.")
 
 
-def _setup_camera(render: bpy.types.RenderSettings, camera_configuration: CameraConfiguration):
-    """Sets up camera configuration."""
+def _setup_camera(render: bpy.types.RenderSettings, camera_configuration: CameraConfiguration) -> None:
+    """
+    Sets up camera configuration.
+
+    Args:
+        render: The render settings.
+        camera_configuration: The camera configuration.
+    """
     render.resolution_x = camera_configuration.image_width
     render.resolution_y = camera_configuration.image_height
 
 
-def _setup_render(render: bpy.types.RenderSettings, render_configuration: RenderConfiguration):
-    """Sets up render configuration."""
+def _setup_render(render: bpy.types.RenderSettings, render_configuration: RenderConfiguration) -> None:
+    """
+    Sets up render configuration.
+
+    Args:
+        render: The render settings.
+        render_configuration: The render configuration
+    """
     render.resolution_percentage = 100
     render.image_settings.file_format = Constants.Render.FILE_FORMAT
     render.use_border = True
@@ -53,8 +75,14 @@ def _setup_render(render: bpy.types.RenderSettings, render_configuration: Render
         _setup_eevee()
 
 
-def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: RenderConfiguration):
-    """Configures Cycles rendering settings."""
+def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: RenderConfiguration) -> None:
+    """
+    Configures Cycles rendering settings.
+
+    Args:
+        render: The render settings.
+        render_configuration: The render configuration.
+    """
     scene: bpy.types.Scene = bpy.data.scenes["Scene"]
     cycles: bpy.types.CyclesRenderSettings = scene.cycles
 
@@ -79,14 +107,19 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
     _setup_cuda_devices(render)
 
 
-def _setup_eevee():
+def _setup_eevee() -> None:
     """Configures Eevee-specific rendering settings."""
     scene: bpy.types.Scene = bpy.data.scenes["Scene"]
     eevee: bpy.types.SceneEEVEE = scene.eevee
 
 
-def _setup_cuda_devices(render: bpy.types.RenderSettings):
-    """Configures CUDA devices for rendering."""
+def _setup_cuda_devices(render: bpy.types.RenderSettings) -> None:
+    """
+    Configures CUDA devices for rendering.
+
+    Args:
+        render: The render settings.
+    """
     preferences: bpy.types.AddonPreferences = bpy.context.preferences.addons[render.engine.lower()].preferences
     preferences.compute_device_type = "CUDA"
 
@@ -103,7 +136,16 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings):
 
 
 def _get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_device: int) -> List[int]:
-    """Returns the indices of the GPU devices."""
+    """
+    Returns the indices of the GPU devices.
+
+    Args:
+        devices: The list of devices.
+        default_device: The default device index.
+
+    Returns:
+        The list of GPU indices.
+    """
     num_devices = len(devices)
     if num_devices == 0:
         return []

@@ -53,7 +53,18 @@ class Configuration(BaseModel):
 
 
 def load_configuration(path: Union[str, Path]) -> Union[dict, None]:
-    """Load settings from a JSON file."""
+    """
+    Load settings from a JSON file.
+
+    Args:
+        path: The path to the JSON file.
+
+    Returns:
+        The settings as a dictionary
+
+    Raises:
+        Exception: If the settings could not be loaded.
+    """
     try:
         with Path(path).open('r') as f:
             configuration = json.load(f)
@@ -65,7 +76,19 @@ def load_configuration(path: Union[str, Path]) -> Union[dict, None]:
 
 
 def save_configuration(configuration: dict, path: Union[str, Path]) -> dict:
-    """Save settings to a JSON file."""
+    """
+    Save settings to a JSON file.
+
+    Args:
+        configuration: The settings as a dictionary.
+        path: The path to the JSON file.
+
+    Returns:
+        The settings as a dictionary.
+
+    Raises:
+        Exception: If the settings could not be saved.
+    """
     try:
         with Path(path).open('w') as f:
             json.dump(configuration, f, indent=4)

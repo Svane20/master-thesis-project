@@ -13,6 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 def get_temporary_file_path(file_name: Union[str | None], render_configuration: RenderConfiguration) -> str:
+    """
+    Get the path to a temporary file.
+
+    Args:
+        file_name: The name of the file.
+        render_configuration: The render configuration.
+
+    Returns:
+        The path to the temporary file.
+    """
     temp_dir: Path = Path(render_configuration.tmp_folder)
 
     path = temp_dir / (file_name or "render")
@@ -26,7 +36,14 @@ def remove_temporary_files(
         image_name: str = None,
         extension: str = Constants.FileExtension.PNG
 ) -> None:
-    """Remove temporary files that match a specific pattern."""
+    """
+    Remove temporary files that match a specific pattern.
+
+    Args:
+        directory: The directory to search for temporary files.
+        image_name: The name of the image.
+        extension: The file extension.
+    """
     if image_name is None:
         logger.info(f"\nDeleting all temporary files with extension {extension} in {directory}")
 

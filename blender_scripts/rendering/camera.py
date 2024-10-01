@@ -15,7 +15,20 @@ def update_camera_position(
         rotation: Vector = None,
         focus_point: Vector = Vector((0.0, 0.0, 0.0))
 ) -> bpy.types.Object:
-    """Update the camera's location and rotation."""
+    """
+    Update the camera's location and rotation.
+
+    Args:
+        location: The camera location.
+        rotation: The camera rotation.
+        focus_point: The focus point.
+
+    Returns:
+        The camera object.
+
+    Raises:
+        ValueError: If the camera is not found.
+    """
     camera: bpy.types.Object = bpy.data.objects["Camera"]
     if camera is None:
         logger.error("Camera not found")
