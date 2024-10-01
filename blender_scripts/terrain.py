@@ -1,8 +1,6 @@
 from mathutils import Vector
 from mathutils.noise import fractal
 
-import time
-
 from PIL import Image
 
 import numpy as np
@@ -97,7 +95,7 @@ def _generate_height_map(
     offset = np.random.randint(0.0, world_size // 2)
 
     # Generate the height map using fractal noise
-    d_map = []
+    height_map = []
     for x in grid:
         d_row = []
         for y in grid:
@@ -109,17 +107,17 @@ def _generate_height_map(
                 noise_basis=noise_basis,
             )
             d_row.append(z)
-        d_map.append(d_row)
+        height_map.append(d_row)
 
     # Resize the height map to the desired image size
-    d_map = np.array(d_map)
-    d_map = Image.fromarray(d_map).resize((image_size,) * 2, Image.Resampling.BILINEAR)
-    d_map = np.array(d_map)
+    height_map = np.array(height_map)
+    height_map = Image.fromarray(height_map).resize((image_size,) * 2, Image.Resampling.BILINEAR)
+    height_map = np.array(height_map)
 
     # Normalize the height map to [0, 255]
-    d_min = np.min(d_map)
-    d_max = np.max(d_map)
-    normalized_height_map = (d_map - d_min) / (d_max - d_min) * 255
+    height_map_min = np.min(height_map)
+    height_map_max = np.max(height_map)
+    normalized_height_map = (height_map - height_map_min) / (height_map_max - height_map_min) * 255
 
     return normalized_height_map
 
@@ -136,7 +134,7 @@ def _generate_segmentation_map(
         band: Threshold band around the midpoint to classify different areas.
 
     Returns:
-        scaled_height_map: The scaled height map (0-1).
+        height_map: The scaled height map (0-1).
         seg_map: A 3-channel segmentation map (RGB).
         masks: Tuple of binary masks (grass, non-grass, beds).
     """
