@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import List, Union, Tuple
 import numpy as np
 
+from configs.configuration import logger
+
 CURRENT_DIRECTORY: Path = Path(__file__).resolve().parent
 ASSETS_DIRECTORY: Path = CURRENT_DIRECTORY / "assets"
 BIOMES_DIRECTORY: Path = ASSETS_DIRECTORY / "biomes"
 
 
 def get_all_biomes(directory: Path = BIOMES_DIRECTORY) -> List[str]:
-    print(f"Searching for biomes in {directory}")
-
     paths = [str(f) for f in directory.rglob("*") if str(f).endswith(".biome")]
 
     return paths
@@ -41,7 +41,7 @@ def apply_biome(
     # Force view layer update
     bpy.context.view_layer.update()
 
-    print(f"Applying biome {path} to {bpy_object.name}")
+    logger.info(f"Applying biome {path} to {bpy_object.name}")
 
     # Track new objects added after scattering
     before_scattering = set(bpy.data.objects.keys())

@@ -25,9 +25,8 @@ def main() -> None:
     setup()
 
     grass_biomes = get_all_biomes()
-    print(grass_biomes)
 
-    terrain, segmentation_map, (grass, texture, beds) = create_terrain_segmentation(
+    terrain, segmentation_map, *other = create_terrain_segmentation(
         world_size=WORLD_SIZE,
         image_size=IMAGE_SIZE,
         num_octaves=(5, 6),
