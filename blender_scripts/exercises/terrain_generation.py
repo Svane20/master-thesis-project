@@ -37,7 +37,7 @@ def main() -> None:
     delatin_sub_meshes = convert_delatin_mesh_to_sub_meshes(delatin_mesh, segmentation_map)
 
     # visualize_terrain(terrain, segmentation_map, grass, texture, beds)
-    visualize_terrain_mesh(delatin_mesh)
+    # visualize_terrain_mesh(delatin_mesh)
     # visualize_terrain_sub_meshes_2d(delatin_sub_meshes)
     # visualize_terrain_sub_meshes_3d(delatin_sub_meshes)
 
