@@ -3,9 +3,17 @@ from pydelatin import Delatin
 import trimesh
 
 from typing import Tuple, Dict
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
-def convert_delatin_mesh_to_sub_meshes(mesh: Delatin, segmentation_map: np.ndarray) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
+def convert_delatin_mesh_to_sub_meshes(mesh: Delatin, segmentation_map: np.ndarray) -> Dict[
+    str, Tuple[np.ndarray, np.ndarray]]:
     """
     Convert Delatin mesh into sub-meshes based on a segmentation map.
 
@@ -16,6 +24,8 @@ def convert_delatin_mesh_to_sub_meshes(mesh: Delatin, segmentation_map: np.ndarr
     Returns:
         A dictionary mapping segmentation categories to sub-meshes.
     """
+    logger.info("Converting Delatin mesh to sub-meshes...")
+
     vertices = np.copy(mesh.vertices)  # Copy vertices to avoid modifying original mesh
     faces = mesh.triangles
 
@@ -35,6 +45,8 @@ def convert_delatin_mesh_to_sub_meshes(mesh: Delatin, segmentation_map: np.ndarr
         "texture": _create_trimesh_sub_mesh(vertices, texture_faces),
         "beds": _create_trimesh_sub_mesh(vertices, beds_faces),
     }
+
+    logger.info(f"Delatin mesh converted to sub-meshes: {len(sub_meshes)} categories.")
 
     return sub_meshes
 
@@ -74,10 +86,12 @@ def _is_category(vertices: np.ndarray, segmentation_map: np.ndarray, category_id
     """
     x_coords = vertices[:, 0].astype(int)
     y_coords = vertices[:, 1].astype(int)
+
     return np.asarray(segmentation_map[x_coords, y_coords, category_idx] == 255)
 
 
-def _classify_faces_by_z_value(faces: np.ndarray, z_values_per_face: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def _classify_faces_by_z_value(faces: np.ndarray, z_values_per_face: np.ndarray) -> Tuple[
+    np.ndarray, np.ndarray, np.ndarray]:
     """
     Classify faces based on the Z values of their vertices.
 
@@ -105,17 +119,18 @@ def _classify_faces_by_z_value(faces: np.ndarray, z_values_per_face: np.ndarray)
 
 def _create_trimesh_sub_mesh(vertices: np.ndarray, faces: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Creates a trimesh-compatible submesh.
+    Creates a trimesh-compatible sub mesh.
 
     Args:
         vertices: Array of mesh vertices.
-        faces: Faces for the submesh.
+        faces: Faces for the sub mesh.
 
     Returns:
-        A tuple of (vertices, faces) arrays representing the submesh.
+        A tuple of (vertices, faces) arrays representing the sub mesh.
     """
     if len(faces) == 0:
         return np.array([]), np.array([])  # Return empty arrays if no faces exist
 
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
+
     return np.array(mesh.vertices), np.array(mesh.faces)

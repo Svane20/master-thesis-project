@@ -26,11 +26,13 @@ def main() -> None:
 
     grass_biomes = get_all_biomes()
 
-    terrain, segmentation_map, *other = create_terrain_segmentation(
+    terrain, segmentation_map, (grass, texture, beds) = create_terrain_segmentation(
         world_size=WORLD_SIZE,
         image_size=IMAGE_SIZE,
-        num_octaves=(5, 6),
-        H=(0.4, 0.5),
+        num_octaves=(1, 2),
+        H=(0.1, 0.2),
+        lacunarity=(0.5, 0.8),
+        seed=42
     )
     delatin_mesh = create_delatin_mesh_from_terrain(terrain)
     delatin_sub_meshes = convert_delatin_mesh_to_sub_meshes(delatin_mesh, segmentation_map)

@@ -29,12 +29,18 @@ def create_delatin_mesh_from_terrain(terrain: np.ndarray, seed: int = None) -> D
         vertices: The vertices of the mesh.
         faces: The faces of the mesh.
     """
+    logger.info("Creating Delatin mesh...")
+
     if seed is not None:
         np.random.seed(seed)
 
     width, height = terrain.shape
 
-    return Delatin(terrain * np.random.uniform(low=1, high=2.5), width=width, height=height)
+    delatin = Delatin(terrain * np.random.uniform(low=1, high=2.5), width=width, height=height)
+
+    logger.info(f"Delatin mesh created: {len(delatin.vertices)} vertices, {len(delatin.triangles)} faces.")
+
+    return delatin
 
 
 def create_terrain_segmentation(
@@ -66,13 +72,12 @@ def create_terrain_segmentation(
         masks: Tuple of binary masks (grass, texture, beds).
     """
 
-    # Step 1: Generate normalized height map
     normalized_height_map = _generate_fractal_heightmap(
         world_size=world_size,
-        image_size=image_size,
         num_octaves=num_octaves,
         H=H,
         lacunarity=lacunarity,
+        image_size=image_size,
         noise_basis=noise_basis,
         seed=seed
     )
@@ -108,6 +113,8 @@ def _generate_fractal_heightmap(
     Returns:
         A height map (2D array) normalized to [0, 255] representing terrain heights.
     """
+    logger.info("Generating fractal height map...")
+
     if seed is not None:
         np.random.seed(seed)
 
@@ -147,6 +154,8 @@ def _generate_fractal_heightmap(
     height_map_max = np.max(height_map)
     normalized_height_map = (height_map - height_map_min) / (height_map_max - height_map_min) * 255
 
+    logger.info(f"Fractal height map generated: {normalized_height_map.shape}.")
+
     return normalized_height_map
 
 
@@ -166,6 +175,8 @@ def _create_segmentation_masks(
         seg_map: A 3-channel segmentation map (RGB).
         masks: Tuple of binary masks (grass, texture, beds).
     """
+    logger.info("Creating segmentation map...")
+
     # Threshold values
     lower_band = 128 - band
     upper_band = 128 + band
@@ -183,5 +194,7 @@ def _create_segmentation_masks(
 
     # Normalize the scaled height map to [0, 1]
     height_map /= 255
+
+    logger.info(f"Segmentation map created: {seg_map.shape}.")
 
     return height_map, seg_map, (grass, texture, beds)

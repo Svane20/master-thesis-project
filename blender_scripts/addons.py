@@ -24,6 +24,7 @@ ASSET_VEGETATION_LIBRARIES = [VEGETATION_DIR]
 
 
 def install_addons() -> None:
+    """Installs the required addons."""
     install_biome_reader()
     install_vegetation()
 
@@ -31,6 +32,7 @@ def install_addons() -> None:
 
 
 def install_biome_reader() -> None:
+    """Installs the Biome-Reader addon."""
     plugin_title = "Biome-Reader"
     plugin_path = PLUGIN_DIR / "BiomeReaderPlugin.zip"
     install_addon(plugin_title, plugin_path)
@@ -43,6 +45,7 @@ def install_biome_reader() -> None:
 
 
 def install_vegetation() -> None:
+    """Installs the Vegetation addon."""
     plugin_title = "Vegetation"
     plugin_path = PLUGIN_DIR / "Vegetation_V5.1_Addon.zip"
     install_addon(plugin_title, plugin_path)
@@ -55,6 +58,13 @@ def install_vegetation() -> None:
 
 
 def install_addon(title: str, filepath: Path) -> None:
+    """
+    Installs the addon from the given filepath.
+
+    Args:
+        title: The title of the addon.
+        filepath: The filepath of the addon.
+    """
     logger.info(f"Installing {title} addon from {filepath}")
 
     bpy.ops.preferences.addon_install(filepath=filepath.as_posix(), overwrite=False)
@@ -63,6 +73,13 @@ def install_addon(title: str, filepath: Path) -> None:
 
 
 def install_package(title: str, filepath: Path) -> None:
+    """
+    Installs the package from the given filepath.
+
+    Args:
+        title: The title of the package.
+        filepath: The filepath of the package.
+    """
     logger.info(f"Installing {title} package from {filepath}")
 
     try:
@@ -72,7 +89,14 @@ def install_package(title: str, filepath: Path) -> None:
         logger.error(f"Failed to add {title}: {e}")
 
 
-def add_asset_library(name: str, directories: List[Path]) -> None:
+def add_asset_library(title: str, directories: List[Path]) -> None:
+    """
+    Adds the asset library from the given directories.
+
+    Args:
+        title: The title of the asset library.
+        directories: The directories of the asset library.
+    """
     for directory in directories:
         dir_name = directory.name
         dir_path = directory.as_posix()
@@ -82,10 +106,6 @@ def add_asset_library(name: str, directories: List[Path]) -> None:
 
             bpy.ops.preferences.asset_library_add(directory=dir_path)
 
-            logger.info(f"Added asset library: {name}")
+            logger.info(f"Added asset library: {title}")
         else:
             logger.info(f"Asset library {dir_name} already exists")
-
-    # Print all currently added asset libraries to verify
-    for asset_library in bpy.context.preferences.filepaths.asset_libraries:
-        logger.info(f"Existing asset library: {asset_library.name} - Path: {asset_library.path}")
