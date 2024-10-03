@@ -92,7 +92,7 @@ def create_light(
         raise
 
 
-def _delete_all_lights():
+def _delete_all_lights() -> None:
     """
     Deletes all lights in the scene.
 

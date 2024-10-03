@@ -2,6 +2,7 @@ import bpy
 
 import logging
 
+from addons import install_addons
 from consts import Constants
 from rendering.rendering import setup_rendering
 from configs.configuration import Configuration, save_configuration, load_configuration
@@ -21,8 +22,15 @@ def clear_cube() -> None:
         bpy.ops.object.delete()
 
 
+def install_dependencies() -> None:
+    install_addons()
+
+
 def setup() -> None:
     clear_cube()
+
+    # Install dependencies
+    install_dependencies()
 
     # Load settings
     config = load_configuration(path=Constants.Directory.CONFIG_PATH)

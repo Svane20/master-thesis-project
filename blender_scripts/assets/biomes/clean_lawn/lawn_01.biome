@@ -1,0 +1,181 @@
+{
+    "info": {
+        "name": "Lawn 01",
+        "type": "Biome",
+        "keywords": "Gs Type F Tiny,Green,Biome,Aio,Clump,Gs Type F Medium ,White,Multi,Gs Type F Leaves,Autumn,Leaves,Lawn 01,Lawn,Pattern, Bd3D,Gs Type F Clump,Weed,Grass,Geo-Scatter,Gs Type F Clover Flower,Gs Type F Clover,Grass F 02,Flower,Clover",
+        "author": "Geo-Scatter",
+        "website": "https://geoscatter.com",
+        "description": "Biome from the free Geo-Scatter Plant-Library",
+        "layercount": 6,
+        "estimated_density": 334.7142
+    },
+    "00": {
+        "name": "Lawn 01 Tiny",
+        "color": [
+            0.27399998903274536,
+            0.3499999940395355,
+            0.09799999743700027
+        ],
+        "preset": "BASENAME.layer00.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS type F tiny"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_flat_triangle",
+            "s_display_placeholder_scale": [
+                0.30000001192092896,
+                0.30000001192092896,
+                0.029999999329447746
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "01": {
+        "name": "Lawn 01 Medium",
+        "color": [
+            0.14332152903079987,
+            0.6103244423866272,
+            0.0463864766061306
+        ],
+        "preset": "BASENAME.layer01.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS type F medium 01",
+            "GS type F medium 02"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_card_triangle",
+            "s_display_placeholder_scale": [
+                0.15399999916553497,
+                0.15399999916553497,
+                0.15399999916553497
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "02": {
+        "name": "Lawn 01 Clump",
+        "color": [
+            0.14332152903079987,
+            0.6103244423866272,
+            0.0463864766061306
+        ],
+        "preset": "BASENAME.layer02.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS type F clump"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_extruded_pentagon",
+            "s_display_placeholder_scale": [
+                0.1469999998807907,
+                0.1469999998807907,
+                0.08699999749660492
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "03": {
+        "name": "Lawn 01 Clover",
+        "color": [
+            0.07199999690055847,
+            0.27300000190734863,
+            0.05000000074505806
+        ],
+        "preset": "BASENAME.layer03.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS type F clover"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_extruded_triangle",
+            "s_display_placeholder_scale": [
+                0.30000001192092896,
+                0.30000001192092896,
+                0.05999999865889549
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "04": {
+        "name": "Lawn 01 Clover Flower",
+        "color": [
+            0.6809999942779541,
+            0.9399999976158142,
+            0.6359999775886536
+        ],
+        "preset": "BASENAME.layer04.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS type F clover flower"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_extruded_triangle",
+            "s_display_placeholder_scale": [
+                0.20000000298023224,
+                0.20000000298023224,
+                0.05000000074505806
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "05": {
+        "name": "Lawn 01 Leaves",
+        "color": [
+            0.6380000114440918,
+            0.2919999957084656,
+            0.007000000216066837
+        ],
+        "preset": "BASENAME.layer05.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS type F leaves"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_lowpoly_cluster_02",
+            "s_display_placeholder_scale": [
+                0.20000000298023224,
+                0.20000000298023224,
+                0.30000001192092896
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    }
+}
