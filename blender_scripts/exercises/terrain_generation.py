@@ -14,7 +14,7 @@ from visualization import visualize_terrain_sub_meshes_3d, visualize_terrain_sub
 IMAGE_NAME = "terrain_generation"
 
 WORLD_SIZE = 20
-IMAGE_SIZE = 1024
+IMAGE_SIZE = 2048
 
 
 def get_unique_object_names(existing_object_names: List[str], new_object_names: List[str]) -> set[str]:
