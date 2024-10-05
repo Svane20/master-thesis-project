@@ -1,13 +1,17 @@
+import os
+
 import bpy
 
 from pathlib import Path
 from typing import List
+from dotenv import load_dotenv
 
 from custom_logging.custom_logger import setup_logger
 
+load_dotenv()
 logger = setup_logger(__name__)
 
-BASE_DIR = Path("C:\\Thesis")
+BASE_DIR = Path(os.getenv("ADDONS_BASE_PATH", "C:\\Thesis"))
 PLUGIN_DIR = BASE_DIR / "plugins"
 PACKAGES_DIR = BASE_DIR / "packages"
 

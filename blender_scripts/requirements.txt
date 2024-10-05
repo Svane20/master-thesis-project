@@ -8,3 +8,4 @@ polydown
 pydelatin
 trimesh
 matplotlib
+python-dotenv
