@@ -1,12 +1,16 @@
 import bpy
+from mathutils import Vector
 
 import numpy as np
 from typing import List
+from math import radians
 
 from biomes import get_all_biomes, apply_biome
 from bpy_ops import save_as_blend_file
 from main import setup
 from mesh import convert_delatin_mesh_to_sub_meshes
+from rendering.camera import update_camera_position
+from rendering.light import create_light, LightType
 from terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain
 from visualization import visualize_terrain_sub_meshes_3d, visualize_terrain_sub_meshes_2d, visualize_terrain, \
     visualize_terrain_mesh
@@ -18,11 +22,40 @@ IMAGE_SIZE = 2048
 
 
 def get_unique_object_names(existing_object_names: List[str], new_object_names: List[str]) -> set[str]:
+    """
+    Get the unique object names that were created.
+
+    Args:
+        existing_object_names: The existing object names.
+        new_object_names: The new object names.
+
+    Returns:
+        The unique object names that were created.
+    """
     return set(new_object_names) - set(existing_object_names)
+
+
+def set_scene() -> None:
+    """Set up the scene."""
+
+    # Add a light to the scene
+    create_light(
+        light_name="Sun",
+        light_type=LightType.SUN,
+        energy=5.0,
+    )
+
+    # Update camera position and rotation
+    bpy.context.scene.camera = update_camera_position(
+        location=Vector((15.0, -19.0, 9.0)),
+        rotation=Vector((radians(70), radians(0), radians(36)))
+    )
 
 
 def main() -> None:
     setup()
+
+    set_scene()
 
     grass_biomes = get_all_biomes()
 

@@ -61,6 +61,8 @@ def _setup_render(render: bpy.types.RenderSettings, render_configuration: Render
         render: The render settings.
         render_configuration: The render configuration
     """
+    logger.info(f"Setting up render configuration for {render_configuration.render}...")
+
     render.resolution_percentage = 100
     render.image_settings.file_format = Constants.Render.FILE_FORMAT
     render.use_border = True
@@ -69,10 +71,9 @@ def _setup_render(render: bpy.types.RenderSettings, render_configuration: Render
     render.threads = Constants.Render.THREADS
     render.image_settings.compression = Constants.Render.COMPRESSION
 
-    if render.engine == RenderType.Cycles:
-        _setup_cycles(render, render_configuration)
-    elif render_configuration.render == RenderType.Eevee:
-        _setup_eevee()
+    _setup_cycles(render, render_configuration) if render_configuration.render == RenderType.Cycles else _setup_eevee()
+
+    logger.info("Render configuration set up.")
 
 
 def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: RenderConfiguration) -> None:
@@ -83,6 +84,8 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
         render: The render settings.
         render_configuration: The render configuration.
     """
+    logger.info("Setting up Cycles rendering configuration...")
+
     scene: bpy.types.Scene = bpy.data.scenes["Scene"]
     cycles: bpy.types.CyclesRenderSettings = scene.cycles
 
@@ -104,13 +107,19 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
 
     scene.view_settings.view_transform = "Khronos PBR Neutral"
 
+    logger.info("Cycles rendering configuration set up.")
+
     _setup_cuda_devices(render)
 
 
 def _setup_eevee() -> None:
     """Configures Eevee-specific rendering settings."""
+    logger.info("Setting up Eevee rendering configuration...")
+
     scene: bpy.types.Scene = bpy.data.scenes["Scene"]
     eevee: bpy.types.SceneEEVEE = scene.eevee
+
+    logger.info("Eevee rendering configuration set up.")
 
 
 def _setup_cuda_devices(render: bpy.types.RenderSettings) -> None:
@@ -120,6 +129,8 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings) -> None:
     Args:
         render: The render settings.
     """
+    logger.info("Setting up CUDA devices for rendering...")
+
     preferences: bpy.types.AddonPreferences = bpy.context.preferences.addons[render.engine.lower()].preferences
     preferences.compute_device_type = "CUDA"
 
@@ -134,6 +145,9 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings) -> None:
     for index in _get_gpu_indices(devices, preferences.default_device()):
         devices[index].use = True
 
+    enabled_devices = [device.name for device in devices if device.use]
+    logger.info(f"Enabled CUDA devices: {enabled_devices}")
+
 
 def _get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_device: int) -> List[int]:
     """
@@ -146,6 +160,8 @@ def _get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_devic
     Returns:
         The list of GPU indices.
     """
+    logger.info("Getting GPU indices...")
+
     num_devices = len(devices)
     if num_devices == 0:
         return []
@@ -156,5 +172,7 @@ def _get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_devic
     if num_devices > 2:
         # If there are more than 2 devices, skip the second index (CPU)
         gpu_indices.append(2)
+
+    logger.info(f"GPU indices: {gpu_indices}")
 
     return gpu_indices

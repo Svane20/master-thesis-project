@@ -3,8 +3,13 @@ import bpy
 from pathlib import Path
 from typing import List, Union, Tuple
 import numpy as np
+import logging
 
-from configs.configuration import logger
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+)
+logger = logging.getLogger(__name__)
 
 CURRENT_DIRECTORY: Path = Path(__file__).resolve().parent
 ASSETS_DIRECTORY: Path = CURRENT_DIRECTORY / "assets"

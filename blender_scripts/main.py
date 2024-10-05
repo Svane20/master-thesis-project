@@ -22,15 +22,11 @@ def clear_cube() -> None:
         bpy.ops.object.delete()
 
 
-def install_dependencies() -> None:
-    install_addons()
-
-
 def setup() -> None:
     clear_cube()
 
-    # Install dependencies
-    install_dependencies()
+    # Install addons
+    install_addons()
 
     # Load settings
     config = load_configuration(path=Constants.Directory.CONFIG_PATH)
