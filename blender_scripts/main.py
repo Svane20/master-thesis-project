@@ -1,17 +1,12 @@
 import bpy
 
-import logging
+from configuration.addons import install_addons
+from configuration.consts import Constants
+from engine.rendering import setup_rendering
+from configuration.configuration import Configuration, save_configuration, load_configuration
+from custom_logging.custom_logger import setup_logger
 
-from addons import install_addons
-from consts import Constants
-from rendering.rendering import setup_rendering
-from configs.configuration import Configuration, save_configuration, load_configuration
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 def clear_cube() -> None:

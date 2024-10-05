@@ -3,13 +3,10 @@ from pydelatin import Delatin
 import trimesh
 
 from typing import Tuple, Dict
-import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+from custom_logging.custom_logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def convert_delatin_mesh_to_sub_meshes(mesh: Delatin, segmentation_map: np.ndarray) -> Dict[

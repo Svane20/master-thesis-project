@@ -12,8 +12,8 @@ class Constants:
         NOISE_BASIS: str = "PERLIN_ORIGINAL"
 
     class Directory:
-        BASE_DIR: Path = Path(__file__).resolve().parent
-        CONFIG_DIR: Path = BASE_DIR / "configs"
+        BASE_DIR: Path = Path(__file__).resolve().parent.parent
+        CONFIG_DIR: Path = BASE_DIR / "configuration"
         CONFIG_PATH: Path = CONFIG_DIR / "config.json"
         OUTPUT_DIR: Path = BASE_DIR / "output"
         BLENDER_FILES_DIR: Path = BASE_DIR / "blender_files"

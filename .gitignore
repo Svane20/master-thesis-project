@@ -3,6 +3,6 @@ __pycache__
 .idea/
 
 output
-blender_scripts/configs/*.json
+blender_scripts/configuration/*.json
 repo
 blender_files

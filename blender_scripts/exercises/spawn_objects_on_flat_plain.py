@@ -5,10 +5,11 @@ import numpy as np
 import random
 from math import radians
 
-from bpy_ops import render_image
+from engine.bpy_ops import render_image
 from main import setup
-from rendering.camera import update_camera_position
-from rendering.light import create_light, LightType
+from scene.camera import update_camera_position
+from scene.light import create_light, LightType
+from utils.tracking import start_tracking, end_tracking
 
 NUM_CYLINDER_OBJECTS = 2
 NUM_CUBE_OBJECTS = 2
@@ -169,8 +170,13 @@ def render_from_angles(image_name: str, angles: list[dict[str | Vector, str | Ve
 
 
 def main() -> None:
+    # Start tracking the execution time
+    start_time = start_tracking(project_title=IMAGE_NAME)
+
+    # Setup rendering engine
     setup()
 
+    # Remove default objects from the scene
     _set_scene()
 
     # Add a plane to the scene
@@ -186,6 +192,9 @@ def main() -> None:
     spawn_random_cubes(num_objects=NUM_CUBE_OBJECTS, add_rotation=True)
 
     render_from_angles(IMAGE_NAME, CAMERA_ANGLES)
+
+    # End tracking the execution time
+    end_tracking(project_title=IMAGE_NAME, start_time=start_time)
 
 
 if __name__ == "__main__":

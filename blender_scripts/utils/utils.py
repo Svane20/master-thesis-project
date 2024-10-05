@@ -1,15 +1,11 @@
 from typing import Union
 from pathlib import Path
-import logging
 
-from configs.configuration import RenderConfiguration
-from consts import Constants
+from configuration.configuration import RenderConfiguration
+from configuration.consts import Constants
+from custom_logging.custom_logger import setup_logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 def get_temporary_file_path(file_name: Union[str | None], render_configuration: RenderConfiguration) -> str:

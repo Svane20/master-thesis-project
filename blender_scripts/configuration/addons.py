@@ -2,13 +2,10 @@ import bpy
 
 from pathlib import Path
 from typing import List
-import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+from custom_logging.custom_logger import setup_logger
+
+logger = setup_logger(__name__)
 
 BASE_DIR = Path("C:\\Thesis")
 PLUGIN_DIR = BASE_DIR / "plugins"

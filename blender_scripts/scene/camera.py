@@ -1,13 +1,9 @@
 import bpy
 from mathutils import Vector, Euler
 
-import logging
+from custom_logging.custom_logger import setup_logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 def update_camera_position(
@@ -43,6 +39,13 @@ def update_camera_position(
         current_direction: Vector = camera.location - focus_point
         camera.rotation_euler: Euler = current_direction.to_track_quat("Z", "Y").to_euler()
 
-    logger.info(f"Camera has been updated to location: {camera.location}, rotation: {camera.rotation_euler}")
+    logger.info(
+        "Camera updated",
+        extra={
+            "location": f"({camera.location.x:.2f}, {camera.location.y:.2f}, {camera.location.z:.2f})",
+            "rotation": f"(x={camera.rotation_euler.x:.2f}, y={camera.rotation_euler.y:.2f}, z={camera.rotation_euler.z:.2f})",
+            "focus_point": f"({focus_point.x:.2f}, {focus_point.y:.2f}, {focus_point.z:.2f})"
+        }
+    )
 
     return camera

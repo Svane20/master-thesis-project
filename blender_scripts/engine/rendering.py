@@ -1,16 +1,12 @@
 import bpy
 
 from typing import List
-import logging
 
-from consts import Constants
-from configs.configuration import RenderConfiguration, CameraConfiguration, RenderType
+from configuration.consts import Constants
+from configuration.configuration import RenderConfiguration, CameraConfiguration, RenderType
+from custom_logging.custom_logger import setup_logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 def setup_rendering(

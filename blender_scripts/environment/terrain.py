@@ -6,15 +6,11 @@ from pydelatin import Delatin
 
 import numpy as np
 from typing import Tuple
-import logging
 
-from consts import Constants
+from configuration.consts import Constants
+from custom_logging.custom_logger import setup_logger
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+logger = setup_logger(__name__)
 
 
 def create_delatin_mesh_from_terrain(terrain: np.ndarray, seed: int = None) -> Delatin:

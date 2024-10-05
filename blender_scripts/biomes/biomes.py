@@ -3,15 +3,12 @@ import bpy
 from pathlib import Path
 from typing import List, Union, Tuple
 import numpy as np
-import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+from custom_logging.custom_logger import setup_logger
 
-CURRENT_DIRECTORY: Path = Path(__file__).resolve().parent
+logger = setup_logger(__name__)
+
+CURRENT_DIRECTORY: Path = Path(__file__).resolve().parent.parent
 ASSETS_DIRECTORY: Path = CURRENT_DIRECTORY / "assets"
 BIOMES_DIRECTORY: Path = ASSETS_DIRECTORY / "biomes"
 
@@ -27,6 +24,8 @@ def get_all_biomes(directory: Path = BIOMES_DIRECTORY) -> List[str]:
         A list of biome paths.
     """
     paths = [str(f) for f in directory.rglob("*") if str(f).endswith(".biome")]
+
+    logger.info(f"Found {len(paths)} biomes in {directory}")
 
     return paths
 

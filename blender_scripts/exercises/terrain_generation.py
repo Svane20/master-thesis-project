@@ -5,15 +5,14 @@ import numpy as np
 from typing import List
 from math import radians
 
-from biomes import get_all_biomes, apply_biome
-from bpy_ops import save_as_blend_file
+from biomes.biomes import get_all_biomes, apply_biome
+from engine.bpy_ops import save_as_blend_file, render_image
 from main import setup
-from mesh import convert_delatin_mesh_to_sub_meshes
-from rendering.camera import update_camera_position
-from rendering.light import create_light, LightType
-from terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain
-from visualization import visualize_terrain_sub_meshes_3d, visualize_terrain_sub_meshes_2d, visualize_terrain, \
-    visualize_terrain_mesh
+from mesh.mesh import convert_delatin_mesh_to_sub_meshes
+from scene.camera import update_camera_position
+from scene.light import create_light, LightType
+from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain
+from utils.tracking import start_tracking, end_tracking
 
 IMAGE_NAME = "terrain_generation"
 
@@ -53,10 +52,16 @@ def set_scene() -> None:
 
 
 def main() -> None:
+    # Start tracking the execution time
+    start_time = start_tracking(project_title=IMAGE_NAME)
+
+    # Setup rendering engine
     setup()
 
+    # Set up the scene
     set_scene()
 
+    # Get all grass biomes
     grass_biomes = get_all_biomes()
 
     terrain, segmentation_map, (grass, texture, beds) = create_terrain_segmentation(
@@ -108,6 +113,10 @@ def main() -> None:
             )
 
     save_as_blend_file(image_name=IMAGE_NAME)
+    render_image(image_name=IMAGE_NAME)
+
+    # End tracking the execution time
+    end_tracking(project_title=IMAGE_NAME, start_time=start_time)
 
 
 if __name__ == "__main__":

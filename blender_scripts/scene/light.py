@@ -2,13 +2,10 @@ import bpy
 from mathutils import Vector, Euler
 
 from enum import Enum
-import logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
-logger = logging.getLogger(__name__)
+from custom_logging.custom_logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 class LightType(Enum):

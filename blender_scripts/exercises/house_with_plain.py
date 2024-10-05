@@ -3,11 +3,12 @@ from mathutils import Vector
 
 from math import radians
 
-from bpy_ops import render_image, save_as_blend_file
-from consts import Constants
-from rendering.camera import update_camera_position
+from engine.bpy_ops import render_image, save_as_blend_file
+from configuration.consts import Constants
+from scene.camera import update_camera_position
 from main import setup
-from rendering.light import create_light, LightType
+from scene.light import create_light, LightType
+from utils.tracking import start_tracking, end_tracking
 
 IMAGE_NAME = "house_with_plain"
 
@@ -96,8 +97,13 @@ def _add_house_elements() -> None:
 
 
 def main() -> None:
+    # Start tracking the execution time
+    start_time = start_tracking(project_title=IMAGE_NAME)
+
+    # Setup rendering engine
     setup()
 
+    # Remove default objects from the scene
     _remove_default_objects()
 
     # Add a plane to the scene and add a grass texture to it
@@ -120,11 +126,14 @@ def main() -> None:
         energy=5.0,
     )
 
+    # Save the blend file
+    save_as_blend_file(image_name=IMAGE_NAME)
+
     # Save the blend file as a PNG image
     render_image(image_name=IMAGE_NAME)
 
-    # Save the blend file
-    save_as_blend_file(image_name=IMAGE_NAME)
+    # End tracking the execution time
+    end_tracking(project_title=IMAGE_NAME, start_time=start_time)
 
 
 if __name__ == "__main__":
