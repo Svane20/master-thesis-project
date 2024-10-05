@@ -5,13 +5,36 @@ from typing import List
 from configuration.consts import Constants
 from configuration.configuration import RenderConfiguration, CameraConfiguration, RenderType
 from custom_logging.custom_logger import setup_logger
+from engine.rendering_outputs import setup_outputs
+from utils.utils import get_temporary_file_path
 
 logger = setup_logger(__name__)
+
+
+class RenderingConstants:
+    class Default:
+        SCENE = "Scene"
+        VIEW_TRANSFORM = "Khronos PBR Neutral"
+
+    class Render:
+        RESOLUTION_PERCENTAGE = 100
+
+    class Cycles:
+        FEATURE_SET = "SUPPORTED"
+        DEVICE = "GPU"
+        TILE_SIZE = 4096
+        SAMPLES = 1
+        ADAPTIVE_THRESHOLD = 0.0
+        TIME_LIMIT = 240
+
+    class Preferences:
+        COMPUTE_DEVICE_TYPE = "CUDA"
 
 
 def setup_rendering(
         render_configuration: RenderConfiguration,
         camera_configuration: CameraConfiguration,
+        output_name: str = None
 ) -> None:
     """
     Sets up rendering configuration.
@@ -19,6 +42,7 @@ def setup_rendering(
     Args:
         render_configuration: The render configuration.
         camera_configuration: The camera configuration.
+        output_name: The name of the output file. Defaults to None.
 
     Raises:
         Exception: If the render engine is not supported.
@@ -31,8 +55,13 @@ def setup_rendering(
     render.engine = render_configuration.render.value
     logger.info(f"Configured render engine: {scene.render.engine}")
 
+    render.filepath = get_temporary_file_path(output_name, render_configuration)
+    logger.info(f"Render output path: {render.filepath}")
+
     _setup_camera(render, camera_configuration)
     _setup_render(render, render_configuration)
+
+    setup_outputs(scene, render_configuration, output_name=output_name)
 
     logger.info("Rendering configuration set up.")
 
@@ -57,9 +86,9 @@ def _setup_render(render: bpy.types.RenderSettings, render_configuration: Render
         render: The render settings.
         render_configuration: The render configuration
     """
-    logger.info(f"Setting up render configuration for {render_configuration.render}...")
+    logger.info("Setting up render configuration...")
 
-    render.resolution_percentage = 100
+    render.resolution_percentage = RenderingConstants.Render.RESOLUTION_PERCENTAGE
     render.image_settings.file_format = Constants.Render.FILE_FORMAT
     render.use_border = True
     render.use_persistent_data = True  # This helps reuse data between renders, reducing computation time
@@ -82,7 +111,7 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
     """
     logger.info("Setting up Cycles rendering configuration...")
 
-    scene: bpy.types.Scene = bpy.data.scenes["Scene"]
+    scene: bpy.types.Scene = bpy.data.scenes[RenderingConstants.Default.SCENE]
     cycles: bpy.types.CyclesRenderSettings = scene.cycles
 
     cycles.camera_cull_margin = render_configuration.camera_cull_margin
@@ -90,18 +119,18 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
     cycles.use_camera_cull = True
     cycles.use_distance_cull = True
 
-    cycles.feature_set = "SUPPORTED"
-    cycles.device = "GPU"
-    cycles.tile_size = 4096
-    cycles.samples = max(1, render_configuration.n_cycles)
+    cycles.feature_set = RenderingConstants.Cycles.FEATURE_SET
+    cycles.device = RenderingConstants.Cycles.DEVICE
+    cycles.tile_size = RenderingConstants.Cycles.TILE_SIZE
+    cycles.samples = max(RenderingConstants.Cycles.SAMPLES, render_configuration.n_cycles)
     cycles.use_denoising = True
     cycles.denoising_use_gpu = True
 
     cycles.use_adaptive_sampling = True
     cycles.adaptive_threshold = Constants.Default.NOISE_THRESHOLD
-    cycles.time_limit = 240
+    cycles.time_limit = RenderingConstants.Cycles.TIME_LIMIT
 
-    scene.view_settings.view_transform = "Khronos PBR Neutral"
+    scene.view_settings.view_transform = RenderingConstants.Default.VIEW_TRANSFORM
 
     logger.info("Cycles rendering configuration set up.")
 
@@ -112,7 +141,7 @@ def _setup_eevee() -> None:
     """Configures Eevee-specific rendering settings."""
     logger.info("Setting up Eevee rendering configuration...")
 
-    scene: bpy.types.Scene = bpy.data.scenes["Scene"]
+    scene: bpy.types.Scene = bpy.data.scenes[RenderingConstants.Default.SCENE]
     eevee: bpy.types.SceneEEVEE = scene.eevee
 
     logger.info("Eevee rendering configuration set up.")
@@ -128,7 +157,7 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings) -> None:
     logger.info("Setting up CUDA devices for rendering...")
 
     preferences: bpy.types.AddonPreferences = bpy.context.preferences.addons[render.engine.lower()].preferences
-    preferences.compute_device_type = "CUDA"
+    preferences.compute_device_type = RenderingConstants.Preferences.COMPUTE_DEVICE_TYPE
 
     devices: List[bpy.types.bpy_prop_collection] = preferences.get_devices() or preferences.devices
     assert devices is not None, "No CUDA devices found"

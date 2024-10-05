@@ -2,6 +2,7 @@ import bpy
 
 from configuration.addons import install_addons
 from configuration.consts import Constants
+from engine.bpy_ops import render_image
 from engine.rendering import setup_rendering
 from configuration.configuration import Configuration, save_configuration, load_configuration
 from custom_logging.custom_logger import setup_logger
@@ -17,7 +18,7 @@ def clear_cube() -> None:
         bpy.ops.object.delete()
 
 
-def setup() -> None:
+def setup(output_name: str = None) -> None:
     clear_cube()
 
     # Install addons
@@ -33,6 +34,7 @@ def setup() -> None:
     setup_rendering(
         render_configuration=configuration.render_configuration,
         camera_configuration=configuration.camera_configuration,
+        output_name=output_name,
     )
 
 

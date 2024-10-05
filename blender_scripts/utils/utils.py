@@ -19,9 +19,9 @@ def get_temporary_file_path(file_name: Union[str | None], render_configuration: 
     Returns:
         The path to the temporary file.
     """
-    temp_dir: Path = Path(render_configuration.tmp_folder)
+    temp_dir: Path = Path(render_configuration.temp_folder)
 
-    path = temp_dir / (file_name or "render")
+    path = temp_dir / (file_name or "temp")
     path.parent.mkdir(parents=True, exist_ok=True)
 
     return path.as_posix()

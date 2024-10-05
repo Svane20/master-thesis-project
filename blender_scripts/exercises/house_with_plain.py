@@ -101,7 +101,7 @@ def main() -> None:
     start_time = start_tracking(project_title=IMAGE_NAME)
 
     # Setup rendering engine
-    setup()
+    setup(output_name=IMAGE_NAME)
 
     # Remove default objects from the scene
     _remove_default_objects()
@@ -130,7 +130,7 @@ def main() -> None:
     save_as_blend_file(image_name=IMAGE_NAME)
 
     # Save the blend file as a PNG image
-    render_image(image_name=IMAGE_NAME)
+    render_image()
 
     # End tracking the execution time
     end_tracking(project_title=IMAGE_NAME, start_time=start_time)

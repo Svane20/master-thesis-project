@@ -9,35 +9,23 @@ logger = setup_logger(__name__)
 
 
 def render_image(
-        image_name: str,
-        directory_path: Path = Constants.Directory.OUTPUT_DIR,
         write_still: bool = True
 ) -> None:
     """
     Renders the current scene as an image.
 
     Args:
-        image_name: The name of the image.
-        directory_path: The directory path.
         write_still: Whether to write the image to disk.
 
     Raises:
         Exception: If the image fails to render.
     """
     try:
-        output_dir = Path(directory_path)
-        output_dir.parent.mkdir(parents=True, exist_ok=True)
-
-        scene = bpy.context.scene
-        render = scene.render
-
-        render.filepath = str(output_dir / f"{image_name}.{Constants.FileExtension.PNG}")
-        render.image_settings.file_format = Constants.Render.FILE_FORMAT
-        render.image_settings.color_mode = Constants.Render.COLOR_MODE
+        logger.info("Rendering image...")
 
         bpy.ops.render.render(write_still=write_still)
 
-        logger.info(f"Rendered: '{render.filepath}'")
+        logger.info("Rendered image.")
     except Exception as e:
         logger.error(f"Failed to render image: {e}")
         raise
