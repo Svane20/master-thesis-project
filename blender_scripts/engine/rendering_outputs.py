@@ -72,7 +72,7 @@ def setup_outputs(
         output.use_node_format = False
         output.format.file_format = "PNG"
         output.format.color_mode = "BW"
-        output.path = "IndexOB"
+        output.path = f"{output_name}_IndexOB" if output_name else "IndexOB"
 
         indexOB_output = render_layers.outputs.get("IndexOB")
         print(indexOB_output)

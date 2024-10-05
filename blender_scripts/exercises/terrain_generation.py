@@ -12,7 +12,6 @@ from mesh.mesh import convert_delatin_mesh_to_sub_meshes
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType
 from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain
-from utils.tracking import start_tracking, end_tracking
 
 IMAGE_NAME = "terrain_generation"
 
@@ -52,9 +51,6 @@ def set_scene() -> None:
 
 
 def main() -> None:
-    # Start tracking the execution time
-    start_time = start_tracking(project_title=IMAGE_NAME)
-
     # Setup rendering engine
     setup(output_name=IMAGE_NAME)
 
@@ -112,11 +108,11 @@ def main() -> None:
                 path=np.random.choice(grass_biomes),
             )
 
+    # Save the blend file
     save_as_blend_file(image_name=IMAGE_NAME)
-    render_image()
 
-    # End tracking the execution time
-    end_tracking(project_title=IMAGE_NAME, start_time=start_time)
+    # Render the image
+    render_image()
 
 
 if __name__ == "__main__":

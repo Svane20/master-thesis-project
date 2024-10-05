@@ -9,7 +9,6 @@ from engine.bpy_ops import render_image
 from main import setup
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType
-from utils.tracking import start_tracking, end_tracking
 
 NUM_CYLINDER_OBJECTS = 2
 NUM_CUBE_OBJECTS = 2
@@ -163,14 +162,11 @@ def render_from_angles(angles: list[dict[str | Vector, str | Vector]]):
         # Render and save the image
         setup(output_name=IMAGE_NAME)
 
-        # Save the current scene as a .blend file
-        # save_as_blend_file(image_name=unique_image_name, directory_path=Constants.Directory.BLENDER_FILES_DIR)
+        # Render the image
+        render_image()
 
 
 def main() -> None:
-    # Start tracking the execution time
-    start_time = start_tracking(project_title=IMAGE_NAME)
-
     # Setup rendering engine
     setup()
 
@@ -190,9 +186,6 @@ def main() -> None:
     spawn_random_cubes(num_objects=NUM_CUBE_OBJECTS, add_rotation=True)
 
     render_from_angles(CAMERA_ANGLES)
-
-    # End tracking the execution time
-    end_tracking(project_title=IMAGE_NAME, start_time=start_time)
 
 
 if __name__ == "__main__":

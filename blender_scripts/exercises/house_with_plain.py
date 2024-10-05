@@ -8,7 +8,6 @@ from configuration.consts import Constants
 from scene.camera import update_camera_position
 from main import setup
 from scene.light import create_light, LightType
-from utils.tracking import start_tracking, end_tracking
 
 IMAGE_NAME = "house_with_plain"
 
@@ -97,9 +96,6 @@ def _add_house_elements() -> None:
 
 
 def main() -> None:
-    # Start tracking the execution time
-    start_time = start_tracking(project_title=IMAGE_NAME)
-
     # Setup rendering engine
     setup(output_name=IMAGE_NAME)
 
@@ -131,9 +127,6 @@ def main() -> None:
 
     # Save the blend file as a PNG image
     render_image()
-
-    # End tracking the execution time
-    end_tracking(project_title=IMAGE_NAME, start_time=start_time)
 
 
 if __name__ == "__main__":

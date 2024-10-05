@@ -19,12 +19,16 @@ def clear_cube() -> None:
 
 
 def setup(output_name: str = None) -> None:
+    """
+    Set up the scene for rendering
+
+    Args:
+        output_name: The name of the output file.
+    """
     clear_cube()
 
-    # Install addons
     install_addons()
 
-    # Load settings
     config = load_configuration(path=Constants.Directory.CONFIG_PATH)
     if config is None:
         config = save_configuration(configuration=Configuration().model_dump(), path=Constants.Directory.CONFIG_PATH)
