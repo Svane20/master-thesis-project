@@ -6,3 +6,4 @@ output
 blender_scripts/configuration/*.json
 repo
 blender_files
+.env
