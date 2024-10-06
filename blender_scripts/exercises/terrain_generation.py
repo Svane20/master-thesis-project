@@ -6,12 +6,14 @@ from typing import List
 from math import radians
 
 from biomes.biomes import get_all_biomes, apply_biome
+from configuration.consts import Constants
 from engine.bpy_ops import save_as_blend_file, render_image
 from main import setup
 from mesh.mesh import convert_delatin_mesh_to_sub_meshes
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType
 from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain
+from utils.utils import remove_temporary_files
 
 IMAGE_NAME = "terrain_generation"
 
@@ -113,6 +115,9 @@ def main() -> None:
 
     # Render the image
     render_image()
+
+    # Remove temporary files
+    remove_temporary_files(directory=Constants.Directory.TEMP_DIR)
 
 
 if __name__ == "__main__":

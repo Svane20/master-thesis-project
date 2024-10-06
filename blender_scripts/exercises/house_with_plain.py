@@ -8,6 +8,7 @@ from configuration.consts import Constants
 from scene.camera import update_camera_position
 from main import setup
 from scene.light import create_light, LightType
+from utils.utils import remove_temporary_files
 
 IMAGE_NAME = "house_with_plain"
 
@@ -127,6 +128,9 @@ def main() -> None:
 
     # Save the blend file as a PNG image
     render_image()
+
+    # Remove temporary files
+    remove_temporary_files(directory=Constants.Directory.TEMP_DIR)
 
 
 if __name__ == "__main__":

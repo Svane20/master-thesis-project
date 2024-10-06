@@ -25,7 +25,7 @@ class CameraConfiguration(BaseModel):
 
 
 class RenderConfiguration(BaseModel):
-    render: RenderType = RenderType.Eevee
+    render: RenderType = RenderType.Cycles
     temp_folder: str = Constants.Directory.TEMP_DIR.as_posix()
     n_cycles: int = 128
 
