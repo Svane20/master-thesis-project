@@ -9,7 +9,7 @@ from engine.bpy_ops import render_image
 from main import setup
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType
-from utils.tracking import start_tracking, end_tracking
+from utils.utils import get_playground_directory_with_tag, move_rendered_images_to_playground, cleanup_directories
 
 NUM_CYLINDER_OBJECTS = 2
 NUM_CUBE_OBJECTS = 2
@@ -151,7 +151,9 @@ def place_object_on_ground(obj: bpy.types.Object):
     obj.location.z -= min_z
 
 
-def render_from_angles(image_name: str, angles: list[dict[str | Vector, str | Vector]]):
+def render_from_angles(angles: list[dict[str | Vector, str | Vector]]):
+    playground_dir = get_playground_directory_with_tag(output_name=IMAGE_NAME)
+
     """Render images from multiple camera angles."""
     for i, angle in enumerate(angles):
         # Update camera position and rotation
@@ -160,19 +162,14 @@ def render_from_angles(image_name: str, angles: list[dict[str | Vector, str | Ve
             rotation=angle['rotation']
         )
 
-        unique_image_name = f"{image_name}_{i + 1}"
+        # Render the image
+        render_image()
 
-        # Render and save the image
-        render_image(image_name=unique_image_name)
-
-        # Save the current scene as a .blend file
-        # save_as_blend_file(image_name=unique_image_name, directory_path=Constants.Directory.BLENDER_FILES_DIR)
+        # Rename the rendered image
+        move_rendered_images_to_playground(playground_dir, iteration=i)
 
 
 def main() -> None:
-    # Start tracking the execution time
-    start_time = start_tracking(project_title=IMAGE_NAME)
-
     # Setup rendering engine
     setup()
 
@@ -191,10 +188,10 @@ def main() -> None:
     spawn_random_cylinders(num_objects=NUM_CYLINDER_OBJECTS, add_rotation=False)
     spawn_random_cubes(num_objects=NUM_CUBE_OBJECTS, add_rotation=True)
 
-    render_from_angles(IMAGE_NAME, CAMERA_ANGLES)
+    render_from_angles(CAMERA_ANGLES)
 
-    # End tracking the execution time
-    end_tracking(project_title=IMAGE_NAME, start_time=start_time)
+    # Cleanup the scene after rendering
+    cleanup_directories()
 
 
 if __name__ == "__main__":

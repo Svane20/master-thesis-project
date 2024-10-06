@@ -9,8 +9,10 @@ from custom_logging.custom_logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def convert_delatin_mesh_to_sub_meshes(mesh: Delatin, segmentation_map: np.ndarray) -> Dict[
-    str, Tuple[np.ndarray, np.ndarray]]:
+def convert_delatin_mesh_to_sub_meshes(
+        mesh: Delatin,
+        segmentation_map: np.ndarray
+) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
     """
     Convert Delatin mesh into sub-meshes based on a segmentation map.
 

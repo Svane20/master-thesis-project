@@ -8,7 +8,7 @@ from configuration.consts import Constants
 from scene.camera import update_camera_position
 from main import setup
 from scene.light import create_light, LightType
-from utils.tracking import start_tracking, end_tracking
+from utils.utils import cleanup_directories, get_playground_directory_with_tag, move_rendered_images_to_playground
 
 IMAGE_NAME = "house_with_plain"
 
@@ -97,8 +97,8 @@ def _add_house_elements() -> None:
 
 
 def main() -> None:
-    # Start tracking the execution time
-    start_time = start_tracking(project_title=IMAGE_NAME)
+    # Get the playground directory
+    playground_dir = get_playground_directory_with_tag(output_name=IMAGE_NAME)
 
     # Setup rendering engine
     setup()
@@ -130,10 +130,13 @@ def main() -> None:
     save_as_blend_file(image_name=IMAGE_NAME)
 
     # Save the blend file as a PNG image
-    render_image(image_name=IMAGE_NAME)
+    render_image()
 
-    # End tracking the execution time
-    end_tracking(project_title=IMAGE_NAME, start_time=start_time)
+    # Rename the rendered image
+    move_rendered_images_to_playground(playground_dir, iteration=1)
+
+    # Cleanup the scene after rendering
+    cleanup_directories()
 
 
 if __name__ == "__main__":
