@@ -5,6 +5,7 @@ from configuration.consts import Constants
 from engine.rendering import setup_rendering
 from configuration.configuration import Configuration, save_configuration, load_configuration
 from custom_logging.custom_logger import setup_logger
+from utils.utils import cleanup_directories
 
 logger = setup_logger(__name__)
 
@@ -17,15 +18,16 @@ def clear_cube() -> None:
         bpy.ops.object.delete()
 
 
-def setup(output_name: str = None) -> None:
-    """
-    Set up the scene for rendering
+def setup() -> None:
+    """Set up the scene for rendering"""
 
-    Args:
-        output_name: The name of the output file.
-    """
+    # Cleanup the scene before rendering
+    cleanup_directories(remove_blender_dir=True)
+
+    # Clear the cube object if it exists
     clear_cube()
 
+    # Install the required addons
     install_addons()
 
     config = load_configuration(path=Constants.Directory.CONFIG_PATH)
@@ -34,10 +36,10 @@ def setup(output_name: str = None) -> None:
 
     configuration = Configuration(**config)
 
+    # Set up Blender rendering configuration
     setup_rendering(
         render_configuration=configuration.render_configuration,
         camera_configuration=configuration.camera_configuration,
-        output_name=output_name,
     )
 
 

@@ -8,7 +8,7 @@ from configuration.consts import Constants
 from scene.camera import update_camera_position
 from main import setup
 from scene.light import create_light, LightType
-from utils.utils import remove_temporary_files
+from utils.utils import cleanup_directories, get_playground_directory_with_tag, move_rendered_images_to_playground
 
 IMAGE_NAME = "house_with_plain"
 
@@ -97,8 +97,11 @@ def _add_house_elements() -> None:
 
 
 def main() -> None:
+    # Get the playground directory
+    playground_dir = get_playground_directory_with_tag(output_name=IMAGE_NAME)
+
     # Setup rendering engine
-    setup(output_name=IMAGE_NAME)
+    setup()
 
     # Remove default objects from the scene
     _remove_default_objects()
@@ -129,8 +132,11 @@ def main() -> None:
     # Save the blend file as a PNG image
     render_image()
 
-    # Remove temporary files
-    remove_temporary_files(directory=Constants.Directory.TEMP_DIR)
+    # Rename the rendered image
+    move_rendered_images_to_playground(playground_dir, iteration=1)
+
+    # Cleanup the scene after rendering
+    cleanup_directories()
 
 
 if __name__ == "__main__":

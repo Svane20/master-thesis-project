@@ -8,9 +8,7 @@ from custom_logging.custom_logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def render_image(
-        write_still: bool = True
-) -> None:
+def render_image(write_still: bool = True) -> None:
     """
     Renders the current scene as an image.
 

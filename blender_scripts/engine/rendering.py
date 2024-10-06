@@ -34,7 +34,6 @@ class RenderingConstants:
 def setup_rendering(
         render_configuration: RenderConfiguration,
         camera_configuration: CameraConfiguration,
-        output_name: str = None
 ) -> None:
     """
     Sets up rendering configuration.
@@ -42,7 +41,6 @@ def setup_rendering(
     Args:
         render_configuration: The render configuration.
         camera_configuration: The camera configuration.
-        output_name: The name of the output file. Defaults to None.
 
     Raises:
         Exception: If the render engine is not supported.
@@ -55,13 +53,13 @@ def setup_rendering(
     render.engine = render_configuration.render.value
     logger.info(f"Configured render engine: {scene.render.engine}")
 
-    render.filepath = get_temporary_file_path(output_name, render_configuration)
+    render.filepath = get_temporary_file_path(render_configuration)
     logger.info(f"Render output path: {render.filepath}")
 
     _setup_camera(render, camera_configuration)
     _setup_render(render, render_configuration)
 
-    setup_outputs(scene, render_configuration, output_name=output_name)
+    setup_outputs(scene, render_configuration)
 
     logger.info("Rendering configuration set up.")
 

@@ -3,6 +3,7 @@ __pycache__
 .idea/
 
 output
+playground
 temp
 blender_scripts/configuration/*.json
 repo

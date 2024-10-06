@@ -1,4 +1,4 @@
-from typing import Union
+from datetime import datetime
 from pathlib import Path
 
 from configuration.configuration import RenderConfiguration
@@ -8,12 +8,11 @@ from custom_logging.custom_logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def get_temporary_file_path(file_name: Union[str | None], render_configuration: RenderConfiguration) -> str:
+def get_temporary_file_path(render_configuration: RenderConfiguration) -> str:
     """
     Get the path to a temporary file.
 
     Args:
-        file_name: The name of the file.
         render_configuration: The render configuration.
 
     Returns:
@@ -21,10 +20,89 @@ def get_temporary_file_path(file_name: Union[str | None], render_configuration: 
     """
     temp_dir: Path = Path(render_configuration.temp_folder)
 
-    path = temp_dir / (file_name or "temp")
+    path = temp_dir / "temp"
     path.parent.mkdir(parents=True, exist_ok=True)
 
     return path.as_posix()
+
+
+def get_playground_directory_with_tag(output_name: str = None) -> Path:
+    """
+    Get the playground directory with a unique tag.
+
+    Args:
+        output_name: The name of the output file. Defaults to None.
+
+    Returns:
+        The playground directory.
+    """
+    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    tag = f"{output_name}_{current_time}" if output_name is not None else current_time
+
+    directory = Constants.Directory.PLAYGROUND_DIR / tag
+    directory.mkdir(parents=True, exist_ok=True)
+
+    logger.info(f"Created playground directory: {directory}")
+
+    return directory
+
+
+def move_rendered_images_to_playground(
+        playground_directory: Path,
+        iteration: int,
+        output_path: Path = Constants.Directory.OUTPUT_DIR,
+) -> None:
+    """
+    Move rendered images to the playground directory.
+
+    Args:
+        playground_directory: The playground directory.
+        iteration: The iteration number.
+        output_path: The output directory
+    """
+
+    file_extension = Constants.FileExtension.PNG
+
+    rendered_images = output_path.glob(f"*.{file_extension}")
+
+    for image in rendered_images:
+        try:
+            if "Image" in image.name:
+                filepath = (playground_directory / f"Image_{iteration}.{file_extension}").as_posix()
+                image.rename(filepath)
+                logger.info(f"Moved {image.name} to {filepath}")
+            elif "IDMask" in image.name:
+                filepath = (playground_directory / f"IDMask_{iteration}.{file_extension}").as_posix()
+                image.rename(filepath)
+                logger.info(f"Moved {image.name} to {filepath}")
+        except Exception as e:
+            logger.error(f"Could not move {image}: {e}")
+
+
+def cleanup_directories(
+        remove_output_dir: bool = True,
+        remove_temporary_dir: bool = True,
+        remove_blender_dir: bool = False
+) -> None:
+    """
+    Cleanup the directories.
+
+    Args:
+        remove_output_dir: Whether to remove the output directory.
+        remove_temporary_dir: Whether to remove the temporary directory.
+        remove_blender_dir: Whether to remove the Blender directory.
+    """
+    if remove_output_dir:
+        remove_temporary_files(directory=Constants.Directory.OUTPUT_DIR)
+
+    if remove_temporary_dir:
+        remove_temporary_files(directory=Constants.Directory.TEMP_DIR)
+
+    if remove_blender_dir:
+        remove_temporary_files(
+            directory=Constants.Directory.BLENDER_FILES_DIR,
+            extension=Constants.FileExtension.BLEND
+        )
 
 
 def remove_temporary_files(
