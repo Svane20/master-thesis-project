@@ -69,7 +69,8 @@ def save_as_blend_file(
     try:
         # Ensure the directory exists
         output_dir: Path = Path(directory_path)
-        output_dir.parent.mkdir(parents=True, exist_ok=True)
+
+        output_dir.mkdir(parents=True, exist_ok=True)
         output_path = output_dir / f"{image_name}.{Constants.FileExtension.BLEND}"
 
         # Remove the existing file if it exists
