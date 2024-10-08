@@ -8,6 +8,26 @@ from custom_logging.custom_logger import setup_logger
 logger = setup_logger(__name__)
 
 
+def delete_object_by_selection(object: bpy.types.Object) -> None:
+    """
+    Deletes the given object after selection.
+
+    Args:
+        object: The object to delete.
+
+    Raises:
+        Exception: If the object fails to delete.
+    """
+    try:
+        logger.info(f"Deleting object: '{object.name}'")
+
+        object.select_set(True)
+        bpy.ops.object.delete()
+    except Exception as e:
+        logger.error(f"Failed to delete object: {e}")
+        raise
+
+
 def render_image(write_still: bool = True) -> None:
     """
     Renders the current scene as an image.
@@ -21,6 +41,7 @@ def render_image(write_still: bool = True) -> None:
     try:
         logger.info("Rendering image...")
 
+        # Render the image
         bpy.ops.render.render(write_still=write_still)
 
         logger.info("Rendered image.")

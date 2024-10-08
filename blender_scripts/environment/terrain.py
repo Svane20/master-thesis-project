@@ -48,7 +48,7 @@ def create_terrain_segmentation(
         band: int = 48,
         noise_basis: str = Constants.Default.NOISE_BASIS,
         seed: int = None
-) -> Tuple[np.ndarray, np.ndarray, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Generates a fractal height map and a segmentation map for the terrain.
 
@@ -65,7 +65,6 @@ def create_terrain_segmentation(
     Return:
         height_map: The normalized height map (0-1).
         seg_map: A 3-channel segmentation map (RGB).
-        masks: Tuple of binary masks (grass, texture, beds).
     """
 
     normalized_height_map = _generate_fractal_heightmap(
@@ -158,7 +157,7 @@ def _generate_fractal_heightmap(
 def _create_segmentation_masks(
         height_map: np.ndarray,
         band: int = 48,
-) -> Tuple[np.ndarray, np.ndarray, Tuple[np.ndarray, np.ndarray, np.ndarray]]:
+) -> Tuple[np.ndarray, np.ndarray]:
     """
     Creates a segmentation map from the height map based on thresholds.
 
@@ -169,7 +168,6 @@ def _create_segmentation_masks(
     Returns:
         height_map: The scaled height map (0-1).
         seg_map: A 3-channel segmentation map (RGB).
-        masks: Tuple of binary masks (grass, texture, beds).
     """
     logger.info("Creating segmentation map...")
 
@@ -193,4 +191,4 @@ def _create_segmentation_masks(
 
     logger.info(f"Segmentation map created: {seg_map.shape}.")
 
-    return height_map, seg_map, (grass, texture, beds)
+    return height_map, seg_map

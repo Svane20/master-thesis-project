@@ -14,9 +14,6 @@ logger = setup_logger(__name__)
 def visualize_terrain(
         height_map: np.ndarray,
         segmentation_map: np.ndarray,
-        grass: np.ndarray,
-        texture: np.ndarray,
-        beds: np.ndarray
 ) -> None:
     """
     Visualize the terrain and segmentation map with generated masks.
@@ -24,11 +21,8 @@ def visualize_terrain(
     Args:
         height_map: The normalized height map (0-1).
         segmentation_map: A 3-channel segmentation map (RGB).
-        grass: Binary mask for grass areas.
-        texture: Binary mask for texture areas.
-        beds: Binary mask for bed areas.
     """
-    fig, axs = plt.subplots(nrows=1, ncols=5, figsize=(20, 5))
+    fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(20, 5))
 
     # Terrain visualization
     axs[0].imshow(height_map, cmap="terrain")
@@ -45,21 +39,6 @@ def visualize_terrain(
 
     # Add contour lines over the segmentation map
     axs[1].contour(height_map, colors='black', linewidths=0.5)
-
-    # Grass mask
-    axs[2].imshow(grass, cmap='gray')
-    axs[2].set_title('Grass Mask')
-    axs[2].axis('off')
-
-    # Texture mask
-    axs[3].imshow(texture, cmap='gray')
-    axs[3].set_title('Texture Mask')
-    axs[3].axis('off')
-
-    # Beds mask
-    axs[4].imshow(beds, cmap='gray')
-    axs[4].set_title('Beds Mask')
-    axs[4].axis('off')
 
     plt.tight_layout()
     plt.show()
