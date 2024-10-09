@@ -15,12 +15,12 @@ from utils.utils import cleanup_directories, get_playground_directory_with_tag, 
 
 IMAGE_NAME = "terrain_generation"
 
-WORLD_SIZE = 20
+WORLD_SIZE = 30
 IMAGE_SIZE = 2048
 
 NUM_OCTAVES = (1, 2)
-H = (0.1, 0.2)
-LACUNARITY = (0.5, 0.8)
+H = (0.0, 0.0)
+LACUNARITY = (0.5, 0.5)
 SEED = 42
 
 
@@ -36,8 +36,8 @@ def set_scene() -> None:
 
     # Update camera position and rotation
     bpy.context.scene.camera = update_camera_position(
-        location=Vector((15.0, -19.0, 9.0)),
-        rotation=Vector((radians(70), radians(0), radians(36)))
+        location=Vector((30, 0, 30)),
+        rotation=Vector((radians(40), radians(0), radians(90)))
     )
 
 

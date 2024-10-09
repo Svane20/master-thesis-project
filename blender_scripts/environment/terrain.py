@@ -64,7 +64,7 @@ def create_terrain_segmentation(
 
     Return:
         height_map: The normalized height map (0-1).
-        seg_map: A 3-channel segmentation map (RGB).
+        segmentation_map: A 3-channel segmentation map (RGB).
     """
 
     normalized_height_map = _generate_fractal_heightmap(
@@ -78,7 +78,7 @@ def create_terrain_segmentation(
     )
 
     # Step 2: Generate segmentation map
-    return _create_segmentation_masks(
+    return _create_segmentation_map(
         height_map=normalized_height_map,
         band=band
     )
@@ -137,6 +137,7 @@ def _generate_fractal_heightmap(
                 noise_basis=noise_basis,
             )
             depths.append(z)
+
         height_map.append(depths)
 
     # Resize the height map to the desired image size
@@ -154,7 +155,7 @@ def _generate_fractal_heightmap(
     return normalized_height_map
 
 
-def _create_segmentation_masks(
+def _create_segmentation_map(
         height_map: np.ndarray,
         band: int = 48,
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -167,7 +168,7 @@ def _create_segmentation_masks(
 
     Returns:
         height_map: The scaled height map (0-1).
-        seg_map: A 3-channel segmentation map (RGB).
+        segmentation_map: A 3-channel segmentation map (RGB).
     """
     logger.info("Creating segmentation map...")
 
@@ -181,14 +182,14 @@ def _create_segmentation_masks(
     beds = np.asarray(height_map <= lower_band).astype(np.uint8) * 255
 
     # Create segmentation map with 3 channels (R: texture, G: grass, B: beds) by stacking the channels
-    seg_map = np.zeros((height_map.shape[0], height_map.shape[1], 3), dtype=np.uint8)
-    seg_map[..., 0] = texture
-    seg_map[..., 1] = grass
-    seg_map[..., 2] = beds
+    segmentation_map = np.zeros((height_map.shape[0], height_map.shape[1], 3), dtype=np.uint8)
+    segmentation_map[..., 0] = texture
+    segmentation_map[..., 1] = grass
+    segmentation_map[..., 2] = beds
 
     # Normalize the scaled height map to [0, 1]
     height_map /= 255
 
-    logger.info(f"Segmentation map created: {seg_map.shape}.")
+    logger.info(f"Segmentation map created: {segmentation_map.shape}.")
 
-    return height_map, seg_map
+    return height_map, segmentation_map
