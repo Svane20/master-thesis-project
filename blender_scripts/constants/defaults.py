@@ -1,0 +1,4 @@
+WORLD_SIZE: float = 100.0
+IMAGE_SIZE: int = 2048
+IMAGE_WIDTH: int = 2048
+IMAGE_HEIGHT: int = 2048

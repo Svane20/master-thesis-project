@@ -7,10 +7,12 @@ from pydelatin import Delatin
 import numpy as np
 from typing import Tuple
 
-from configuration.consts import Constants
+from constants.defaults import WORLD_SIZE, IMAGE_SIZE
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
+
+NOISE_BASIS: str = "PERLIN_ORIGINAL"
 
 
 def create_delatin_mesh_from_terrain(terrain: np.ndarray, seed: int = None) -> Delatin:
@@ -40,13 +42,13 @@ def create_delatin_mesh_from_terrain(terrain: np.ndarray, seed: int = None) -> D
 
 
 def create_terrain_segmentation(
-        world_size: int = int(Constants.Default.WORLD_SIZE),
+        world_size: int = int(WORLD_SIZE),
         num_octaves: Tuple[int, int] = (3, 4),
         H: Tuple[float, float] = (0.4, 0.5),
         lacunarity: Tuple[float, float] = (1.1, 1.2),
-        image_size: int = Constants.Default.IMAGE_SIZE,
+        image_size: int = IMAGE_SIZE,
         band: int = 48,
-        noise_basis: str = Constants.Default.NOISE_BASIS,
+        noise_basis: str = NOISE_BASIS,
         seed: int = None
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -85,12 +87,12 @@ def create_terrain_segmentation(
 
 
 def _generate_fractal_heightmap(
-        world_size: float = Constants.Default.WORLD_SIZE,
+        world_size: float = WORLD_SIZE,
         num_octaves: Tuple[int, int] = (3, 4),
         H: Tuple[float, float] = (0.4, 0.5),
         lacunarity: Tuple[float, float] = (1.1, 1.2),
-        image_size: int = Constants.Default.IMAGE_SIZE,
-        noise_basis: str = Constants.Default.NOISE_BASIS,
+        image_size: int = IMAGE_SIZE,
+        noise_basis: str = NOISE_BASIS,
         seed: int = None
 ) -> np.ndarray:
     """

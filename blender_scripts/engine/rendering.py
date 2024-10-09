@@ -2,33 +2,15 @@ import bpy
 
 from typing import List
 
-from configuration.consts import Constants
-from configuration.configuration import RenderConfiguration, CameraConfiguration, RenderType
+from configuration.configuration import RenderConfiguration, CameraConfiguration, EngineType
 from custom_logging.custom_logger import setup_logger
 from engine.rendering_outputs import setup_outputs
 from utils.utils import get_temporary_file_path
 
 logger = setup_logger(__name__)
 
-
-class RenderingConstants:
-    class Default:
-        SCENE = "Scene"
-        VIEW_TRANSFORM = "Khronos PBR Neutral"
-
-    class Render:
-        RESOLUTION_PERCENTAGE = 100
-
-    class Cycles:
-        FEATURE_SET = "SUPPORTED"
-        DEVICE = "GPU"
-        TILE_SIZE = 4096
-        SAMPLES = 1
-        ADAPTIVE_THRESHOLD = 0.0
-        TIME_LIMIT = 240
-
-    class Preferences:
-        COMPUTE_DEVICE_TYPE = "CUDA"
+SCENE = "Scene"
+CYCLES_SAMPLES = 1
 
 
 def setup_rendering(
@@ -50,7 +32,7 @@ def setup_rendering(
     scene = bpy.context.scene
     render: bpy.types.RenderSettings = scene.render
 
-    render.engine = render_configuration.render.value
+    render.engine = render_configuration.engine.value
     logger.info(f"Configured render engine: {scene.render.engine}")
 
     render.filepath = get_temporary_file_path(render_configuration)
@@ -86,15 +68,16 @@ def _setup_render(render: bpy.types.RenderSettings, render_configuration: Render
     """
     logger.info("Setting up render configuration...")
 
-    render.resolution_percentage = RenderingConstants.Render.RESOLUTION_PERCENTAGE
-    render.image_settings.file_format = Constants.Render.FILE_FORMAT
-    render.use_border = True
-    render.use_persistent_data = True  # This helps reuse data between renders, reducing computation time
-    render.threads_mode = Constants.Render.THREADS_MODE
-    render.threads = Constants.Render.THREADS
-    render.image_settings.compression = Constants.Render.COMPRESSION
+    render.resolution_percentage = render_configuration.resolution_percentage
+    render.image_settings.file_format = render_configuration.file_format
+    render.use_border = render_configuration.use_border
+    render.use_persistent_data = render_configuration.use_persistent_data
+    render.threads_mode = render_configuration.threads_mode
+    render.threads = render_configuration.threads
+    render.image_settings.compression = render_configuration.compression
 
-    _setup_cycles(render, render_configuration) if render_configuration.render == RenderType.Cycles else _setup_eevee()
+    if render_configuration.engine == EngineType.Cycles:
+        _setup_cycles(render, render_configuration)
 
     logger.info("Render configuration set up.")
 
@@ -109,53 +92,48 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
     """
     logger.info("Setting up Cycles rendering configuration...")
 
-    scene: bpy.types.Scene = bpy.data.scenes[RenderingConstants.Default.SCENE]
+    cycles_configuration = render_configuration.cycles_configuration
+
+    scene: bpy.types.Scene = bpy.data.scenes[SCENE]
     cycles: bpy.types.CyclesRenderSettings = scene.cycles
 
-    cycles.camera_cull_margin = render_configuration.camera_cull_margin
-    cycles.distance_cull_margin = render_configuration.distance_cull_margin
-    cycles.use_camera_cull = True
-    cycles.use_distance_cull = True
+    cycles.camera_cull_margin = cycles_configuration.camera_cull_margin
+    cycles.distance_cull_margin = cycles_configuration.distance_cull_margin
+    cycles.use_camera_cull = cycles_configuration.use_camera_cull
+    cycles.use_distance_cull = cycles_configuration.use_distance_cull
 
-    cycles.feature_set = RenderingConstants.Cycles.FEATURE_SET
-    cycles.device = RenderingConstants.Cycles.DEVICE
-    cycles.tile_size = RenderingConstants.Cycles.TILE_SIZE
-    cycles.samples = max(RenderingConstants.Cycles.SAMPLES, render_configuration.n_cycles)
-    cycles.use_denoising = True
-    cycles.denoising_use_gpu = True
+    cycles.feature_set = cycles_configuration.feature_set
+    cycles.device = cycles_configuration.device
+    cycles.tile_size = cycles_configuration.tile_size
+    cycles.samples = max(CYCLES_SAMPLES, cycles_configuration.samples)
+    cycles.use_denoising = cycles_configuration.use_denoising
+    cycles.denoising_use_gpu = cycles_configuration.denoising_use_gpu
 
-    cycles.use_adaptive_sampling = True
-    cycles.adaptive_threshold = Constants.Default.NOISE_THRESHOLD
-    cycles.time_limit = RenderingConstants.Cycles.TIME_LIMIT
+    cycles.use_adaptive_sampling = cycles_configuration.use_adaptive_sampling
+    cycles.adaptive_threshold = cycles_configuration.adaptive_threshold
+    cycles.time_limit = cycles_configuration.time_limit
 
-    scene.view_settings.view_transform = RenderingConstants.Default.VIEW_TRANSFORM
+    scene.view_settings.view_transform = cycles_configuration.view_transform
 
     logger.info("Cycles rendering configuration set up.")
 
-    _setup_cuda_devices(render)
+    _setup_cuda_devices(render, render_configuration)
 
 
-def _setup_eevee() -> None:
-    """Configures Eevee-specific rendering settings."""
-    logger.info("Setting up Eevee rendering configuration...")
-
-    scene: bpy.types.Scene = bpy.data.scenes[RenderingConstants.Default.SCENE]
-    eevee: bpy.types.SceneEEVEE = scene.eevee
-
-    logger.info("Eevee rendering configuration set up.")
-
-
-def _setup_cuda_devices(render: bpy.types.RenderSettings) -> None:
+def _setup_cuda_devices(render: bpy.types.RenderSettings, render_configuration: RenderConfiguration) -> None:
     """
     Configures CUDA devices for rendering.
 
     Args:
         render: The render settings.
+        render_configuration: The render configuration.
     """
     logger.info("Setting up CUDA devices for rendering...")
 
+    preferences_configuration = render_configuration.preferences_configuration
+
     preferences: bpy.types.AddonPreferences = bpy.context.preferences.addons[render.engine.lower()].preferences
-    preferences.compute_device_type = RenderingConstants.Preferences.COMPUTE_DEVICE_TYPE
+    preferences.compute_device_type = preferences_configuration.compute_device_type
 
     devices: List[bpy.types.bpy_prop_collection] = preferences.get_devices() or preferences.devices
     assert devices is not None, "No CUDA devices found"

@@ -2,7 +2,9 @@ from datetime import datetime
 from pathlib import Path
 
 from configuration.configuration import RenderConfiguration
-from configuration.consts import Constants
+from constants.directories import PLAYGROUND_DIR, OUTPUT_DIR, TEMP_DIR, BLENDER_FILES_DIR
+from constants.file_extensions import FileExtension
+
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -39,7 +41,7 @@ def get_playground_directory_with_tag(output_name: str = None) -> Path:
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     tag = f"{output_name}_{current_time}" if output_name is not None else current_time
 
-    directory = Constants.Directory.PLAYGROUND_DIR / tag
+    directory = PLAYGROUND_DIR / tag
     directory.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Created playground directory: {directory}")
@@ -50,7 +52,7 @@ def get_playground_directory_with_tag(output_name: str = None) -> Path:
 def move_rendered_images_to_playground(
         playground_directory: Path,
         iteration: int,
-        output_path: Path = Constants.Directory.OUTPUT_DIR,
+        output_path: Path = OUTPUT_DIR,
 ) -> None:
     """
     Move rendered images to the playground directory.
@@ -61,7 +63,7 @@ def move_rendered_images_to_playground(
         output_path: The output directory
     """
 
-    file_extension = Constants.FileExtension.PNG
+    file_extension = FileExtension.PNG.value
 
     rendered_images = output_path.glob(f"*.{file_extension}")
 
@@ -93,22 +95,22 @@ def cleanup_directories(
         remove_blender_dir: Whether to remove the Blender directory.
     """
     if remove_output_dir:
-        remove_temporary_files(directory=Constants.Directory.OUTPUT_DIR)
+        remove_temporary_files(directory=OUTPUT_DIR)
 
     if remove_temporary_dir:
-        remove_temporary_files(directory=Constants.Directory.TEMP_DIR)
+        remove_temporary_files(directory=TEMP_DIR)
 
     if remove_blender_dir:
         remove_temporary_files(
-            directory=Constants.Directory.BLENDER_FILES_DIR,
-            extension=Constants.FileExtension.BLEND
+            directory=BLENDER_FILES_DIR,
+            extension=FileExtension.BLEND.value
         )
 
 
 def remove_temporary_files(
         directory: Path,
         image_name: str = None,
-        extension: str = Constants.FileExtension.PNG
+        extension: str = FileExtension.PNG.value
 ) -> None:
     """
     Remove temporary files that match a specific pattern.
