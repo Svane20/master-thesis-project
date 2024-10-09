@@ -1,7 +1,6 @@
 import bpy
 
 from configuration.addons import install_addons
-from configuration.consts import Constants
 from engine.rendering import setup_rendering
 from configuration.configuration import Configuration, save_configuration, load_configuration
 from custom_logging.custom_logger import setup_logger
@@ -30,9 +29,9 @@ def setup() -> None:
     # Install the required addons
     install_addons()
 
-    config = load_configuration(path=Constants.Directory.CONFIG_PATH)
+    config = load_configuration()
     if config is None:
-        config = save_configuration(configuration=Configuration().model_dump(), path=Constants.Directory.CONFIG_PATH)
+        config = save_configuration(configuration=Configuration().model_dump())
 
     configuration = Configuration(**config)
 

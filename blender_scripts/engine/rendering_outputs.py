@@ -2,8 +2,9 @@ import bpy
 
 from pathlib import Path
 
-from configuration.configuration import RenderType, RenderConfiguration
-from configuration.consts import Constants
+from configuration.configuration import EngineType, RenderConfiguration
+from constants.directories import OUTPUT_DIR
+
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -14,7 +15,7 @@ def setup_outputs(
         render_configuration: RenderConfiguration,
         render_image: bool = True,
         render_object_index: bool = True,
-        output_path: Path = Constants.Directory.OUTPUT_DIR
+        output_path: Path = OUTPUT_DIR
 ) -> None:
     """
     Set up rendering outputs.
@@ -31,7 +32,7 @@ def setup_outputs(
 
     view_layer: bpy.types.ViewLayer = scene.view_layers[0]
 
-    view_layer.use_pass_object_index = render_object_index and render_configuration.render == RenderType.Cycles
+    view_layer.use_pass_object_index = render_object_index and render_configuration.engine == EngineType.Cycles
     view_layer.use_pass_material_index = False
     view_layer.use_pass_normal = False
     view_layer.use_pass_z = False

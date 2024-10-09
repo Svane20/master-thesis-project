@@ -2,7 +2,8 @@ import bpy
 
 from pathlib import Path
 
-from configuration.consts import Constants
+from constants.directories import BLENDER_FILES_DIR
+from constants.file_extensions import FileExtension
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -52,7 +53,7 @@ def render_image(write_still: bool = True) -> None:
 
 def save_as_blend_file(
         image_name: str,
-        directory_path: Path = Constants.Directory.BLENDER_FILES_DIR,
+        directory_path: Path = BLENDER_FILES_DIR,
         allow_overwrite: bool = True
 ) -> None:
     """
@@ -71,7 +72,7 @@ def save_as_blend_file(
         output_dir: Path = Path(directory_path)
 
         output_dir.mkdir(parents=True, exist_ok=True)
-        output_path = output_dir / f"{image_name}.{Constants.FileExtension.BLEND}"
+        output_path = output_dir / f"{image_name}.{FileExtension.BLEND.value}"
 
         # Remove the existing file if it exists
         if allow_overwrite and output_path.exists():

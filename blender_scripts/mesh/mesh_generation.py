@@ -5,7 +5,7 @@ import numpy as np
 from typing import Dict, List, Tuple, Set
 
 from biomes.biomes import apply_biomes_to_objects
-from configuration.consts import Constants
+from constants.defaults import WORLD_SIZE
 from engine.bpy_ops import delete_object_by_selection
 
 DensityRange = Tuple[float, float]  # Alias for readability
@@ -16,7 +16,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
         biomes_paths: List[str],
         grass_densities: Tuple[DensityRange, DensityRange, DensityRange] = ((60, 100.), (0., 0.1), (0.1, 5.)),
         biome_label_indices: Tuple[int, int, int] = (255, 0, 0),
-        world_size: int = Constants.Default.WORLD_SIZE,
+        world_size: int = WORLD_SIZE,
 ) -> None:
     """
     Generate mesh objects from Delatin sub meshes.

@@ -5,41 +5,70 @@ from typing import Union
 from enum import Enum
 import json
 
-from configuration.consts import Constants
+from constants.defaults import IMAGE_WIDTH, IMAGE_HEIGHT, WORLD_SIZE, IMAGE_SIZE
+from constants.directories import TEMP_DIR, CONFIG_PATH
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
 
 
-class RenderType(str, Enum):
+class EngineType(str, Enum):
     Cycles = "CYCLES"
     Eevee = "BLENDER_EEVEE_NEXT"
     Workbench = "BLENDER_WORKBENCH"
 
 
 class CameraConfiguration(BaseModel):
+    image_width: int = IMAGE_WIDTH
+    image_height: int = IMAGE_HEIGHT
+
     camera_fov_mu_deg: float = 60.0
     camera_fov_std_deg: float = 10
-    image_width: int = Constants.Default.IMAGE_WIDTH
-    image_height: int = Constants.Default.IMAGE_HEIGHT
+
+
+class PreferencesConfiguration(BaseModel):
+    compute_device_type: str = "CUDA"
+
+
+class CyclesConfiguration(BaseModel):
+    camera_cull_margin: float = 1.0
+    distance_cull_margin: float = 200.0
+    use_camera_cull: bool = True
+    use_distance_cull: bool = True
+
+    feature_set: str = "SUPPORTED"
+    device: str = "GPU"
+    tile_size: int = 4096
+    # samples: int = 128 # Use in production
+    samples: int = 1  # Use in development
+    use_denoising: bool = True
+    denoising_use_gpu: bool = True
+
+    use_adaptive_sampling: bool = True
+    adaptive_threshold: float = 0.01
+    time_limit: int = 240
+
+    view_transform: str = "Khronos PBR Neutral"
 
 
 class RenderConfiguration(BaseModel):
-    render: RenderType = RenderType.Eevee
-    temp_folder: str = Constants.Directory.TEMP_DIR.as_posix()
-    n_cycles: int = 128
+    engine: EngineType = EngineType.Cycles
+    temp_folder: str = TEMP_DIR.as_posix()
+    resolution_percentage: int = 100
+    file_format: str = "PNG"
+    use_border: bool = True
+    use_persistent_data: bool = True  # This helps reuse data between renders, reducing computation time
+    threads_mode: str = "FIXED"
+    threads: int = 54
+    compression: int = 0
 
-    camera_cull_margin: float = 1.0
-    distance_cull_margin: float = 200.0
-
-    taa_render_samples: int = 64
-    shadow_ray_count: int = 4
-    shadow_step_count: int = 12
+    cycles_configuration: CyclesConfiguration = CyclesConfiguration()
+    preferences_configuration: PreferencesConfiguration = PreferencesConfiguration()
 
 
 class TerrainConfiguration(BaseModel):
-    world_size: float = Constants.Default.WORLD_SIZE
-    image_size: int = Constants.Default.IMAGE_SIZE
+    world_size: float = WORLD_SIZE
+    image_size: int = IMAGE_SIZE
     prob_of_trees: float = 0.25
 
 
@@ -49,7 +78,7 @@ class Configuration(BaseModel):
     terrain_configuration: TerrainConfiguration = TerrainConfiguration()
 
 
-def load_configuration(path: Union[str, Path]) -> Union[dict, None]:
+def load_configuration(path: Path = CONFIG_PATH) -> Union[dict, None]:
     """
     Load settings from a JSON file.
 
@@ -72,7 +101,7 @@ def load_configuration(path: Union[str, Path]) -> Union[dict, None]:
         return None
 
 
-def save_configuration(configuration: dict, path: Union[str, Path]) -> dict:
+def save_configuration(configuration: dict, path: Path = CONFIG_PATH) -> dict:
     """
     Save settings to a JSON file.
 
