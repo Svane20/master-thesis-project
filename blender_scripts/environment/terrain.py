@@ -1,12 +1,9 @@
 from mathutils import Vector
 from mathutils.noise import fractal
-
 from PIL import Image
 from pydelatin import Delatin
-
 import numpy as np
 from typing import Tuple
-
 from constants.defaults import WORLD_SIZE, IMAGE_SIZE
 from custom_logging.custom_logger import setup_logger
 
@@ -17,22 +14,23 @@ NOISE_BASIS: str = "PERLIN_ORIGINAL"
 
 def create_delatin_mesh_from_terrain(terrain: np.ndarray, seed: int = None) -> Delatin:
     """
-    Create meshes using Delatin algorithm.
+    Create meshes using the Delatin algorithm.
 
     Args:
-        terrain: The terrain to create meshes from.
-        seed: Random seed for reproducibility.
+        terrain (np.ndarray): The terrain height map to create meshes from.
+        seed (int, optional): Random seed for reproducibility.
 
     Returns:
-        vertices: The vertices of the mesh.
-        faces: The faces of the mesh.
+        Delatin: The Delatin object with vertices and triangles representing the mesh.
     """
-    logger.info("Creating Delatin mesh...")
+    logger.info("Creating Delatin mesh from terrain...")
 
     if seed is not None:
         np.random.seed(seed)
+        logger.info(f"Seed set to {seed}")
 
     width, height = terrain.shape
+    logger.info(f"Terrain shape: width={width}, height={height}")
 
     delatin = Delatin(terrain * np.random.uniform(low=1, high=2.5), width=width, height=height)
 
@@ -55,19 +53,19 @@ def create_terrain_segmentation(
     Generates a fractal height map and a segmentation map for the terrain.
 
     Args:
-        world_size: Size of the terrain in Blender units.
-        num_octaves: Number of octaves for fractal noise.
-        H: Controls roughness of the fractal noise.
-        lacunarity: Frequency multiplier for successive noise layers.
-        image_size: Size of the resulting image (height map resolution).
-        band: Threshold band around the midpoint to classify different areas.
-        noise_basis: Type of noise basis (e.g., "PERLIN_ORIGINAL").
-        seed: Random seed for reproducibility.
+        world_size (int): Size of the terrain in Blender units.
+        num_octaves (Tuple[int, int]): Number of octaves for fractal noise.
+        H (Tuple[float, float]): Controls roughness of the fractal noise.
+        lacunarity (Tuple[float, float]): Frequency multiplier for successive noise layers.
+        image_size (int): Size of the resulting image (height map resolution).
+        band (int): Threshold band around the midpoint to classify different areas.
+        noise_basis (str): Type of noise basis (e.g., "PERLIN_ORIGINAL").
+        seed (int, optional): Random seed for reproducibility.
 
-    Return:
-        height_map: The normalized height map (0-1).
-        segmentation_map: A 3-channel segmentation map (RGB).
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: Normalized height map and segmentation map.
     """
+    logger.info("Generating terrain segmentation...")
 
     normalized_height_map = _generate_fractal_heightmap(
         world_size=world_size,
@@ -79,7 +77,6 @@ def create_terrain_segmentation(
         seed=seed
     )
 
-    # Step 2: Generate segmentation map
     return _create_segmentation_map(
         height_map=normalized_height_map,
         band=band
@@ -99,21 +96,22 @@ def _generate_fractal_heightmap(
     Generates a normalized height map based on fractal noise.
 
     Args:
-        world_size: Size of the terrain in Blender units.
-        num_octaves: Number of octaves for fractal noise.
-        H: Controls roughness of the fractal noise.
-        lacunarity: Frequency multiplier for successive noise layers.
-        image_size: Size of the resulting image (height map resolution).
-        noise_basis: Type of noise basis (e.g., "PERLIN_ORIGINAL").
-        seed: Random seed for reproducibility.
+        world_size (float): Size of the terrain in Blender units.
+        num_octaves (Tuple[int, int]): Number of octaves for fractal noise.
+        H (Tuple[float, float]): Controls roughness of the fractal noise.
+        lacunarity (Tuple[float, float]): Frequency multiplier for successive noise layers.
+        image_size (int): Size of the resulting image (height map resolution).
+        noise_basis (str): Type of noise basis (e.g., "PERLIN_ORIGINAL").
+        seed (int, optional): Random seed for reproducibility.
 
     Returns:
-        A height map (2D array) normalized to [0, 255] representing terrain heights.
+        np.ndarray: A height map (2D array) normalized to [0, 255] representing terrain heights.
     """
     logger.info("Generating fractal height map...")
 
     if seed is not None:
         np.random.seed(seed)
+        logger.info(f"Seed set to {seed}")
 
     # Generate a grid of points
     grid = np.linspace(-world_size / 2, world_size / 2, 1000, endpoint=True)
@@ -125,11 +123,12 @@ def _generate_fractal_heightmap(
     lacunarity = np.random.uniform(*lacunarity)
     offset = np.random.randint(low=0.0, high=world_size // 2)
 
+    logger.info(f"Fractal noise parameters: num_octaves={num_octaves}, H={H}, lacunarity={lacunarity}, offset={offset}")
+
     # Generate the height map using fractal noise
     height_map = []
     for x in grid:
         depths = []
-
         for y in grid:
             z = fractal(
                 Vector((x / restart + offset, y / restart + offset, 0)),
@@ -139,7 +138,6 @@ def _generate_fractal_heightmap(
                 noise_basis=noise_basis,
             )
             depths.append(z)
-
         height_map.append(depths)
 
     # Resize the height map to the desired image size
@@ -152,7 +150,7 @@ def _generate_fractal_heightmap(
     height_map_max = np.max(height_map)
     normalized_height_map = (height_map - height_map_min) / (height_map_max - height_map_min) * 255
 
-    logger.info(f"Fractal height map generated: {normalized_height_map.shape}.")
+    logger.info(f"Fractal height map generated with dimensions: {normalized_height_map.shape}")
 
     return normalized_height_map
 
@@ -165,12 +163,11 @@ def _create_segmentation_map(
     Creates a segmentation map from the height map based on thresholds.
 
     Args:
-        height_map: The normalized height map (0-1).
-        band: Threshold band around the midpoint to classify different areas.
+        height_map (np.ndarray): The normalized height map (0-255).
+        band (int): Threshold band around the midpoint to classify different areas.
 
     Returns:
-        height_map: The scaled height map (0-1).
-        segmentation_map: A 3-channel segmentation map (RGB).
+        Tuple[np.ndarray, np.ndarray]: Normalized height map and RGB segmentation map.
     """
     logger.info("Creating segmentation map...")
 
@@ -178,20 +175,20 @@ def _create_segmentation_map(
     lower_band = 128 - band
     upper_band = 128 + band
 
-    # Create binary masks for grass, not grass, and beds as uint8 arrays
+    # Create binary masks for different segments
     grass = np.asarray((height_map > lower_band) & (height_map < upper_band)).astype(np.uint8) * 255
     texture = np.asarray(height_map >= upper_band).astype(np.uint8) * 255
     beds = np.asarray(height_map <= lower_band).astype(np.uint8) * 255
 
-    # Create segmentation map with 3 channels (R: texture, G: grass, B: beds) by stacking the channels
+    # Create segmentation map with 3 channels (R: texture, G: grass, B: beds)
     segmentation_map = np.zeros((height_map.shape[0], height_map.shape[1], 3), dtype=np.uint8)
     segmentation_map[..., 0] = texture
     segmentation_map[..., 1] = grass
     segmentation_map[..., 2] = beds
 
-    # Normalize the scaled height map to [0, 1]
+    # Normalize the height map to [0, 1] for further use
     height_map /= 255
 
-    logger.info(f"Segmentation map created: {segmentation_map.shape}.")
+    logger.info(f"Segmentation map created with dimensions: {segmentation_map.shape}")
 
     return height_map, segmentation_map

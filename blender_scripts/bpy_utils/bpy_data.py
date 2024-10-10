@@ -23,11 +23,14 @@ def list_data_blocks_in_blend_file(blend_file: Path, key: BlendFilePropertyKey) 
     Lists all data blocks (e.g., collections, objects) inside a .blend file based on the provided key.
 
     Args:
-        blend_file: Path to the .blend file.
-        key: The specific data block key to list (e.g., 'collections', 'objects', 'meshes').
+        blend_file (Path): Path to the .blend file.
+        key (BlendFilePropertyKey): The specific data block key to list (e.g., 'collections', 'objects', 'meshes').
 
     Returns:
-        A dictionary with data block names as keys and an empty list as values.
+        Dict[str, list]: A dictionary with data block names as keys and an empty list as values.
+
+    Raises:
+        Exception: If there's an error loading the blend file.
     """
     data_blocks_dict = {}
 
@@ -54,22 +57,32 @@ def list_data_blocks_in_blend_file(blend_file: Path, key: BlendFilePropertyKey) 
 
 def set_scene_alpha_threshold(alpha_threshold: float = 0.5) -> None:
     """
-    Set the alpha threshold for the scene.
+    Sets the alpha threshold for the scene.
 
     Args:
-        alpha_threshold: The alpha threshold.
+        alpha_threshold (float): The alpha threshold value to set. Defaults to 0.5.
+
+    Raises:
+        KeyError: If the scene or view layer does not exist.
     """
-    bpy.data.scenes[SCENE].view_layers[VIEW_LAYER].pass_alpha_threshold = alpha_threshold
+    try:
+        bpy.data.scenes[SCENE].view_layers[VIEW_LAYER].pass_alpha_threshold = alpha_threshold
+        logger.info(f"Set alpha threshold to {alpha_threshold} for scene.")
+    except KeyError as e:
+        logger.error(f"Failed to set alpha threshold: {e}")
+        raise
 
 
 def use_backface_culling_on_materials(use_backface_culling: bool = True) -> None:
     """
-    Set backface culling on all materials.
+    Enables or disables backface culling on all materials in the current Blender project.
 
     Args:
-        use_backface_culling: Whether to enable backface culling.
-    """
+        use_backface_culling (bool): Whether to enable or disable backface culling. Defaults to True.
 
+    Logs:
+        Logs each material's name and the updated backface culling status.
+    """
     for material in bpy.data.materials:
         material.use_backface_culling = use_backface_culling
         logger.info(f"Set backface culling to {use_backface_culling} for material: {material.name}")

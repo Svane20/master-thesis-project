@@ -1,9 +1,6 @@
 import bpy
-
 import numpy as np
-
 from typing import Dict, List, Tuple, Set
-
 from environment.biomes import apply_biomes_to_objects
 from constants.defaults import WORLD_SIZE
 from bpy_utils.bpy_ops import delete_object_by_selection
@@ -22,54 +19,57 @@ def generate_mesh_objects_from_delation_sub_meshes(
         world_size: int = WORLD_SIZE,
 ) -> None:
     """
-    Generate mesh objects from Delatin sub meshes.
+    Generate mesh objects from Delatin sub-meshes, apply biomes, and delete the object after.
 
     Args:
-        delatin_sub_meshes: The Delatin sub meshes.
-        biomes_paths: The biomes paths.
-        grass_densities: The grass densities.
-        biome_label_indices: The biome label indices.
-        world_size: The world size.
+        delatin_sub_meshes (Dict[str, Tuple[np.ndarray, np.ndarray]]): The Delatin sub-meshes (vertices and faces).
+        biomes_paths (List[str]): The biomes paths to be applied to the objects.
+        grass_densities (Tuple[DensityRange, DensityRange, DensityRange], optional): The grass densities.
+        biome_label_indices (Tuple[int, int, int], optional): The biome label indices.
+        world_size (int, optional): The size of the world (terrain scaling).
+
+    Raises:
+        ValueError: If sub-meshes or biomes are not provided.
     """
-    for i, (
-            (vertices, faces),
-            density_grass,
-            biome_label_index
-    ) in enumerate(
-        zip(
-            delatin_sub_meshes.values(),  # Mesh vertices and faces
-            grass_densities,
-            biome_label_indices
-        )
+    logger.info(f"Starting to generate {len(delatin_sub_meshes)} mesh objects from Delatin sub-meshes.")
+
+    if not delatin_sub_meshes or not biomes_paths:
+        raise ValueError("Sub-meshes or biome paths cannot be empty.")
+
+    for i, ((vertices, faces), density_grass, biome_label_index) in enumerate(
+            zip(delatin_sub_meshes.values(), grass_densities, biome_label_indices)
     ):
+        logger.debug(f"Processing sub-mesh {i} with {len(vertices)} vertices and {len(faces)} faces.")
+
         # Normalize and scale the X and Y coordinates of the vertices to fit the terrain
         vertices[:, :2] = (vertices[:, :2] / np.max(vertices[:, :2])) * world_size - world_size / 2
 
-        # Before creating object
-        exising_object_names = bpy.data.objects.keys()
+        # Get object names before creating new objects
+        existing_object_names = bpy.data.objects.keys()
 
         # Create a new mesh
-        bpy_mesh = bpy.data.meshes.new(f"mesh")
+        bpy_mesh = bpy.data.meshes.new(f"generated_mesh_{i}")
         bpy_mesh.from_pydata(vertices=vertices, edges=[], faces=faces)
-        bpy_mesh.update()  # Update the mesh to reflect the changes
-        bpy_mesh.validate(verbose=True)  # Validate geometry and ensure it's correct
+        bpy_mesh.update()
+        bpy_mesh.validate(verbose=True)
+        logger.info(f"Created mesh '{bpy_mesh.name}' for object '{i}'.")
 
         # Create a new object and link it to the scene
         object_name = f"generated_mesh_{i}"
         mesh_object = bpy.data.objects.new(object_name, bpy_mesh)
         bpy.data.collections["Collection"].objects.link(mesh_object)
         bpy.context.view_layer.objects.active = mesh_object
+        logger.info(f"Mesh object '{object_name}' added to the scene.")
 
-        logger.info(f"Created mesh object '{object_name}'")
-
-        # After creating object
+        # Get object names after creation
         new_object_names = bpy.data.objects.keys()
 
         # Get the unique object names that were created
         unique_object_names = _get_unique_object_names(
-            existing_object_names=exising_object_names,
+            existing_object_names=existing_object_names,
             new_object_names=new_object_names
         )
+        logger.debug(f"Unique object names created: {unique_object_names}")
 
         # Apply a random biome to the object
         apply_biomes_to_objects(
@@ -78,9 +78,11 @@ def generate_mesh_objects_from_delation_sub_meshes(
             density=density_grass,
             label_index=biome_label_index,
         )
+        logger.info(f"Applied biomes to object '{object_name}' with label index {biome_label_index}.")
 
-        # Delete the object to place a new one
+        # Delete the object after applying the biome
         delete_object_by_selection(mesh_object)
+        logger.info(f"Deleted object '{object_name}' after biome application.")
 
 
 def _get_unique_object_names(existing_object_names: List[str], new_object_names: List[str]) -> Set[str]:
@@ -88,10 +90,10 @@ def _get_unique_object_names(existing_object_names: List[str], new_object_names:
     Get the unique object names that were created.
 
     Args:
-        existing_object_names: The existing object names.
-        new_object_names: The new object names.
+        existing_object_names (List[str]): The existing object names before new objects were created.
+        new_object_names (List[str]): The new object names after new objects were created.
 
     Returns:
-        The unique object names that were created.
+        Set[str]: The set of unique object names that were created.
     """
     return set(new_object_names) - set(existing_object_names)

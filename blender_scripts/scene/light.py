@@ -1,8 +1,6 @@
 import bpy
 from mathutils import Vector, Euler
-
 from enum import Enum
-
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -30,36 +28,36 @@ def create_light(
     Creates a new light in the scene.
 
     Args:
-        light_name: The name of the light.
-        light_type: The type of light.
-        energy: The light energy.
-        location: The light location.
-        rotation: The light rotation.
-        use_shadow: Whether to use shadows.
-        specular_factor: The specular factor.
-        scene: The scene.
-        delete_existing_lights: Whether to delete existing lights.
+        light_name (str): The name of the light.
+        light_type (LightType): The type of light (AREA, POINT, SPOT, SUN).
+        energy (float): The intensity of the light.
+        location (Vector, optional): The location of the light in the scene.
+        rotation (Euler, optional): The rotation of the light.
+        use_shadow (bool, optional): Enable or disable shadows for the light.
+        specular_factor (float, optional): The specular intensity for the light.
+        scene (bpy.types.Scene, optional): The scene where the light will be created.
+        delete_existing_lights (bool, optional): If True, delete all existing lights in the scene.
 
     Returns:
-        The light object.
+        bpy.types.Object: The newly created light object.
 
     Raises:
-        Exception: If the light fails to create.
+        Exception: If the light creation fails.
     """
 
     if location is None:
         location = Vector((0.0, 0.0, 0.0))
-
     if rotation is None:
         rotation = Euler((0.0, 0.0, 0.0))
-
     if scene is None:
         scene = bpy.context.scene
 
     if delete_existing_lights:
+        logger.info("Deleting all existing lights.")
         _delete_all_lights()
 
     try:
+        logger.info(f"Creating light '{light_name}' of type '{light_type.value}' with energy {energy}.")
         data_lights = bpy.data.lights
         data_objects = bpy.data.objects
 
@@ -84,6 +82,9 @@ def create_light(
         logger.info(f"Light '{light_name}' created successfully.", extra={
             "location": f"({new_light_object.location.x:.2f}, {new_light_object.location.y:.2f}, {new_light_object.location.z:.2f})",
             "rotation": f"(x={new_light_object.rotation_euler.x:.2f}, y={new_light_object.rotation_euler.y:.2f}, z={new_light_object.rotation_euler.z:.2f})",
+            "shadow": use_shadow,
+            "specular_factor": specular_factor,
+            "energy": energy
         })
         return new_light_object
 
@@ -99,9 +100,14 @@ def _delete_all_lights() -> None:
     Raises:
         Exception: If the lights fail to delete.
     """
-    lights = [obj for obj in bpy.data.objects if obj.type == 'LIGHT']
+    try:
+        lights = [obj for obj in bpy.data.objects if obj.type == 'LIGHT']
+        logger.info(f"Deleting {len(lights)} lights from the scene.")
 
-    for light in lights:
-        bpy.data.objects.remove(light, do_unlink=True)
+        for light in lights:
+            bpy.data.objects.remove(light, do_unlink=True)
 
-    logger.info("All lights have been deleted.")
+        logger.info("All lights have been deleted successfully.")
+    except Exception as e:
+        logger.error(f"Failed to delete all lights: {e}")
+        raise
