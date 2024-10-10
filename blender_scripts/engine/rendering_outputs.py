@@ -36,8 +36,11 @@ def setup_outputs(
     view_layer.use_pass_material_index = False
     view_layer.use_pass_normal = False
     view_layer.use_pass_z = False
-    logger.debug(
-        f"Passes configured - Object Index: {view_layer.use_pass_object_index}, Material Index: {view_layer.use_pass_material_index}")
+
+    logger.debug(f"Passes configured", extra={
+        "Object Index": view_layer.use_pass_object_index,
+        "Environment": view_layer.use_pass_environment
+    })
 
     scene.render.use_persistent_data = True
     scene.use_nodes = True
@@ -189,7 +192,7 @@ def _setup_environment_mask_output(
     hdri_mask_file_slot = output_file_node.file_slots["HDRIMask"]
     hdri_mask_file_slot.use_node_format = False  # Custom format
     hdri_mask_file_slot.format.file_format = "PNG"
-    hdri_mask_file_slot.format.color_mode = "BW"  # Black and white for mask output
+    hdri_mask_file_slot.format.color_mode = "BW"
     hdri_mask_file_slot.path = "HDRIMask"
 
     env_output = render_layers.outputs.get("Env")
