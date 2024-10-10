@@ -6,7 +6,10 @@ from typing import Dict, List, Tuple, Set
 
 from biomes.biomes import apply_biomes_to_objects
 from constants.defaults import WORLD_SIZE
-from engine.bpy_ops import delete_object_by_selection
+from bpy_utils.bpy_ops import delete_object_by_selection
+from custom_logging.custom_logger import setup_logger
+
+logger = setup_logger(__name__)
 
 DensityRange = Tuple[float, float]  # Alias for readability
 
@@ -56,6 +59,8 @@ def generate_mesh_objects_from_delation_sub_meshes(
         mesh_object = bpy.data.objects.new(object_name, bpy_mesh)
         bpy.data.collections["Collection"].objects.link(mesh_object)
         bpy.context.view_layer.objects.active = mesh_object
+
+        logger.info(f"Created mesh object '{object_name}'")
 
         # After creating object
         new_object_names = bpy.data.objects.keys()

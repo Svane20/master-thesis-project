@@ -5,7 +5,7 @@ import numpy as np
 import random
 from math import radians
 
-from engine.bpy_ops import render_image
+from bpy_utils.bpy_ops import render_image
 from main import setup
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType

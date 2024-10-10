@@ -8,5 +8,10 @@ TEMP_DIR: Path = BASE_DIR / "temp"
 PLAYGROUND_DIR: Path = BASE_DIR / "playground"
 BLENDER_FILES_DIR: Path = BASE_DIR / "blender_files"
 ASSETS_DIR: Path = BASE_DIR / "assets"
+BIOMES_DIRECTORY: Path = ASSETS_DIR / "biomes"
+
+MODELS_DIRECTORY: Path = ASSETS_DIR / "models"
+HOUSES_DIRECTORY: Path = MODELS_DIRECTORY / "houses"
+
 ASSETS_TEXTURES_DIR: Path = ASSETS_DIR / "textures"
 ASSETS_TEXTURES_GRASS_DIR: Path = ASSETS_TEXTURES_DIR / "grass"
