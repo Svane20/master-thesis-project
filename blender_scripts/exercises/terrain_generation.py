@@ -4,7 +4,7 @@ from mathutils import Vector
 from math import radians
 
 from biomes.biomes import get_all_biomes_by_directory
-from engine.bpy_ops import save_as_blend_file, render_image
+from bpy_utils.bpy_ops import save_as_blend_file, render_image
 from main import setup
 from mesh.mesh import convert_delatin_mesh_to_sub_meshes
 from mesh.mesh_generation import generate_mesh_objects_from_delation_sub_meshes
@@ -25,7 +25,7 @@ SEED = 42
 
 
 def set_scene() -> None:
-    """Set up the scene."""
+    """Set up the scene by creating the light and updating the camera position and rotation."""
 
     # Add a light to the scene
     create_light(
@@ -54,6 +54,7 @@ def main() -> None:
     # Get all grass biomes
     grass_biomes = get_all_biomes_by_directory()
 
+    # Create terrain and segmentation map
     terrain, segmentation_map = create_terrain_segmentation(
         world_size=WORLD_SIZE,
         image_size=IMAGE_SIZE,

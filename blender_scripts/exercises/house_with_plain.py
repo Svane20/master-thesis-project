@@ -4,7 +4,7 @@ from mathutils import Vector
 from math import radians
 
 from constants.directories import ASSETS_TEXTURES_GRASS_DIR
-from engine.bpy_ops import render_image, save_as_blend_file
+from bpy_utils.bpy_ops import render_image, save_as_blend_file
 from scene.camera import update_camera_position
 from main import setup
 from scene.light import create_light, LightType

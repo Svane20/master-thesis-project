@@ -4,13 +4,10 @@ from pathlib import Path
 from typing import List, Union, Tuple, Set
 import numpy as np
 
+from constants.directories import BIOMES_DIRECTORY
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
-
-CURRENT_DIRECTORY: Path = Path(__file__).resolve().parent.parent
-ASSETS_DIRECTORY: Path = CURRENT_DIRECTORY / "assets"
-BIOMES_DIRECTORY: Path = ASSETS_DIRECTORY / "biomes"
 
 
 def get_all_biomes_by_directory(directory: Path = BIOMES_DIRECTORY) -> List[str]:
