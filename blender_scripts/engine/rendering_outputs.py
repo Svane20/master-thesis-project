@@ -23,7 +23,7 @@ def setup_outputs(
         render_configuration (RenderConfiguration): The render configuration settings.
         render_image (bool, optional): Whether to render the image. Defaults to True.
         render_object_index (bool, optional): Whether to render the object index. Defaults to True.
-        render_environment (bool, optional): Whether to render the environment. Defaults to False.
+        render_environment (bool, optional): Whether to render the environment. Defaults to True.
         output_path (Path, optional): The output path for the rendered files. Defaults to OUTPUT_DIRECTORY.
     """
     logger.info("Setting up rendering outputs...")
