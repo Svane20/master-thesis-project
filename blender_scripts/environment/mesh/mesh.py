@@ -117,7 +117,8 @@ def _classify_faces_by_z_value(faces: np.ndarray, z_values_per_face: np.ndarray)
             beds_faces.append(faces[i])
 
     logger.debug(
-        f"Classified {len(grass_faces)} grass faces, {len(texture_faces)} texture faces, and {len(beds_faces)} beds faces.")
+        f"Classified {len(grass_faces)} grass faces, {len(texture_faces)} texture faces, and {len(beds_faces)} beds faces."
+    )
     return np.array(grass_faces), np.array(texture_faces), np.array(beds_faces)
 
 
