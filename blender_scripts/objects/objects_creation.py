@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 import random
@@ -15,11 +14,26 @@ def spawn_objects(
         positions: np.ndarray,
         path: Path,
         terrain: np.ndarray,
-        world_size: float
+        world_size: float,
+        seed: int = None
 ) -> None:
+    """
+    Spawn objects on the terrain.
+
+    Args:
+        num_objects: The number of objects to spawn.
+        positions: The positions of the objects.
+        path: The path to the objects.
+        terrain: The terrain.
+        world_size: The world size.
+        seed: Random seed for reproducibility. Default is None.
+    """
     logger.info(f"Spawning {num_objects} objects")
 
     height, width = terrain.shape[:2]
+
+    if seed is not None:
+        random.seed(seed)
 
     for index in range(num_objects):
         blend_objects_paths = list(path.rglob("*.blend"))

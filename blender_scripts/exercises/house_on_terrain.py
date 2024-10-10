@@ -23,6 +23,8 @@ IMAGE_NAME = "house_on_terrain"
 WORLD_SIZE = 100
 IMAGE_SIZE = 2048
 
+HOUSES_TO_SPAWN = 1
+
 SEED = 42
 
 
@@ -43,8 +45,8 @@ def set_scene() -> np.ndarray:
 
     # Update camera position and rotation
     bpy.context.scene.camera = update_camera_position(
-        location=Vector((30, 0, 30)),
-        rotation=Vector((radians(40), radians(0), radians(90)))
+        location=Vector((58, 0, 5)),
+        rotation=Vector((radians(90), radians(0), radians(90)))
     )
 
     # Get all grass biomes
@@ -88,11 +90,12 @@ def main() -> None:
 
     # Spawn House on the terrain
     spawn_objects(
-        num_objects=1,
+        num_objects=HOUSES_TO_SPAWN,
         positions=np.array([[0, 0]]),
         path=HOUSES_DIRECTORY,
         terrain=terrain,
         world_size=WORLD_SIZE,
+        seed=SEED
     )
 
     # Set backface culling for all materials
