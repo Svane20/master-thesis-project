@@ -80,8 +80,12 @@ def move_rendered_images_to_playground(
                 filepath = (playground_directory / f"Image_{iteration}.{file_extension}").as_posix()
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
-            elif "IDMask" in image.name:
-                filepath = (playground_directory / f"IDMask_{iteration}.{file_extension}").as_posix()
+            elif "BiomeMask" in image.name:
+                filepath = (playground_directory / f"BiomeMask_{iteration}.{file_extension}").as_posix()
+                image.rename(filepath)
+                logger.info(f"Moved {image.name} to {filepath}")
+            elif "HDRIMask" in image.name:
+                filepath = (playground_directory / f"HDRIMask_{iteration}.{file_extension}").as_posix()
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
         except Exception as e:
