@@ -1,6 +1,5 @@
 import bpy
 from mathutils import Vector, Euler
-
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -15,32 +14,38 @@ def update_camera_position(
     Update the camera's location and rotation.
 
     Args:
-        location: The camera location.
-        rotation: The camera rotation.
-        focus_point: The focus point.
+        location (Vector, optional): The camera location.
+        rotation (Vector, optional): The camera rotation in Euler angles.
+        focus_point (Vector, optional): The point the camera is focusing on. Used if rotation is not provided.
 
     Returns:
-        The camera object.
+        bpy.types.Object: The updated camera object.
 
     Raises:
         ValueError: If the camera is not found.
     """
-    camera: bpy.types.Object = bpy.data.objects["Camera"]
-    if camera is None:
-        logger.error("Camera not found")
+    try:
+        camera: bpy.types.Object = bpy.data.objects["Camera"]
+    except KeyError:
+        logger.error("Camera object not found in the scene.")
         raise ValueError("Camera not found")
 
     if location is not None:
+        logger.info(f"Updating camera location to {location}.")
         camera.location = location
+    else:
+        logger.info("No location provided; using the current camera location.")
 
     if rotation is not None:
+        logger.info(f"Updating camera rotation to {rotation}.")
         camera.rotation_euler = rotation
     else:
+        logger.info(f"No rotation provided; calculating rotation to focus on {focus_point}.")
         current_direction: Vector = camera.location - focus_point
         camera.rotation_euler: Euler = current_direction.to_track_quat("Z", "Y").to_euler()
 
     logger.info(
-        "Camera updated",
+        "Camera updated successfully",
         extra={
             "location": f"({camera.location.x:.2f}, {camera.location.y:.2f}, {camera.location.z:.2f})",
             "rotation": f"(x={camera.rotation_euler.x:.2f}, y={camera.rotation_euler.y:.2f}, z={camera.rotation_euler.z:.2f})",

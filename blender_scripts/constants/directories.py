@@ -1,17 +1,20 @@
 from pathlib import Path
 
-BASE_DIR: Path = Path(__file__).resolve().parent.parent
-CONFIG_DIR: Path = BASE_DIR / "configuration"
-CONFIG_PATH: Path = CONFIG_DIR / "config.json"
-OUTPUT_DIR: Path = BASE_DIR / "output"
-TEMP_DIR: Path = BASE_DIR / "temp"
-PLAYGROUND_DIR: Path = BASE_DIR / "playground"
-BLENDER_FILES_DIR: Path = BASE_DIR / "blender_files"
-ASSETS_DIR: Path = BASE_DIR / "assets"
-BIOMES_DIRECTORY: Path = ASSETS_DIR / "biomes"
+BASE_DIRECTORY: Path = Path(__file__).resolve().parent.parent
+CONFIG_DIRECTORY: Path = BASE_DIRECTORY / "configuration"
+CONFIG_PATH: Path = CONFIG_DIRECTORY / "config.json"
+OUTPUT_DIRECTORY: Path = BASE_DIRECTORY / "output"
+TEMP_DIRECTORY: Path = BASE_DIRECTORY / "temp"
+PLAYGROUND_DIRECTORY: Path = BASE_DIRECTORY / "playground"
+BLENDER_FILES_DIRECTORY: Path = BASE_DIRECTORY / "blender_files"
+ASSETS_DIRIRECTORY: Path = BASE_DIRECTORY / "assets"
+BIOMES_DIRECTORY: Path = ASSETS_DIRIRECTORY / "biomes"
 
-MODELS_DIRECTORY: Path = ASSETS_DIR / "models"
+HDRI_DIRECTORY: Path = ASSETS_DIRIRECTORY / "hdri"
+HDRI_PURE_SKIES_DIRECTORY: Path = HDRI_DIRECTORY / "pure_skies"
+
+MODELS_DIRECTORY: Path = ASSETS_DIRIRECTORY / "models"
 HOUSES_DIRECTORY: Path = MODELS_DIRECTORY / "houses"
 
-ASSETS_TEXTURES_DIR: Path = ASSETS_DIR / "textures"
-ASSETS_TEXTURES_GRASS_DIR: Path = ASSETS_TEXTURES_DIR / "grass"
+ASSETS_TEXTURES_DIRECTORY: Path = ASSETS_DIRIRECTORY / "textures"
+ASSETS_TEXTURES_GRASS_DIRECTORY: Path = ASSETS_TEXTURES_DIRECTORY / "grass"

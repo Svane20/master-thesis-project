@@ -3,7 +3,7 @@ from mathutils import Vector
 
 from math import radians
 
-from constants.directories import ASSETS_TEXTURES_GRASS_DIR
+from constants.directories import ASSETS_TEXTURES_GRASS_DIRECTORY
 from bpy_utils.bpy_ops import render_image, save_as_blend_file
 from scene.camera import update_camera_position
 from main import setup
@@ -39,7 +39,7 @@ def _add_image_texture_to_plane(image_name: str) -> None:
 
     # Load image
     tex_image = mat.node_tree.nodes.new('ShaderNodeTexImage')
-    tex_image.image = bpy.data.images.load(str(ASSETS_TEXTURES_GRASS_DIR / image_name))
+    tex_image.image = bpy.data.images.load(str(ASSETS_TEXTURES_GRASS_DIRECTORY / image_name))
     mat.node_tree.links.new(bsdf.inputs['Base Color'], tex_image.outputs['Color'])
 
     # Assign material to the plane

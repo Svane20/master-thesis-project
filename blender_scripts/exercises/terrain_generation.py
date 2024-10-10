@@ -3,11 +3,11 @@ from mathutils import Vector
 
 from math import radians
 
-from biomes.biomes import get_all_biomes_by_directory
+from environment.biomes import get_all_biomes_by_directory
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
 from main import setup
-from mesh.mesh import convert_delatin_mesh_to_sub_meshes
-from mesh.mesh_generation import generate_mesh_objects_from_delation_sub_meshes
+from environment.mesh.mesh import convert_delatin_mesh_to_sub_meshes
+from environment.mesh.mesh_generation import generate_mesh_objects_from_delation_sub_meshes
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType
 from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain

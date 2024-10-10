@@ -5,14 +5,14 @@ from math import radians
 
 import numpy as np
 
-from biomes.biomes import get_all_biomes_by_directory
+from environment.biomes import get_all_biomes_by_directory
 from bpy_utils.bpy_data import use_backface_culling_on_materials
 from constants.directories import HOUSES_DIRECTORY
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
+from environment.objects import spawn_objects
 from main import setup
-from mesh.mesh import convert_delatin_mesh_to_sub_meshes
-from mesh.mesh_generation import generate_mesh_objects_from_delation_sub_meshes
-from objects.objects_creation import spawn_objects
+from environment.mesh.mesh import convert_delatin_mesh_to_sub_meshes
+from environment.mesh.mesh_generation import generate_mesh_objects_from_delation_sub_meshes
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType
 from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain
