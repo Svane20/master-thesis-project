@@ -41,12 +41,13 @@ def set_scene() -> np.ndarray:
         light_name="Sun",
         light_type=LightType.SUN,
         energy=5.0,
+        location=Vector((-20, 50, 10)),
     )
 
     # Update camera position and rotation
     bpy.context.scene.camera = update_camera_position(
-        location=Vector((58, 0, 5)),
-        rotation=Vector((radians(90), radians(0), radians(90)))
+        location=Vector((-20, 40, 5)),
+        rotation=Vector((radians(90), radians(0), radians(210)))
     )
 
     # Get all grass biomes

@@ -81,7 +81,10 @@ def create_light(
         new_light.specular_factor = specular_factor
         new_light.energy = energy
 
-        logger.info(f"Light '{light_name}' created successfully.")
+        logger.info(f"Light '{light_name}' created successfully.", extra={
+            "location": f"({new_light_object.location.x:.2f}, {new_light_object.location.y:.2f}, {new_light_object.location.z:.2f})",
+            "rotation": f"(x={new_light_object.rotation_euler.x:.2f}, y={new_light_object.rotation_euler.y:.2f}, z={new_light_object.rotation_euler.z:.2f})",
+        })
         return new_light_object
 
     except Exception as e:
