@@ -59,7 +59,7 @@ def setup_outputs(
 
     if view_layer.use_pass_object_index:
         _setup_object_index_output(node_tree, output_file_node, render_layers)
-        _setup_biome_mask_output(node_tree, output_file_node, render_layers)
+        _setup_id_mask_output(node_tree, output_file_node, render_layers)
 
     if view_layer.use_pass_environment:
         # Enable compositing for environment pass
@@ -139,7 +139,7 @@ def _setup_object_index_output(
         logger.error("Render Layers node does not contain an 'IndexOB' output.")
 
 
-def _setup_biome_mask_output(
+def _setup_id_mask_output(
         node_tree: bpy.types.CompositorNodeTree,
         output_file_node: bpy.types.CompositorNodeOutputFile,
         render_layers: bpy.types.CompositorNodeRLayers,
