@@ -3,7 +3,7 @@ import bpy
 from pathlib import Path
 
 from configuration.configuration import EngineType, RenderConfiguration
-from constants.directories import OUTPUT_DIR
+from constants.directories import OUTPUT_DIRECTORY
 
 from custom_logging.custom_logger import setup_logger
 
@@ -15,7 +15,7 @@ def setup_outputs(
         render_configuration: RenderConfiguration,
         render_image: bool = True,
         render_object_index: bool = True,
-        output_path: Path = OUTPUT_DIR
+        output_path: Path = OUTPUT_DIRECTORY
 ) -> None:
     """
     Set up rendering outputs.

@@ -8,6 +8,9 @@ from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
 
+SCENE = "Scene"
+VIEW_LAYER = "ViewLayer"
+
 
 class BlendFilePropertyKey(Enum):
     Collections = "collections"
@@ -47,6 +50,16 @@ def list_data_blocks_in_blend_file(blend_file: Path, key: BlendFilePropertyKey) 
     except Exception as e:
         logger.error(f"Error loading blend file: {e}")
         raise
+
+
+def set_scene_alpha_threshold(alpha_threshold: float = 0.5) -> None:
+    """
+    Set the alpha threshold for the scene.
+
+    Args:
+        alpha_threshold: The alpha threshold.
+    """
+    bpy.data.scenes[SCENE].view_layers[VIEW_LAYER].pass_alpha_threshold = alpha_threshold
 
 
 def use_backface_culling_on_materials(use_backface_culling: bool = True) -> None:

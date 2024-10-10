@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 from configuration.configuration import RenderConfiguration
-from constants.directories import PLAYGROUND_DIR, OUTPUT_DIR, TEMP_DIR, BLENDER_FILES_DIR
+from constants.directories import PLAYGROUND_DIRECTORY, OUTPUT_DIRECTORY, TEMP_DIRECTORY, BLENDER_FILES_DIRECTORY
 from constants.file_extensions import FileExtension
 
 from custom_logging.custom_logger import setup_logger
@@ -41,7 +41,7 @@ def get_playground_directory_with_tag(output_name: str = None) -> Path:
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     tag = f"{output_name}_{current_time}" if output_name is not None else current_time
 
-    directory = PLAYGROUND_DIR / tag
+    directory = PLAYGROUND_DIRECTORY / tag
     directory.mkdir(parents=True, exist_ok=True)
 
     logger.info(f"Created playground directory: {directory}")
@@ -52,7 +52,7 @@ def get_playground_directory_with_tag(output_name: str = None) -> Path:
 def move_rendered_images_to_playground(
         playground_directory: Path,
         iteration: int,
-        output_path: Path = OUTPUT_DIR,
+        output_path: Path = OUTPUT_DIRECTORY,
 ) -> None:
     """
     Move rendered images to the playground directory.
@@ -95,14 +95,14 @@ def cleanup_directories(
         remove_blender_dir: Whether to remove the Blender directory.
     """
     if remove_output_dir:
-        remove_temporary_files(directory=OUTPUT_DIR)
+        remove_temporary_files(directory=OUTPUT_DIRECTORY)
 
     if remove_temporary_dir:
-        remove_temporary_files(directory=TEMP_DIR)
+        remove_temporary_files(directory=TEMP_DIRECTORY)
 
     if remove_blender_dir:
         remove_temporary_files(
-            directory=BLENDER_FILES_DIR,
+            directory=BLENDER_FILES_DIRECTORY,
             extension=FileExtension.BLEND.value
         )
 

@@ -6,7 +6,7 @@ from enum import Enum
 import json
 
 from constants.defaults import IMAGE_WIDTH, IMAGE_HEIGHT, WORLD_SIZE, IMAGE_SIZE
-from constants.directories import TEMP_DIR, CONFIG_PATH
+from constants.directories import TEMP_DIRECTORY, CONFIG_PATH
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -53,7 +53,7 @@ class CyclesConfiguration(BaseModel):
 
 class RenderConfiguration(BaseModel):
     engine: EngineType = EngineType.Cycles
-    temp_folder: str = TEMP_DIR.as_posix()
+    temp_folder: str = TEMP_DIRECTORY.as_posix()
     resolution_percentage: int = 100
     file_format: str = "PNG"
     use_border: bool = True

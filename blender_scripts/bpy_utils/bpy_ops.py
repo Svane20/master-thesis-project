@@ -3,7 +3,7 @@ import bpy
 from pathlib import Path
 
 from bpy_utils.bpy_data import list_data_blocks_in_blend_file, BlendFilePropertyKey
-from constants.directories import BLENDER_FILES_DIR
+from constants.directories import BLENDER_FILES_DIRECTORY
 from constants.file_extensions import FileExtension
 from custom_logging.custom_logger import setup_logger
 
@@ -94,7 +94,7 @@ def render_image(write_still: bool = True) -> None:
 
 def save_as_blend_file(
         image_name: str,
-        directory_path: Path = BLENDER_FILES_DIR,
+        directory_path: Path = BLENDER_FILES_DIRECTORY,
         allow_overwrite: bool = True
 ) -> None:
     """
