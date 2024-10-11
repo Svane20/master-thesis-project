@@ -39,7 +39,17 @@ def setup_rendering(
     _setup_camera(render, camera_configuration)
     _setup_render(render, render_configuration)
 
-    setup_outputs(scene, render_configuration)
+    outputs_configuration = render_configuration.outputs_configuration
+
+    setup_outputs(
+        scene=scene,
+        engine_type=render_configuration.engine,
+        outputs_configuration=outputs_configuration,
+        render_image=outputs_configuration.render_image,
+        render_object_index=outputs_configuration.render_object_index,
+        render_environment=outputs_configuration.render_environment,
+        output_path=outputs_configuration.output_path
+    )
 
     logger.info("Rendering configuration complete.")
 

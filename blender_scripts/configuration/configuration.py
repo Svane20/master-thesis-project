@@ -4,7 +4,7 @@ from typing import Union, Dict
 from enum import Enum
 import json
 from constants.defaults import IMAGE_WIDTH, IMAGE_HEIGHT, WORLD_SIZE, IMAGE_SIZE
-from constants.directories import TEMP_DIRECTORY, CONFIG_PATH
+from constants.directories import TEMP_DIRECTORY, CONFIG_PATH, OUTPUT_DIRECTORY
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -16,15 +16,52 @@ class EngineType(str, Enum):
     Workbench = "BLENDER_WORKBENCH"
 
 
-class CameraConfiguration(BaseModel):
-    image_width: int = IMAGE_WIDTH
-    image_height: int = IMAGE_HEIGHT
-    camera_fov_mu_deg: float = 60.0
-    camera_fov_std_deg: float = 10
-
-
 class PreferencesConfiguration(BaseModel):
     compute_device_type: str = "CUDA"
+
+
+class ImageOutputConfiguration(BaseModel):
+    title: str = "Image"
+    use_node_format: bool = False  # Custom format
+    file_format: str = "PNG"
+    color_mode: str = "RGBA"
+    path: str = "Image"
+
+
+class ObjectIndexOutputConfiguration(BaseModel):
+    title: str = "IndexOB"
+    use_node_format: bool = False  # Custom format
+    file_format: str = "PNG"
+    color_mode: str = "BW"
+    path: str = "IndexOB"
+
+
+class IDMaskOutputConfiguration(BaseModel):
+    title: str = "BiomeMask"
+    use_node_format: bool = False  # Custom format
+    file_format: str = "PNG"
+    color_mode: str = "BW"
+    path: str = "BiomeMask"
+
+
+class EnvironmentOutputConfiguration(BaseModel):
+    title: str = "HDRIMask"
+    use_node_format: bool = False  # Custom format
+    file_format: str = "PNG"
+    color_mode: str = "BW"
+    path: str = "HDRIMask"
+
+
+class OutputsConfiguration(BaseModel):
+    render_image: bool = True
+    render_object_index: bool = True
+    render_environment: bool = True
+    output_path: str = OUTPUT_DIRECTORY.as_posix()
+
+    image_output_configuration: ImageOutputConfiguration = ImageOutputConfiguration()
+    object_index_output_configuration: ObjectIndexOutputConfiguration = ObjectIndexOutputConfiguration()
+    id_mask_output_configuration: IDMaskOutputConfiguration = IDMaskOutputConfiguration()
+    environment_output_configuration: EnvironmentOutputConfiguration = EnvironmentOutputConfiguration()
 
 
 class CyclesConfiguration(BaseModel):
@@ -56,6 +93,14 @@ class RenderConfiguration(BaseModel):
     compression: int = 0
     cycles_configuration: CyclesConfiguration = CyclesConfiguration()
     preferences_configuration: PreferencesConfiguration = PreferencesConfiguration()
+    outputs_configuration: OutputsConfiguration = OutputsConfiguration()
+
+
+class CameraConfiguration(BaseModel):
+    image_width: int = IMAGE_WIDTH
+    image_height: int = IMAGE_HEIGHT
+    camera_fov_mu_deg: float = 60.0
+    camera_fov_std_deg: float = 10.0
 
 
 class TerrainConfiguration(BaseModel):
@@ -64,10 +109,26 @@ class TerrainConfiguration(BaseModel):
     prob_of_trees: float = 0.25
 
 
+class SunConfiguration(BaseModel):
+    size: dict[str, int] = {"min": 1, "max": 3}
+    elevation: dict[str, int] = {"min": 45, "max": 90}
+    rotation: dict[str, int] = {"min": 0, "max": 360}
+    intensity: dict[str, float] = {"min": 0.4, "max": 0.8}
+
+
+class HDRIConfiguration(BaseModel):
+    temperature: dict[str, int] = {"min": 5000, "max": 6500}
+    strength: dict[str, float] = {"min": 0.6, "max": 1.0}
+    density: dict[str, int] = {"min": 0, "max": 2}
+
+    sun_configuration: SunConfiguration = SunConfiguration()
+
+
 class Configuration(BaseModel):
     render_configuration: RenderConfiguration = RenderConfiguration()
     camera_configuration: CameraConfiguration = CameraConfiguration()
     terrain_configuration: TerrainConfiguration = TerrainConfiguration()
+    hdri_configuration: HDRIConfiguration = HDRIConfiguration()
 
 
 def load_configuration(path: Path = CONFIG_PATH) -> Union[Dict[str, Union[str, int, float, bool, dict]], None]:

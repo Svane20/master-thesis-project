@@ -29,10 +29,11 @@ def setup() -> None:
     # Install the required addons
     install_addons()
 
-    config = load_configuration()
-    if config is None:
-        config = save_configuration(configuration=Configuration().model_dump())
+    # Save the configuration
+    save_configuration(configuration=Configuration().model_dump())
 
+    # Load the configuration
+    config = load_configuration()
     configuration = Configuration(**config)
 
     # Set up Blender rendering configuration
