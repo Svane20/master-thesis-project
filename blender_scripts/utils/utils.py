@@ -1,7 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 
-from configuration.configuration import RenderConfiguration
+from configuration.configuration import RenderConfiguration, ImageOutputConfiguration, IDMaskOutputConfiguration, \
+    EnvironmentOutputConfiguration
 from constants.directories import PLAYGROUND_DIRECTORY, OUTPUT_DIRECTORY, TEMP_DIRECTORY, BLENDER_FILES_DIRECTORY
 from constants.file_extensions import FileExtension
 
@@ -74,18 +75,22 @@ def move_rendered_images_to_playground(
     file_extension = FileExtension.PNG.value
     rendered_images = output_path.glob(f"*.{file_extension}")
 
+    image_prefix = ImageOutputConfiguration().title
+    id_mask_prefix = IDMaskOutputConfiguration().title
+    environment_prefix = EnvironmentOutputConfiguration().title
+
     for image in rendered_images:
         try:
-            if "Image" in image.name:
-                filepath = (playground_directory / f"Image_{iteration}.{file_extension}").as_posix()
+            if image_prefix in image.name:
+                filepath = (playground_directory / f"{image_prefix}_{iteration}.{file_extension}").as_posix()
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
-            elif "BiomeMask" in image.name:
-                filepath = (playground_directory / f"BiomeMask_{iteration}.{file_extension}").as_posix()
+            elif id_mask_prefix in image.name:
+                filepath = (playground_directory / f"{id_mask_prefix}_{iteration}.{file_extension}").as_posix()
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
-            elif "HDRIMask" in image.name:
-                filepath = (playground_directory / f"HDRIMask_{iteration}.{file_extension}").as_posix()
+            elif environment_prefix in image.name:
+                filepath = (playground_directory / f"{environment_prefix}_{iteration}.{file_extension}").as_posix()
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
         except Exception as e:
