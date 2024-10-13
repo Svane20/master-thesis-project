@@ -30,6 +30,7 @@ def apply_biomes_to_objects(
         biome_paths: List[str],
         density: Tuple[float, float] = (20.0, 30.0),
         label_index: int = 0,
+        seed: int = None,
 ) -> None:
     """
     Apply biomes to the specified objects.
@@ -37,22 +38,25 @@ def apply_biomes_to_objects(
     Args:
         unique_object_names (Set[str]): The set of unique object names.
         biome_paths (List[str]): The list of biome paths to apply.
-        density (Tuple[float, float], optional): The density range for biome distribution.
-        label_index (int, optional): The label index to assign to scattered objects.
+        density (Tuple[float, float], optional): The density range for biome distribution. Defaults to (20.0, 30.0).
+        label_index (int, optional): The label index to assign to scattered objects. Defaults to 0.
+        seed (int, optional): Random seed for reproducibility. Defaults to None.
     """
     logger.info(f"Applying biomes to {len(unique_object_names)} objects.")
 
-    for object_name in unique_object_names:
-        bpy_object: bpy.types.Object = bpy.data.objects.get(object_name)
+    if seed is not None:
+        np.random.seed(seed)
+        logger.info(f"Seed set to {seed}")
 
+    for object_name in unique_object_names:
+        bpy_object = _get_object_by_name(object_name)
         if bpy_object is None:
-            logger.error(f"Object '{object_name}' not found in the scene.")
             continue
 
         random_biome_path = np.random.choice(biome_paths)
         logger.info(f"Applying biome from {random_biome_path} to object '{bpy_object.name}'.")
 
-        apply_biome(
+        _apply_biome(
             bpy_object=bpy_object,
             biome_path=random_biome_path,
             density=density,
@@ -60,20 +64,23 @@ def apply_biomes_to_objects(
         )
 
 
-def apply_biome(
+def _apply_biome(
         bpy_object: Union[str, bpy.types.Object],
         biome_path: str,
         density: Tuple[float, float] = (20.0, 30.0),
         label_index: int = 0,
 ) -> None:
     """
-    Apply a specific biome to a Blender object.
+    Apply a biome to the given object.
 
     Args:
         bpy_object (Union[str, bpy.types.Object]): The Blender object or its name.
         biome_path (str): The path to the biome file to apply.
-        density (Tuple[float, float], optional): The density range for biome scattering.
-        label_index (int, optional): The pass index for the scattered objects.
+        density (Tuple[float, float], optional): The density range for biome scattering. Defaults to (20.0, 30.0).
+        label_index (int, optional): The pass index for the scattered objects. Defaults to 0.
+
+    Raises:
+        ValueError: If the object is not found in the scene.
     """
     # Ensure the correct object is referenced by name or direct object.
     if isinstance(bpy_object, str):
@@ -87,7 +94,6 @@ def apply_biome(
     # Set the object as the new emitter for scattering
     bpy.ops.scatter5.set_new_emitter(obj_name=bpy_object.name)
 
-    # Access the active scene (safer than hardcoding 'Scene')
     scene = bpy.context.scene
 
     # Apply random density within the given range
@@ -114,3 +120,24 @@ def apply_biome(
         logger.info(f"Assigned pass index {label_index} to object '{scattered_object.name}'.")
 
     logger.info(f"Biome '{biome_path}' applied to object '{bpy_object.name}' successfully.")
+
+
+def _get_object_by_name(name: Union[str, bpy.types.Object]) -> Union[bpy.types.Object, None]:
+    """
+    Retrieve a Blender object by name.
+
+    Args:
+        name (Union[str, bpy.types.Object]): The object or its name.
+
+    Returns:
+        bpy.types.Object: The retrieved object or None if not found.
+    """
+    if isinstance(name, str):
+        bpy_object = bpy.data.objects.get(name)
+        if bpy_object is None:
+            logger.error(f"Object '{name}' not found in the scene.")
+            return None
+
+        return bpy_object
+
+    return name

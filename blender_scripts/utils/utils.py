@@ -1,8 +1,8 @@
 from datetime import datetime
 from pathlib import Path
 
-from configuration.configuration import RenderConfiguration, ImageOutputConfiguration, IDMaskOutputConfiguration, \
-    EnvironmentOutputConfiguration
+from configuration.outputs import ImageOutputConfiguration, IDMaskOutputConfiguration, EnvironmentOutputConfiguration
+from configuration.render import RenderConfiguration
 from constants.directories import PLAYGROUND_DIRECTORY, OUTPUT_DIRECTORY, TEMP_DIRECTORY, BLENDER_FILES_DIRECTORY
 from constants.file_extensions import FileExtension
 
@@ -11,7 +11,25 @@ from custom_logging.custom_logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def get_temporary_file_path(render_configuration: RenderConfiguration) -> str:
+def create_directory(path: Path) -> None:
+    """
+    Helper function to create a directory if it does not exist.
+
+    Args:
+        path (Path): The directory path to create.
+
+    Raises:
+        Exception: If the directory creation fails.
+    """
+    try:
+        path.mkdir(parents=True, exist_ok=True)
+        logger.info(f"Created directory: {path}")
+    except Exception as e:
+        logger.error(f"Failed to create directory {path}: {e}")
+        raise
+
+
+def get_temporary_file_path(render_configuration) -> str:
     """
     Get the path to a temporary file based on the render configuration.
 
@@ -24,12 +42,7 @@ def get_temporary_file_path(render_configuration: RenderConfiguration) -> str:
     temp_dir: Path = Path(render_configuration.temp_folder)
     path = temp_dir / "temp"
 
-    try:
-        path.parent.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Created temporary directory: {path.parent}")
-    except Exception as e:
-        logger.error(f"Failed to create temporary directory {path.parent}: {e}")
-        raise
+    create_directory(path.parent)
 
     return path.as_posix()
 
@@ -45,16 +58,10 @@ def get_playground_directory_with_tag(output_name: str = None) -> Path:
         Path: The path to the playground directory.
     """
     current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    tag = f"{output_name}_{current_time}" if output_name is not None else current_time
+    tag = f"{output_name}_{current_time}" if output_name else current_time
 
     directory = PLAYGROUND_DIRECTORY / tag
-
-    try:
-        directory.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Created playground directory: {directory}")
-    except Exception as e:
-        logger.error(f"Failed to create playground directory {directory}: {e}")
-        raise
+    create_directory(directory)
 
     return directory
 
@@ -71,6 +78,9 @@ def move_rendered_images_to_playground(
         playground_directory (Path): The destination directory.
         iteration (int): The current iteration number.
         output_path (Path, optional): The directory containing rendered images. Defaults to OUTPUT_DIRECTORY.
+
+    Raises:
+        Exception: If the image moving fails.
     """
     file_extension = FileExtension.PNG.value
     rendered_images = output_path.glob(f"*.{file_extension}")
@@ -98,13 +108,13 @@ def move_rendered_images_to_playground(
             raise
 
 
-def cleanup_directories(
+def cleanup_files(
         remove_output_dir: bool = True,
         remove_temporary_dir: bool = True,
         remove_blender_dir: bool = False
 ) -> None:
     """
-    Clean up specified directories by removing their contents.
+    Clean up files from output, temporary, and Blender directories.
 
     Args:
         remove_output_dir (bool, optional): Whether to remove files in the output directory. Defaults to True.
@@ -121,25 +131,24 @@ def cleanup_directories(
 
     if remove_blender_dir:
         logger.info(f"Cleaning up Blender files directory: {BLENDER_FILES_DIRECTORY}")
-        remove_temporary_files(
-            directory=BLENDER_FILES_DIRECTORY,
-            extension=FileExtension.BLEND.value
-        )
+        remove_temporary_files(directory=BLENDER_FILES_DIRECTORY, extension=FileExtension.BLEND)
 
 
-def remove_temporary_files(
-        directory: Path,
-        image_name: str = None,
-        extension: str = FileExtension.PNG.value
-) -> None:
+def remove_temporary_files(directory: Path, image_name: str = None, extension: FileExtension = FileExtension.PNG) -> None:
     """
     Remove temporary files matching the specified extension and pattern in the directory.
 
     Args:
         directory (Path): The directory to search for files.
         image_name (str, optional): The name of the image. If None, delete all files with the specified extension.
-        extension (str, optional): The file extension. Defaults to PNG.
+        extension (str, optional): The file extension to filter by. Defaults to PNG.
+
+    Raises:
+        Exception: If the file deletion fails.
     """
+    # Convert FileExtension to string
+    extension = extension.value
+
     try:
         if image_name is None:
             logger.info(f"Deleting all temporary files with extension {extension} in {directory}")

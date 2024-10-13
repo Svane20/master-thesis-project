@@ -1,8 +1,7 @@
-from typing import Tuple
-
 import bpy
 
 from pathlib import Path
+from typing import Tuple
 
 from bpy_utils.bpy_data import list_data_blocks_in_blend_file, BlendFilePropertyKey
 from constants.directories import BLENDER_FILES_DIRECTORY
@@ -12,23 +11,23 @@ from custom_logging.custom_logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def delete_object_by_selection(object: bpy.types.Object) -> None:
+def delete_object_by_selection(obj: bpy.types.Object) -> None:
     """
     Deletes the given object after selection in the Blender scene.
 
     Args:
-        object (bpy.types.Object): The object to delete.
+        obj (bpy.types.Object): The object to delete.
 
     Raises:
-        Exception: If the object fails to delete.
+        RuntimeError: If the object fails to delete.
     """
     try:
-        logger.info(f"Deleting object: '{object.name}'")
+        logger.info(f"Deleting object: '{obj.name}'")
 
-        object.select_set(True)
+        obj.select_set(True)
         bpy.ops.object.delete()
 
-        logger.info(f"Successfully deleted object: '{object.name}'")
+        logger.info(f"Successfully deleted object: '{obj.name}'")
     except Exception as e:
         logger.error(f"Failed to delete object: {e}")
         raise
@@ -39,17 +38,20 @@ def append_object(object_path: Path) -> bpy.types.Collection:
     Appends the first collection from a .blend file to the scene.
 
     Args:
-        object_path (Path): The path to the .blend file containing the object.
+       object_path (Path): The path to the .blend file containing the object.
 
     Returns:
-        bpy.types.Collection: The appended object collection.
+       bpy.types.Collection: The appended object collection.
 
     Raises:
-        Exception: If the object fails to append.
-    """
+       FileNotFoundError: If the .blend file or collection cannot be found.
+       RuntimeError: If appending the object fails.
+   """
     try:
         # Get the first collection's name
         collections_dict = list_data_blocks_in_blend_file(object_path, key=BlendFilePropertyKey.Collections)
+        if not collections_dict:
+            raise FileNotFoundError(f"No collections found in {object_path}")
         collection_name = next(iter(collections_dict.keys()))
 
         # Construct filepaths
@@ -109,7 +111,7 @@ def save_as_blend_file(
         allow_overwrite (bool): Whether to allow overwriting an existing file. Defaults to True.
 
     Raises:
-        Exception: If the blend file fails to save.
+        IOError: If the blend file fails to save.
     """
     try:
         output_path = _prepare_output_path(image_name, directory_path, allow_overwrite)
@@ -151,6 +153,9 @@ def _prepare_output_path(image_name: str, directory_path: Path, allow_overwrite:
 
     Returns:
         Path: The prepared output file path.
+
+    Raises:
+        FileNotFoundError: If the directory does not exist and cannot be created.
     """
     output_dir = directory_path.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)

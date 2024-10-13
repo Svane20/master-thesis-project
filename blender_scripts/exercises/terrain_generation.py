@@ -6,12 +6,11 @@ from math import radians
 from environment.biomes import get_all_biomes_by_directory
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
 from main import setup
-from environment.mesh.mesh import convert_delatin_mesh_to_sub_meshes
-from environment.mesh.mesh_generation import generate_mesh_objects_from_delation_sub_meshes
+from environment.mesh import convert_delatin_mesh_to_sub_meshes, generate_mesh_objects_from_delation_sub_meshes
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType
 from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain
-from utils.utils import cleanup_directories, get_playground_directory_with_tag, move_rendered_images_to_playground
+from utils.utils import cleanup_files, get_playground_directory_with_tag, move_rendered_images_to_playground
 
 IMAGE_NAME = "terrain_generation"
 
@@ -87,7 +86,7 @@ def main() -> None:
     move_rendered_images_to_playground(playground_dir, iteration=1)
 
     # Cleanup the scene after rendering
-    cleanup_directories()
+    cleanup_files()
 
 
 if __name__ == "__main__":

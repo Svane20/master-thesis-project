@@ -8,7 +8,7 @@ from bpy_utils.bpy_ops import render_image, save_as_blend_file
 from scene.camera import update_camera_position
 from main import setup
 from scene.light import create_light, LightType
-from utils.utils import cleanup_directories, get_playground_directory_with_tag, move_rendered_images_to_playground
+from utils.utils import cleanup_files, get_playground_directory_with_tag, move_rendered_images_to_playground
 
 IMAGE_NAME = "house_with_plain"
 
@@ -136,7 +136,7 @@ def main() -> None:
     move_rendered_images_to_playground(playground_dir, iteration=1)
 
     # Cleanup the scene after rendering
-    cleanup_directories()
+    cleanup_files()
 
 
 if __name__ == "__main__":

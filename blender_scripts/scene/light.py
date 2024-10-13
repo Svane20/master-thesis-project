@@ -6,7 +6,16 @@ from custom_logging.custom_logger import setup_logger
 logger = setup_logger(__name__)
 
 
-class LightType(Enum):
+class LightType(str, Enum):
+    """
+    Enumeration for light types in Blender.
+
+    Attributes:
+        AREA: Area light type.
+        POINT: Point light type.
+        SPOT: Spotlight type.
+        SUN: Sunlight type.
+    """
     AREA = "AREA"
     POINT = "POINT"
     SPOT = "SPOT"
@@ -31,12 +40,12 @@ def create_light(
         light_name (str): The name of the light.
         light_type (LightType): The type of light (AREA, POINT, SPOT, SUN).
         energy (float): The intensity of the light.
-        location (Vector, optional): The location of the light in the scene.
-        rotation (Euler, optional): The rotation of the light.
-        use_shadow (bool, optional): Enable or disable shadows for the light.
-        specular_factor (float, optional): The specular intensity for the light.
-        scene (bpy.types.Scene, optional): The scene where the light will be created.
-        delete_existing_lights (bool, optional): If True, delete all existing lights in the scene.
+        location (Vector, optional): The location of the light in the scene. Defaults to the origin.
+        rotation (Euler, optional): The rotation of the light. Defaults to no rotation.
+        use_shadow (bool, optional): Enable or disable shadows for the light. Defaults to True.
+        specular_factor (float, optional): The specular intensity for the light. Defaults to 1.0.
+        scene (bpy.types.Scene, optional): The scene where the light will be created. Defaults to the current scene.
+        delete_existing_lights (bool, optional): If True, delete all existing lights in the scene. Defaults to False.
 
     Returns:
         bpy.types.Object: The newly created light object.
@@ -86,6 +95,7 @@ def create_light(
             "specular_factor": specular_factor,
             "energy": energy
         })
+
         return new_light_object
 
     except Exception as e:

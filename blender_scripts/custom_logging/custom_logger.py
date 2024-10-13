@@ -8,7 +8,6 @@ class CustomFormatter(logging.Formatter):
     """
 
     def format(self, record):
-        # First, generate the standard log message using the parent class's format method
         log_message = super().format(record)
 
         # Collect all 'extra' fields, excluding standard log fields
@@ -41,7 +40,6 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
     Returns:
         logging.Logger: Configured logger instance.
     """
-    # Create a logger with the specified name
     logger = logging.getLogger(name)
 
     # Avoid adding multiple handlers to the same logger instance
@@ -53,10 +51,7 @@ def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
         formatter = CustomFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         handler.setFormatter(formatter)
 
-        # Add the handler to the logger
         logger.addHandler(handler)
-
-        # Set the logging level for the logger
         logger.setLevel(level)
 
     return logger

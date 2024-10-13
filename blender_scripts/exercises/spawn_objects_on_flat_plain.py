@@ -9,7 +9,7 @@ from bpy_utils.bpy_ops import render_image
 from main import setup
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType
-from utils.utils import get_playground_directory_with_tag, move_rendered_images_to_playground, cleanup_directories
+from utils.utils import get_playground_directory_with_tag, move_rendered_images_to_playground, cleanup_files
 
 NUM_CYLINDER_OBJECTS = 2
 NUM_CUBE_OBJECTS = 2
@@ -191,7 +191,7 @@ def main() -> None:
     render_from_angles(CAMERA_ANGLES)
 
     # Cleanup the scene after rendering
-    cleanup_directories()
+    cleanup_files()
 
 
 if __name__ == "__main__":
