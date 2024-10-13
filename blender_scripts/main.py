@@ -26,9 +26,11 @@ def general_cleanup() -> None:
 
 def load_and_save_configuration() -> Configuration:
     """Load configuration and save it for future use."""
+    save_configuration(Configuration().model_dump())
+
     config = load_configuration()
     configuration = Configuration(**config)
-    save_configuration(configuration.model_dump())
+
     return configuration
 
 

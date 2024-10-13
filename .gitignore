@@ -5,7 +5,7 @@ __pycache__
 output
 playground
 temp
-blender_scripts/configuration/*.json
 repo
 blender_files
 .env
+configuration.json

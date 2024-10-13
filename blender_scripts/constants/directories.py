@@ -1,9 +1,9 @@
 from pathlib import Path
 
-# Base Directories
 BASE_DIRECTORY: Path = Path(__file__).resolve().parent.parent
-CONFIG_DIRECTORY: Path = BASE_DIRECTORY / "configuration"
-CONFIG_PATH: Path = CONFIG_DIRECTORY / "config.json"
+
+# Configuration File
+CONFIG_PATH: Path = BASE_DIRECTORY / "configuration.json"
 
 # Output and Temporary Directories
 OUTPUT_DIRECTORY: Path = BASE_DIRECTORY / "output"
