@@ -4,27 +4,34 @@ from pathlib import Path
 from typing import List
 import random
 
+from configuration.hdri import HDRIConfiguration, SunConfiguration
 from constants.directories import HDRI_PURE_SKIES_DIRECTORY
+from constants.file_extensions import FileExtension
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
 
 # Constants
-HDRI_EXTENSIONS = [".exr", ".hdr"]
-MIN_TEMPERATURE = 5000
-MAX_TEMPERATURE = 6500
-MIN_STRENGTH = 0.6
-MAX_STRENGTH = 1.0
-MIN_SUN_SIZE = 1
-MAX_SUN_SIZE = 3
-MIN_SUN_ELEVATION = 45
-MAX_SUN_ELEVATION = 90
-MIN_SUN_ROTATION = 0
-MAX_SUN_ROTATION = 360
-MIN_SUN_INTENSITY = 0.4
-MAX_SUN_INTENSITY = 0.8
-MIN_DENSITY = 0
-MAX_DENSITY = 2
+HDRI_EXTENSIONS = [f".{FileExtension.EXR.value}", f".{FileExtension.HDR.value}"]
+
+# Shader node types
+SHADER_NODE_ADD_SHADER = "ShaderNodeAddShader"
+SHADER_NODE_BACKGROUND = "ShaderNodeBackground"
+SHADER_NODE_BLACKBODY = "ShaderNodeBlackbody"
+SHADER_NODE_TEX_ENVIRONMENT = "ShaderNodeTexEnvironment"
+SHADER_NODE_TEX_SKY = "ShaderNodeTexSky"
+SHADER_NODE_VECTOR_MATH = "ShaderNodeVectorMath"
+SHADER_NODE_OUTPUT_WORLD = "ShaderNodeOutputWorld"
+
+# Node properties
+COLOR = "Color"
+STRENGTH = "Strength"
+TEMPERATURE = "Temperature"
+VECTOR = "Vector"
+BACKGROUND = "Background"
+SURFACE = "Surface"
+SHADER = "Shader"
+MULTIPLY = "MULTIPLY"
 
 
 def get_all_hdri_by_directory(directory: Path = HDRI_PURE_SKIES_DIRECTORY) -> List[Path]:
@@ -52,12 +59,18 @@ def get_all_hdri_by_directory(directory: Path = HDRI_PURE_SKIES_DIRECTORY) -> Li
     return hdri_files
 
 
-def add_sky_to_scene(directory: Path = HDRI_PURE_SKIES_DIRECTORY) -> None:
+def add_sky_to_scene(
+        configuration: HDRIConfiguration,
+        directory: Path = HDRI_PURE_SKIES_DIRECTORY,
+        seed: int = None
+) -> None:
     """
     Add a random sky (HDRI or sky texture) to the Blender scene.
 
     Args:
-        directory (Path): The directory containing HDRI files.
+        configuration (HDRIConfiguration): The HDRI configuration.
+        directory (Path): The directory containing HDRI files. Defaults to HDRI_PURE_SKIES_DIRECTORY.
+        seed (int, optional): Random seed for reproducibility. Defaults to None.
     """
     logger.info(f"Adding sky to the scene from directory: {directory}")
     hdri_paths = get_all_hdri_by_directory(directory)
@@ -70,111 +83,287 @@ def add_sky_to_scene(directory: Path = HDRI_PURE_SKIES_DIRECTORY) -> None:
     tree_nodes.clear()
 
     logger.debug("Adding HDRI to the scene.")
-    add_hdri(random_hdri_path, tree_nodes, node_tree)
+    add_hdri(configuration, random_hdri_path, tree_nodes, node_tree)
 
     logger.debug("Adding procedural sky texture to the scene.")
-    add_sky_texture(tree_nodes, node_tree)
+    add_sky_texture(configuration, tree_nodes, node_tree, seed)
 
     logger.debug("Setting up world output shader.")
-    setup_world_output(tree_nodes, node_tree)
+    _setup_world_output(tree_nodes, node_tree)
 
 
-def add_hdri(path: Path, tree_nodes, node_tree) -> None:
+def add_hdri(
+        configuration: HDRIConfiguration,
+        path: Path,
+        tree_nodes: bpy.types.bpy_prop_collection,
+        node_tree: bpy.types.ShaderNodeTree
+) -> None:
     """
     Add HDRI node setup to the node tree.
 
     Args:
+        configuration (HDRIConfiguration): The configuration for HDRI settings.
         path (Path): The path to the HDRI file.
-        tree_nodes: The tree nodes of the scene.
-        node_tree: The node tree to which the HDRI nodes will be added.
+        tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
+        node_tree (bpy.types.ShaderNodeTree): The node tree to which the HDRI nodes will be added.
     """
     logger.info(f"Adding HDRI node for {path}")
 
-    node_background = tree_nodes.new(type="ShaderNodeBackground")
-    node_background.inputs["Strength"].default_value = clamp(random.uniform(MIN_STRENGTH, MAX_STRENGTH), MIN_STRENGTH,
-                                                             MAX_STRENGTH)
-    logger.debug(f"Set background strength to {node_background.inputs['Strength'].default_value}")
+    node_background = _create_background_node(tree_nodes, configuration)
+    node_environment = _create_environment_node(tree_nodes, path)
+    node_blackbody = _create_blackbody_node(tree_nodes, configuration)
+    node_multiply = _create_vector_math_node(tree_nodes)
 
-    node_environment = tree_nodes.new("ShaderNodeTexEnvironment")
-    node_environment.image = bpy.data.images.load(path.as_posix())
-    logger.debug("Loaded HDRI image.")
-
-    node_blackbody = tree_nodes.new("ShaderNodeBlackbody")
-    node_blackbody.inputs["Temperature"].default_value = random.randint(MIN_TEMPERATURE, MAX_TEMPERATURE)
-    logger.debug(f"Set blackbody temperature to {node_blackbody.inputs['Temperature'].default_value}")
-
-    node_multiply = tree_nodes.new("ShaderNodeVectorMath")
-    node_multiply.operation = "MULTIPLY"
-    logger.debug("Added multiply operation for vector math.")
-
-    links = node_tree.links
-    links.new(node_multiply.outputs["Vector"], node_background.inputs["Color"])
-    links.new(node_blackbody.outputs["Color"], node_multiply.inputs[0])
-    links.new(node_environment.outputs["Color"], node_multiply.inputs[1])
-    logger.info("Linked HDRI nodes successfully.")
+    _link_hdri_nodes(node_tree, node_background, node_environment, node_blackbody, node_multiply)
 
 
-def add_sky_texture(tree_nodes, node_tree) -> None:
+def add_sky_texture(
+        configuration: HDRIConfiguration,
+        tree_nodes: bpy.types.bpy_prop_collection,
+        node_tree: bpy.types.ShaderNodeTree,
+        seed: int = None
+) -> None:
     """
     Add a procedural sky texture node setup to the node tree.
 
     Args:
-        tree_nodes: The tree nodes of the scene.
-        node_tree: The node tree to which the sky texture nodes will be added.
+        configuration (HDRIConfiguration): The configuration for sky settings.
+        tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
+        node_tree (bpy.types.ShaderNodeTree): The node tree to which the sky texture nodes will be added.
+        seed (int, optional): Random seed for reproducibility. Defaults to None.
     """
     logger.info("Adding procedural sky texture.")
+    if seed is not None:
+        random.seed(seed)
+        logger.info(f"Seed set to {seed}")
 
-    node_sky = tree_nodes.new(type="ShaderNodeTexSky")
-    node_sky.sky_type = "NISHITA"
-    node_sky.sun_size = np.deg2rad(random.uniform(MIN_SUN_SIZE, MAX_SUN_SIZE))
-    node_sky.sun_elevation = np.deg2rad(random.uniform(MIN_SUN_ELEVATION, MAX_SUN_ELEVATION))
-    node_sky.sun_rotation = np.deg2rad(random.uniform(MIN_SUN_ROTATION, MAX_SUN_ROTATION))
-    node_sky.sun_intensity = random.uniform(MIN_SUN_INTENSITY, MAX_SUN_INTENSITY)
+    sun_config = configuration.sun_configuration
+
+    node_sky = _create_sky_texture_node(tree_nodes, sun_config, configuration)
+    node_background = _create_sky_background_node(tree_nodes)
+
+    _link_sky_texture_nodes(node_tree, node_sky, node_background)
+
+
+def _create_sky_texture_node(
+        tree_nodes: bpy.types.bpy_prop_collection,
+        sun_config: SunConfiguration,
+        configuration: HDRIConfiguration
+) -> bpy.types.ShaderNodeTexSky:
+    """
+    Create a procedural sky texture node.
+
+    Args:
+        tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
+        sun_config (SunConfiguration): The sun configuration for the sky texture.
+        configuration (HDRIConfiguration): The configuration for sky settings.
+
+    Returns:
+        bpy.types.ShaderNodeTexSky: The created sky texture node.
+    """
+    node_sky = tree_nodes.new(type=SHADER_NODE_TEX_SKY)
+
+    node_sky.sky_type = configuration.sky_type
+    node_sky.sun_size = np.deg2rad(random.uniform(sun_config.size["min"], sun_config.size["max"]))
+    node_sky.sun_elevation = np.deg2rad(random.uniform(sun_config.elevation["min"], sun_config.elevation["max"]))
+    node_sky.sun_rotation = np.deg2rad(random.uniform(sun_config.rotation["min"], sun_config.rotation["max"]))
+    node_sky.sun_intensity = random.uniform(sun_config.intensity["min"], sun_config.intensity["max"])
+
     logger.debug(f"Sky texture parameters - Sun size: {node_sky.sun_size}, Elevation: {node_sky.sun_elevation}, "
                  f"Rotation: {node_sky.sun_rotation}, Intensity: {node_sky.sun_intensity}")
 
-    node_sky.altitude = random.randint(MIN_DENSITY, MAX_DENSITY)
-    node_sky.air_density = clamp(random.randint(MIN_DENSITY, MAX_DENSITY), MIN_DENSITY, MAX_DENSITY)
-    node_sky.dust_density = clamp(random.randint(MIN_DENSITY, MAX_DENSITY), MIN_DENSITY, MAX_DENSITY)
-    node_sky.ozone_density = clamp(random.randint(MIN_DENSITY, MAX_DENSITY), MIN_DENSITY, MAX_DENSITY)
+    node_sky.altitude = random.randint(configuration.density["min"], configuration.density["max"])
+    node_sky.air_density = _clamp(random.randint(configuration.density["min"], configuration.density["max"]),
+                                  configuration.density["min"], configuration.density["max"])
+    node_sky.dust_density = _clamp(random.randint(configuration.density["min"], configuration.density["max"]),
+                                   configuration.density["min"], configuration.density["max"])
+    node_sky.ozone_density = _clamp(random.randint(configuration.density["min"], configuration.density["max"]),
+                                    configuration.density["min"], configuration.density["max"])
     logger.debug(
         f"Sky texture atmospheric values - Altitude: {node_sky.altitude}, Air density: {node_sky.air_density}, "
         f"Dust density: {node_sky.dust_density}, Ozone density: {node_sky.ozone_density}")
 
-    node_background = tree_nodes.new(type="ShaderNodeBackground")
-    node_background.inputs["Strength"].default_value = clamp(random.uniform(0.2, 0.6), 0.0, 1.0)
-    logger.debug(f"Set background strength to {node_background.inputs['Strength'].default_value}")
+    return node_sky
 
+
+def _create_sky_background_node(tree_nodes: bpy.types.bpy_prop_collection) -> bpy.types.ShaderNodeBackground:
+    """
+    Create a background node for the sky texture.
+
+    Args:
+        tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
+
+    Returns:
+        bpy.types.ShaderNodeBackground: The created background node.
+    """
+    node_background = tree_nodes.new(type=SHADER_NODE_BACKGROUND)
+    node_background.inputs[STRENGTH].default_value = _clamp(random.uniform(0.2, 0.6), 0.0, 1.0)
+
+    logger.debug(f"Set background strength to {node_background.inputs[STRENGTH].default_value}")
+
+    return node_background
+
+
+def _link_sky_texture_nodes(
+        node_tree: bpy.types.ShaderNodeTree,
+        node_sky: bpy.types.ShaderNodeTexSky,
+        node_background: bpy.types.ShaderNodeBackground
+) -> None:
+    """
+    Link the sky texture nodes together in the node tree.
+
+    Args:
+        node_tree (bpy.types.ShaderNodeTree): The node tree of the scene.
+        node_sky (bpy.types.ShaderNodeTexSky): The sky texture node.
+        node_background (bpy.types.ShaderNodeBackground): The background node.
+    """
     links = node_tree.links
-    links.new(node_sky.outputs["Color"], node_background.inputs["Color"])
+    links.new(node_sky.outputs[COLOR], node_background.inputs[COLOR])
+
     logger.info("Linked sky texture nodes successfully.")
 
 
-def setup_world_output(tree_nodes, node_tree) -> None:
+def _create_background_node(
+        tree_nodes: bpy.types.bpy_prop_collection,
+        configuration: HDRIConfiguration
+) -> bpy.types.ShaderNodeBackground:
+    """
+    Create a background node with strength from configuration.
+
+    Args:
+        tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
+        configuration (HDRIConfiguration): The configuration for HDRI settings.
+
+    Returns:
+        bpy.types.ShaderNodeBackground: The created background node.
+    """
+    node_background = tree_nodes.new(type=SHADER_NODE_BACKGROUND)
+    node_background.inputs[STRENGTH].default_value = _clamp(
+        random.uniform(configuration.strength["min"], configuration.strength["max"]),
+        configuration.strength["min"], configuration.strength["max"]
+    )
+
+    logger.debug(f"Set background strength to {node_background.inputs[STRENGTH].default_value}")
+
+    return node_background
+
+
+def _create_environment_node(
+        tree_nodes: bpy.types.bpy_prop_collection,
+        path: Path
+) -> bpy.types.ShaderNodeTexEnvironment:
+    """
+    Create an environment texture node from an HDRI file.
+
+    Args:
+        tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
+        path (Path): The path to the HDRI file.
+
+    Returns:
+        bpy.types.ShaderNodeTexEnvironment: The created environment node.
+    """
+    node_environment = tree_nodes.new(SHADER_NODE_TEX_ENVIRONMENT)
+    node_environment.image = bpy.data.images.load(path.as_posix())
+
+    logger.debug("Loaded HDRI image.")
+
+    return node_environment
+
+
+def _create_blackbody_node(
+        tree_nodes: bpy.types.bpy_prop_collection,
+        configuration: HDRIConfiguration
+) -> bpy.types.ShaderNodeBlackbody:
+    """
+    Create a blackbody node with temperature from configuration.
+
+    Args:
+        tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
+        configuration (HDRIConfiguration): The configuration for HDRI settings.
+
+    Returns:
+        bpy.types.ShaderNodeBlackbody: The created blackbody node.
+    """
+    node_blackbody = tree_nodes.new(SHADER_NODE_BLACKBODY)
+    node_blackbody.inputs[TEMPERATURE].default_value = random.randint(
+        configuration.temperature["min"], configuration.temperature["max"]
+    )
+
+    logger.debug(f"Set blackbody temperature to {node_blackbody.inputs[TEMPERATURE].default_value}")
+
+    return node_blackbody
+
+
+def _create_vector_math_node(tree_nodes: bpy.types.bpy_prop_collection) -> bpy.types.ShaderNodeVectorMath:
+    """
+    Create a vector math node with 'MULTIPLY' operation.
+
+    Args:
+        tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
+
+    Returns:
+        bpy.types.ShaderNodeVectorMath: The created vector math node.
+    """
+    node_multiply = tree_nodes.new(SHADER_NODE_VECTOR_MATH)
+    node_multiply.operation = MULTIPLY
+
+    logger.debug("Added multiply operation for vector math.")
+
+    return node_multiply
+
+
+def _link_hdri_nodes(
+        node_tree: bpy.types.ShaderNodeTree,
+        node_background: bpy.types.ShaderNodeBackground,
+        node_environment: bpy.types.ShaderNodeTexEnvironment,
+        node_blackbody: bpy.types.ShaderNodeBlackbody,
+        node_multiply: bpy.types.ShaderNodeVectorMath
+) -> None:
+    """
+    Link the HDRI nodes together in the node tree.
+
+    Args:
+        node_tree (bpy.types.ShaderNodeTree): The node tree of the scene.
+        node_background (bpy.types.ShaderNodeBackground): The background node.
+        node_environment (bpy.types.ShaderNodeTexEnvironment): The environment node.
+        node_blackbody (bpy.types.ShaderNodeBlackbody): The blackbody node.
+        node_multiply (bpy.types.ShaderNodeVectorMath): The vector math node.
+    """
+    links = node_tree.links
+
+    links.new(node_multiply.outputs[VECTOR], node_background.inputs[COLOR])
+    links.new(node_blackbody.outputs[COLOR], node_multiply.inputs[0])
+    links.new(node_environment.outputs[COLOR], node_multiply.inputs[1])
+
+    logger.info("Linked HDRI nodes successfully.")
+
+
+def _setup_world_output(tree_nodes: bpy.types.bpy_prop_collection, node_tree: bpy.types.ShaderNodeTree) -> None:
     """
     Set up the output shader for the world background in the node tree.
 
     Args:
-        tree_nodes: The tree nodes of the scene.
-        node_tree: The node tree to which the output shader will be added.
+        tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
+        node_tree (bpy.types.ShaderNodeTree): The node tree to which the output shader will be added.
     """
     logger.info("Setting up world output shader.")
 
-    node_add = tree_nodes.new(type="ShaderNodeAddShader")
+    node_add = tree_nodes.new(type=SHADER_NODE_ADD_SHADER)
     links = node_tree.links
     k = 0
 
     for node in tree_nodes:
-        if "Background" in node.name:
-            links.new(node.outputs["Background"], node_add.inputs[k])
+        if BACKGROUND in node.name:
+            links.new(node.outputs[BACKGROUND], node_add.inputs[k])
             k += 1
 
-    node_output = tree_nodes.new(type="ShaderNodeOutputWorld")
-    links.new(node_add.outputs["Shader"], node_output.inputs["Surface"])
+    node_output = tree_nodes.new(type=SHADER_NODE_OUTPUT_WORLD)
+    links.new(node_add.outputs[SHADER], node_output.inputs[SURFACE])
+
     logger.info("World output shader set up successfully.")
 
 
-def clamp(value: float, min_value: float, max_value: float) -> float:
+def _clamp(value: float, min_value: float, max_value: float) -> float:
     """
     Clamp a value between a minimum and maximum value.
 

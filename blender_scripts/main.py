@@ -1,10 +1,11 @@
 import bpy
 
 from configuration.addons import install_addons
+from configuration.configuration import Configuration, load_configuration, save_configuration
 from engine.rendering import setup_rendering
-from configuration.configuration import Configuration, save_configuration, load_configuration
+
 from custom_logging.custom_logger import setup_logger
-from utils.utils import cleanup_directories
+from utils.utils import cleanup_files
 
 logger = setup_logger(__name__)
 
@@ -17,11 +18,53 @@ def clear_cube() -> None:
         bpy.ops.object.delete()
 
 
-def setup() -> None:
-    """Set up the scene for rendering"""
+def general_cleanup() -> None:
+    """Perform all necessary cleanups."""
+    cleanup_files(remove_blender_dir=True)
+    clear_cube()
+
+
+def load_and_save_configuration() -> Configuration:
+    """Load configuration and save it for future use."""
+    config = load_configuration()
+    configuration = Configuration(**config)
+    save_configuration(configuration.model_dump())
+    return configuration
+
+
+def apply_render_configuration(configuration: Configuration) -> None:
+    """Apply rendering and camera configuration in Blender."""
+    setup_rendering(
+        render_configuration=configuration.render_configuration,
+        camera_configuration=configuration.camera_configuration,
+    )
+
+
+def setup_scene() -> None:
+    """Prepare the Blender scene and configuration for rendering."""
+    # General cleanup function to handle all object and directory cleanups
+    general_cleanup()
+
+    # Install necessary Blender addons
+    install_addons()
+
+    # Handle configuration setup
+    configuration = load_and_save_configuration()
+
+    # Apply the rendering setup
+    apply_render_configuration(configuration)
+
+
+def setup() -> Configuration:
+    """
+    Set up the scene for rendering
+
+    Returns:
+        Configuration: The configuration object for the scene.
+    """
 
     # Cleanup the scene before rendering
-    cleanup_directories(remove_blender_dir=True)
+    cleanup_files(remove_blender_dir=True)
 
     # Clear the cube object if it exists
     clear_cube()
@@ -42,9 +85,11 @@ def setup() -> None:
         camera_configuration=configuration.camera_configuration,
     )
 
+    return configuration
+
 
 def main() -> None:
-    setup()
+    setup_scene()
 
 
 if __name__ == "__main__":

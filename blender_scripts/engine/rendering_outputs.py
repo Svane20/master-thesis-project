@@ -1,6 +1,8 @@
 import bpy
-from configuration.configuration import EngineType, OutputsConfiguration, ImageOutputConfiguration, \
-    ObjectIndexOutputConfiguration, IDMaskOutputConfiguration, EnvironmentOutputConfiguration
+
+from configuration.outputs import OutputsConfiguration, ImageOutputConfiguration, ObjectIndexOutputConfiguration, \
+    IDMaskOutputConfiguration, EnvironmentOutputConfiguration
+from configuration.render import EngineType
 from constants.directories import OUTPUT_DIRECTORY
 from custom_logging.custom_logger import setup_logger
 
@@ -33,7 +35,7 @@ def setup_outputs(
         output_path: str = OUTPUT_DIRECTORY.as_posix()
 ) -> None:
     """
-    Set up rendering outputs.
+    Set up rendering outputs for image, object index, and environment masks.
 
     Args:
         scene (bpy.context.scene): The Blender scene object.
@@ -152,12 +154,12 @@ def _setup_object_index_output(
         object_index_output_configuration: ObjectIndexOutputConfiguration
 ) -> None:
     """
-    Set up the object index output.
+    Set up the object index output for rendering.
 
     Args:
         node_tree (bpy.types.CompositorNodeTree): The compositor node tree.
-        output_file_node (bpy.types.CompositorNodeOutputFile): The output file node.
         render_layers (bpy.types.CompositorNodeRLayers): The render layers node.
+        object_index_output_configuration (ObjectIndexOutputConfiguration): The configuration for the object index output.
     """
     logger.debug("Setting up object index output.")
     map_range_node_indexOB = node_tree.nodes.new(type=COMPOSITOR_NODE_MAP_RANGE)

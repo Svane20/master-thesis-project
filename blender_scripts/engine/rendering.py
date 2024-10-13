@@ -1,6 +1,8 @@
 import bpy
 from typing import List
-from configuration.configuration import RenderConfiguration, CameraConfiguration, EngineType
+
+from configuration.camera import CameraConfiguration
+from configuration.render import RenderConfiguration, EngineType
 from custom_logging.custom_logger import setup_logger
 from engine.rendering_outputs import setup_outputs
 from utils.utils import get_temporary_file_path
@@ -30,7 +32,7 @@ def setup_rendering(
     scene = bpy.context.scene
     render: bpy.types.RenderSettings = scene.render
 
-    render.engine = render_configuration.engine.value
+    render.engine = render_configuration.engine
     logger.info(f"Render engine set to: {render.engine}")
 
     render.filepath = get_temporary_file_path(render_configuration)
@@ -136,6 +138,9 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings, render_configuration: 
     Args:
         render (bpy.types.RenderSettings): The render settings.
         render_configuration (RenderConfiguration): The render configuration.
+
+    Raises:
+        RuntimeError: If no CUDA devices are found.
     """
     logger.info("Setting up CUDA devices for rendering...")
 
@@ -147,7 +152,7 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings, render_configuration: 
     devices: List[bpy.types.bpy_prop_collection] = preferences.get_devices() or preferences.devices
     if devices is None:
         logger.error("No CUDA devices found.")
-        raise Exception("No CUDA devices found")
+        raise RuntimeError("No CUDA devices found")
 
     # Disable all devices first
     for device in devices:
