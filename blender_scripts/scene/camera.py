@@ -1,8 +1,75 @@
 import bpy
 from mathutils import Vector, Euler
+
+import numpy as np
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
+
+
+def get_camera_iterations(
+        start: float = 0.0,
+        stop: float = 2 * np.pi,
+        num_iterations: int = 8,
+        endpoint: bool = False,
+        seed: int = None
+) -> np.ndarray:
+    """
+    Generate camera iterations for the camera locations.
+
+    Args:
+        start (float, optional): The start of the iteration. Defaults to 0.0.
+        stop (float, optional): The end of the iteration. Defaults to 2 * np.pi.
+        num_iterations (int, optional): The number of iterations. Defaults to 8.
+        endpoint (bool, optional): If True, the stop value is included in the iterations. Defaults to False.
+        seed (int, optional): Random seed for reproducibility. Defaults to None.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+        logger.info(f"Seed set to {seed}")
+
+    return np.linspace(start=start, stop=stop, num=num_iterations, endpoint=endpoint)
+
+
+def get_random_camera_location(iteration: float, terrain: np.ndarray, world_size: int, seed: int = None) -> Vector:
+    """
+    Generate a random camera location.
+
+    Args:
+        iteration (float): The current iteration of the camera
+        terrain (np.ndarray): The terrain height map.
+        world_size (int): The size of the world.
+        seed (int, optional): Random seed for reproducibility. Defaults to None.
+
+    Returns:
+        Vector: The random camera location.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+        logger.info(f"Seed set to {seed}")
+
+    # Get the terrain shape
+    width, height = terrain.shape[:2]
+
+    # Get the maximum distance from the center of the world
+    maximal_distance = world_size / 2
+
+    # Calculate the x coordinate
+    x = maximal_distance * np.cos(iteration)
+    x = np.clip(a=x, a_min=-maximal_distance, a_max=maximal_distance)
+    x_ = (x / world_size + 0.5) * width
+    x_ = np.clip(a=x_, a_min=0, a_max=width - 1)
+
+    # Calculate the y coordinate
+    y = maximal_distance * np.sin(iteration)
+    y = np.clip(a=y, a_min=-maximal_distance, a_max=maximal_distance)
+    y_ = (y / world_size + 0.5) * height
+    y_ = np.clip(a=y_, a_min=0, a_max=height - 1)
+
+    # Calculate the height
+    height = terrain[int(x_), int(y_)]
+
+    return Vector((x, y, height + np.random.uniform(low=1.5, high=25)))
 
 
 def update_camera_position(

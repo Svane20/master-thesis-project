@@ -67,15 +67,15 @@ def get_playground_directory_with_tag(output_name: str = None) -> Path:
 
 
 def move_rendered_images_to_playground(
-        playground_directory: Path,
+        directory: Path,
         iteration: int,
         output_path: Path = OUTPUT_DIRECTORY,
 ) -> None:
     """
-    Move rendered images from the output directory to the playground directory.
+    Move rendered images from the output directory to the destination directory.
 
     Args:
-        playground_directory (Path): The destination directory.
+        directory (Path): The destination directory.
         iteration (int): The current iteration number.
         output_path (Path, optional): The directory containing rendered images. Defaults to OUTPUT_DIRECTORY.
 
@@ -92,19 +92,19 @@ def move_rendered_images_to_playground(
     for image in rendered_images:
         try:
             if image_prefix in image.name:
-                filepath = (playground_directory / f"{image_prefix}_{iteration}.{file_extension}").as_posix()
+                filepath = (directory / f"{image_prefix}_{iteration}.{file_extension}").as_posix()
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
             elif id_mask_prefix in image.name:
-                filepath = (playground_directory / f"{id_mask_prefix}_{iteration}.{file_extension}").as_posix()
+                filepath = (directory / f"{id_mask_prefix}_{iteration}.{file_extension}").as_posix()
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
             elif environment_prefix in image.name:
-                filepath = (playground_directory / f"{environment_prefix}_{iteration}.{file_extension}").as_posix()
+                filepath = (directory / f"{environment_prefix}_{iteration}.{file_extension}").as_posix()
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
         except Exception as e:
-            logger.error(f"Failed to move {image.name} to {playground_directory}: {e}")
+            logger.error(f"Failed to move {image.name} to {directory}: {e}")
             raise
 
 
