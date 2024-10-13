@@ -185,7 +185,7 @@ def main() -> None:
 
         logger.info(f"Image {current_iteration}/{total_iterations} rendered successfully")
 
-    # Cleanup the scene after rendering
+    # Cleanup temporary files generated during rendering
     cleanup_files()
 
 
