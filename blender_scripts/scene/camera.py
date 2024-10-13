@@ -22,7 +22,7 @@ def get_camera_iterations(
         stop (float, optional): The end of the iteration. Defaults to 2 * np.pi.
         num_iterations (int, optional): The number of iterations. Defaults to 8.
         endpoint (bool, optional): If True, the stop value is included in the iterations. Defaults to False.
-        seed (int, optional): The seed for the random number generator. Defaults to None.
+        seed (int, optional): Random seed for reproducibility. Defaults to None.
     """
     if seed is not None:
         np.random.seed(seed)
@@ -39,7 +39,7 @@ def get_random_camera_location(iteration: float, terrain: np.ndarray, world_size
         iteration (float): The current iteration of the camera
         terrain (np.ndarray): The terrain height map.
         world_size (int): The size of the world.
-        seed (int, optional): The seed for the random number generator. Defaults to None.
+        seed (int, optional): Random seed for reproducibility. Defaults to None.
 
     Returns:
         Vector: The random camera location.
