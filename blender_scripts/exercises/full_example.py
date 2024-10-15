@@ -22,7 +22,7 @@ logger = setup_logger(__name__)
 IMAGE_NAME = "full_example"
 WORLD_SIZE = 100
 IMAGE_SIZE = 2048
-SEED = 42
+SEED = 1
 
 
 def setup_terrain() -> np.ndarray:
@@ -120,7 +120,7 @@ def setup_the_scene() -> Tuple[Path, np.ndarray]:
     playground_directory = get_playground_directory_with_tag(output_name=IMAGE_NAME)
 
     # Get the camera iterations
-    iterations = get_camera_iterations()
+    iterations = get_camera_iterations(seed=SEED)
 
     return playground_directory, iterations
 
