@@ -5,6 +5,7 @@ from mathutils.noise import fractal
 from PIL import Image
 from pydelatin import Delatin
 import numpy as np
+from numpy.typing import NDArray
 from typing import Tuple
 
 from constants.defaults import WorldDefaults, ImageDefaults
@@ -17,12 +18,12 @@ class NoiseBasis(str, Enum):
     PERLIN_ORIGINAL = "PERLIN_ORIGINAL"
 
 
-def create_delatin_mesh_from_terrain(terrain: np.ndarray, seed: int = None) -> Delatin:
+def create_delatin_mesh_from_height_map(height_map: NDArray[np.float32], seed: int = None) -> Delatin:
     """
     Create meshes using the Delatin algorithm.
 
     Args:
-        terrain (np.ndarray): The terrain height map to create meshes from.
+        height_map (NDArray[np.float32]): The height map (terrain) to create meshes from.
         seed (int, optional): Random seed for reproducibility. Default is None.
 
     Returns:
@@ -34,10 +35,10 @@ def create_delatin_mesh_from_terrain(terrain: np.ndarray, seed: int = None) -> D
         np.random.seed(seed)
         logger.info(f"Seed set to {seed}")
 
-    width, height = terrain.shape
+    width, height = height_map.shape
     logger.info(f"Terrain shape: width={width}, height={height}")
 
-    delatin = Delatin(terrain * np.random.uniform(low=1, high=2.5), width=width, height=height)
+    delatin = Delatin(height_map * np.random.uniform(low=1, high=2.5), width=width, height=height)
 
     logger.info(f"Delatin mesh created: {len(delatin.vertices)} vertices, {len(delatin.triangles)} faces.")
 
@@ -53,7 +54,7 @@ def create_terrain_segmentation(
         band: int = 48,
         noise_basis: NoiseBasis = NoiseBasis.PERLIN_ORIGINAL,
         seed: int = None
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[np.float32], NDArray[np.uint8]]:
     """
     Generates a fractal height map and a segmentation map for the terrain.
 
@@ -68,7 +69,7 @@ def create_terrain_segmentation(
         seed (int, optional): Random seed for reproducibility. Default is None.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray]: Normalized height map and segmentation map.
+        Tuple[NDArray[np.float32], NDArray[np.uint8]]: Normalized height map and segmentation map.
     """
     logger.info("Generating terrain segmentation...")
 
@@ -96,7 +97,7 @@ def _generate_fractal_heightmap(
         image_size: int = ImageDefaults.SIZE,
         noise_basis: NoiseBasis = NoiseBasis.PERLIN_ORIGINAL,
         seed: int = None
-) -> np.ndarray:
+) -> NDArray[np.float32]:
     """
     Generates a normalized height map based on fractal noise.
 
@@ -110,7 +111,7 @@ def _generate_fractal_heightmap(
         seed (int, optional): Random seed for reproducibility. Default is None.
 
     Returns:
-        np.ndarray: A height map (2D array) normalized to [0, 255] representing terrain heights.
+        NDArray[np.float32]: A height map (2D array) normalized to [0, 255] representing terrain heights.
     """
     logger.info("Generating fractal height map...")
 
@@ -161,18 +162,18 @@ def _generate_fractal_heightmap(
 
 
 def _create_segmentation_map(
-        height_map: np.ndarray,
+        height_map: NDArray[np.float32],
         band: int = 48,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> Tuple[NDArray[np.float32], NDArray[np.uint8]]:
     """
     Creates a segmentation map from the height map based on thresholds.
 
     Args:
-        height_map (np.ndarray): The normalized height map (0-255).
+        height_map (NDArray[np.float32]): The normalized height map (0-255).
         band (int): Threshold band around the midpoint to classify different areas. Default is 48.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray]: Normalized height map and RGB segmentation map.
+        Tuple[NDArray[np.float32], NDArray[np.uint8]]: Normalized height map and RGB segmentation map.
     """
     logger.info("Creating segmentation map...")
 

@@ -2,6 +2,7 @@ import bpy
 from mathutils import Vector, Euler
 
 import numpy as np
+from numpy.typing import NDArray
 import random
 from enum import Enum
 from custom_logging.custom_logger import setup_logger
@@ -30,7 +31,7 @@ def create_random_light(
         light_type: LightType = LightType.SUN,
         location: Vector = Vector((0.0, 0.0, 0.0)),
         direction: Vector = Vector((0, 0, -1)),
-        energy_range: np.ndarray = np.arange(1, 5, 3),
+        energy_range: NDArray[np.int64] = np.arange(1, 5, 3),
         seed: int = None
 ) -> bpy.types.Object:
     """
@@ -41,7 +42,7 @@ def create_random_light(
         light_type (LightType): The type of light (AREA, POINT, SPOT, SUN). Defaults to SUN.
         location (Vector, optional): The location of the light in the scene. Defaults to the origin.
         direction (Vector, optional): The direction of the light. Defaults to the negative Z-axis.
-        energy_range (np.ndarray, optional): The range of energy values for the light. Defaults to np.arange(1, 5, 3).
+        energy_range (NDArray[np.int64], optional): The range of energy values for the light. Defaults to np.arange(1, 5, 3).
         seed (int, optional): Random seed for reproducibility. Defaults to None.
 
     Returns:

@@ -1,6 +1,7 @@
 from pathlib import Path
 from typing import Tuple
 import numpy as np
+from numpy.typing import NDArray
 
 from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alpha_threshold
 from bpy_utils.bpy_ops import render_image
@@ -11,7 +12,7 @@ from environment.biomes import get_all_biomes_by_directory
 from environment.hdri import add_sky_to_scene
 from environment.mesh import convert_delatin_mesh_to_sub_meshes, generate_mesh_objects_from_delation_sub_meshes
 from environment.objects import spawn_objects
-from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain
+from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_height_map
 from main import setup
 from scene.camera import get_camera_iterations, get_random_camera_location, update_camera_position
 from scene.light import create_random_light
@@ -25,19 +26,19 @@ IMAGE_SIZE = 2048
 SEED = 1
 
 
-def setup_terrain() -> np.ndarray:
+def setup_terrain() -> NDArray[np.float32]:
     """
     Set up the terrain for the scene.
 
     Returns:
-        np.ndarray: A height map (2D array) representing terrain.
+        NDArray[np.float32]: A height map (2D array) representing terrain.
     """
 
     # Get all grass biomes
     grass_biomes = get_all_biomes_by_directory()
 
     # Create terrain and segmentation map
-    terrain, segmentation_map = create_terrain_segmentation(
+    height_map, segmentation_map = create_terrain_segmentation(
         world_size=WORLD_SIZE,
         image_size=IMAGE_SIZE,
         num_octaves=(1, 2),
@@ -47,7 +48,7 @@ def setup_terrain() -> np.ndarray:
     )
 
     # Create a Delatin mesh from the terrain
-    delatin_mesh = create_delatin_mesh_from_terrain(terrain)
+    delatin_mesh = create_delatin_mesh_from_height_map(height_map)
 
     # Convert the Delatin mesh to sub-meshes
     delatin_sub_meshes = convert_delatin_mesh_to_sub_meshes(delatin_mesh, segmentation_map)
@@ -59,15 +60,15 @@ def setup_terrain() -> np.ndarray:
         world_size=WORLD_SIZE,
     )
 
-    return terrain
+    return height_map
 
 
-def spawn_objects_in_the_scene(terrain: np.ndarray) -> None:
+def spawn_objects_in_the_scene(height_map: NDArray[np.float32]) -> None:
     """
     Spawn objects in the scene.
 
     Args:
-        terrain (np.ndarray): The terrain height map.
+        height_map (NDArray[np.float32]): The terrain height map.
     """
 
     # Spawn House on the terrain
@@ -75,7 +76,7 @@ def spawn_objects_in_the_scene(terrain: np.ndarray) -> None:
         num_objects=1,
         positions=np.array([[0, 0]]),
         path=HOUSES_DIRECTORY,
-        terrain=terrain,
+        height_map=height_map,
         world_size=WORLD_SIZE,
         seed=SEED
     )
@@ -95,7 +96,7 @@ def setup_the_sky(configuration: HDRIConfiguration) -> None:
     add_sky_to_scene(configuration=configuration, seed=SEED)
 
 
-def setup_the_scene() -> Tuple[Path, np.ndarray]:
+def setup_the_scene() -> Tuple[Path, NDArray[np.float64]]:
     """
     Set up the scene:
 
@@ -105,7 +106,7 @@ def setup_the_scene() -> Tuple[Path, np.ndarray]:
     - Get the camera iterations.
 
     Returns:
-        Tuple[Path, np.ndarray]: The playground directory and camera iterations.
+        Tuple[Path, NDArray[np.float64]]: The playground directory and camera iterations.
     """
     # Add a light to the scene
     create_random_light(
@@ -125,21 +126,21 @@ def setup_the_scene() -> Tuple[Path, np.ndarray]:
     return playground_directory, iterations
 
 
-def initialize() -> Tuple[Path, np.ndarray, np.ndarray]:
+def initialize() -> Tuple[Path, NDArray[np.float32], NDArray[np.float64]]:
     """
     Initialize the scene.
 
     Returns:
-        Tuple[Path, np.ndarray]: The playground directory, the terrain and camera iterations.
+        Tuple[Path, NDArray[np.float32], NDArray[np.float64]]: The playground directory, the height map and camera iterations.
     """
     # Setup rendering engine
     setup()
 
     # Set up the terrain
-    terrain = setup_terrain()
+    height_map = setup_terrain()
 
     # Spawn objects in the scene
-    spawn_objects_in_the_scene(terrain)
+    spawn_objects_in_the_scene(height_map)
 
     # Set up the sky
     setup_the_sky(configuration=HDRIConfiguration())
@@ -147,12 +148,12 @@ def initialize() -> Tuple[Path, np.ndarray, np.ndarray]:
     # Set up the scene
     playground_directory, iterations = setup_the_scene()
 
-    return playground_directory, terrain, iterations
+    return playground_directory, height_map, iterations
 
 
 def main() -> None:
     # Set up the scene
-    playground_directory, terrain, iterations = initialize()
+    playground_directory, height_map, iterations = initialize()
 
     # Get the total number of iterations
     total_iterations = len(iterations)
@@ -166,7 +167,7 @@ def main() -> None:
         # Get random camera location
         location = get_random_camera_location(
             iteration=iteration,
-            terrain=terrain,
+            height_map=height_map,
             world_size=WORLD_SIZE,
             seed=SEED
         )

@@ -1,4 +1,5 @@
 import numpy as np
+from numpy.typing import NDArray
 
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
@@ -11,13 +12,13 @@ from custom_logging.custom_logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def visualize_terrain(height_map: np.ndarray, segmentation_map: np.ndarray) -> None:
+def visualize_terrain(height_map: NDArray[np.float32], segmentation_map: NDArray[np.uint8]) -> None:
     """
     Visualize the terrain and segmentation map in 2D.
 
     Args:
-        height_map (np.ndarray): The normalized height map (0-1).
-        segmentation_map (np.ndarray): A 3-channel segmentation map (RGB).
+        height_map (NDArray[np.float32]): The normalized height map (0-1).
+        segmentation_map (NDArray[np.uint8]): A 3-channel segmentation map (RGB).
     """
     fig, axs = plt.subplots(nrows=1, ncols=2, figsize=(20, 5))
 
@@ -70,12 +71,12 @@ def visualize_terrain_mesh(mesh: Delatin) -> None:
     plt.show()
 
 
-def visualize_terrain_sub_meshes_2d(sub_meshes: Dict[str, Tuple[np.ndarray, np.ndarray]]) -> None:
+def visualize_terrain_sub_meshes_2d(sub_meshes: Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]) -> None:
     """
     Visualize sub-meshes in 2D using scatter plots.
 
     Args:
-        sub_meshes (Dict[str, Tuple[np.ndarray, np.ndarray]]): A dictionary of sub-meshes categorized as 'grass', 'texture', and 'beds'.
+        sub_meshes (Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]): A dictionary of sub-meshes categorized as 'grass', 'texture', and 'beds'.
     """
     fig, ax = plt.subplots()
 
@@ -97,12 +98,12 @@ def visualize_terrain_sub_meshes_2d(sub_meshes: Dict[str, Tuple[np.ndarray, np.n
     plt.show()
 
 
-def visualize_terrain_sub_meshes_3d(sub_meshes: Dict[str, Tuple[np.ndarray, np.ndarray]]) -> None:
+def visualize_terrain_sub_meshes_3d(sub_meshes: Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]) -> None:
     """
     Visualize sub-meshes in 3D using scatter plots.
 
     Args:
-        sub_meshes (Dict[str, Tuple[np.ndarray, np.ndarray]]): A dictionary of sub-meshes categorized as 'grass', 'texture', and 'beds'.
+        sub_meshes (Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]): A dictionary of sub-meshes categorized as 'grass', 'texture', and 'beds'.
     """
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')

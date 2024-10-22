@@ -4,6 +4,7 @@ from mathutils import Vector
 from math import radians
 
 import numpy as np
+from numpy.typing import NDArray
 
 from environment.biomes import get_all_biomes_by_directory
 from bpy_utils.bpy_data import use_backface_culling_on_materials
@@ -14,7 +15,7 @@ from main import setup
 from environment.mesh import convert_delatin_mesh_to_sub_meshes, generate_mesh_objects_from_delation_sub_meshes
 from scene.camera import update_camera_position
 from scene.light import create_light, LightType
-from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_terrain
+from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_height_map
 from utils.utils import cleanup_files, get_playground_directory_with_tag, move_rendered_images_to_playground
 
 IMAGE_NAME = "house_on_terrain"
@@ -27,12 +28,12 @@ HOUSES_TO_SPAWN = 1
 SEED = 42
 
 
-def set_scene() -> np.ndarray:
+def set_scene() -> NDArray[np.float32]:
     """
     Set up the scene
 
     Returns:
-        The terrain.
+        NDArray[np.float32]: The terrain.
     """
 
     # Add a light to the scene
@@ -63,7 +64,7 @@ def set_scene() -> np.ndarray:
     )
 
     # Create a Delatin mesh from the terrain
-    delatin_mesh = create_delatin_mesh_from_terrain(terrain)
+    delatin_mesh = create_delatin_mesh_from_height_map(terrain)
 
     # Convert the Delatin mesh to sub-meshes
     delatin_sub_meshes = convert_delatin_mesh_to_sub_meshes(delatin_mesh, segmentation_map)
@@ -93,7 +94,7 @@ def main() -> None:
         num_objects=HOUSES_TO_SPAWN,
         positions=np.array([[0, 0]]),
         path=HOUSES_DIRECTORY,
-        terrain=terrain,
+        height_map=terrain,
         world_size=WORLD_SIZE,
         seed=SEED
     )

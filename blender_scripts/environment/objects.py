@@ -1,6 +1,8 @@
 from pathlib import Path
 import numpy as np
+from numpy.typing import NDArray
 import random
+
 from custom_logging.custom_logger import setup_logger
 from bpy_utils.bpy_ops import append_object
 
@@ -9,9 +11,9 @@ logger = setup_logger(__name__)
 
 def spawn_objects(
         num_objects: int,
-        positions: np.ndarray,
+        positions: NDArray[np.float32],
         path: Path,
-        terrain: np.ndarray,
+        height_map: NDArray[np.float32],
         world_size: float,
         seed: int = None
 ) -> None:
@@ -20,9 +22,9 @@ def spawn_objects(
 
     Args:
         num_objects (int): The number of objects to spawn.
-        positions (np.ndarray): The (x, y) positions where objects will be placed.
+        positions (NDArray[np.float32]): The (x, y) positions where objects will be placed.
         path (Path): The directory path containing .blend files for objects.
-        terrain (np.ndarray): The terrain height map.
+        height_map (NDArray[np.float32]): The terrain height map.
         world_size (float): The size of the world (terrain scale).
         seed (int, optional): Random seed for reproducibility. Default is None.
 
@@ -32,7 +34,7 @@ def spawn_objects(
     logger.info(f"Spawning {num_objects} objects on the terrain.")
 
     # Ensure terrain dimensions match the expected format
-    height, width = terrain.shape[:2]
+    height, width = height_map.shape[:2]
     logger.debug(f"Terrain dimensions: width={width}, height={height}")
 
     if seed is not None:
@@ -68,7 +70,7 @@ def spawn_objects(
             x_ = np.clip(x_, 0, width - 1)
             y_ = int((y / world_size + 0.5) * height)
             y_ = np.clip(y_, 0, height - 1)
-            h = terrain[x_, y_]
+            h = height_map[x_, y_]
 
             # Set object location, rotation, and pass index
             obj.location = (x, y, h)

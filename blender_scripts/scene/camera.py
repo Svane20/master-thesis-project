@@ -2,6 +2,8 @@ import bpy
 from mathutils import Vector, Euler
 
 import numpy as np
+from numpy.typing import NDArray
+
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -13,7 +15,7 @@ def get_camera_iterations(
         num_iterations: int = 8,
         endpoint: bool = False,
         seed: int = None
-) -> np.ndarray:
+) -> NDArray[np.float64]:
     """
     Generate camera iterations for the camera locations.
 
@@ -23,6 +25,9 @@ def get_camera_iterations(
         num_iterations (int, optional): The number of iterations. Defaults to 8.
         endpoint (bool, optional): If True, the stop value is included in the iterations. Defaults to False.
         seed (int, optional): Random seed for reproducibility. Defaults to None.
+
+    Returns:
+        NDArray[np.float64]: The camera iterations.
     """
     if seed is not None:
         np.random.seed(seed)
@@ -31,13 +36,13 @@ def get_camera_iterations(
     return np.linspace(start=start, stop=stop, num=num_iterations, endpoint=endpoint)
 
 
-def get_random_camera_location(iteration: float, terrain: np.ndarray, world_size: int, seed: int = None) -> Vector:
+def get_random_camera_location(iteration: float, height_map: NDArray[np.float32], world_size: int, seed: int = None) -> Vector:
     """
     Generate a random camera location.
 
     Args:
         iteration (float): The current iteration of the camera
-        terrain (np.ndarray): The terrain height map.
+        height_map (NDArray[np.float32]): The terrain height map.
         world_size (int): The size of the world.
         seed (int, optional): Random seed for reproducibility. Defaults to None.
 
@@ -49,7 +54,7 @@ def get_random_camera_location(iteration: float, terrain: np.ndarray, world_size
         logger.info(f"Seed set to {seed}")
 
     # Get the terrain shape
-    width, height = terrain.shape[:2]
+    width, height = height_map.shape[:2]
 
     # Get the maximum distance from the center of the world
     maximal_distance = world_size / 2
@@ -67,7 +72,7 @@ def get_random_camera_location(iteration: float, terrain: np.ndarray, world_size
     y_ = np.clip(a=y_, a_min=0, a_max=height - 1)
 
     # Calculate the height
-    height = terrain[int(x_), int(y_)]
+    height = height_map[int(x_), int(y_)]
 
     return Vector((x, y, height + np.random.uniform(low=1.5, high=25)))
 

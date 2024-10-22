@@ -1,6 +1,7 @@
 import bpy
 
 import numpy as np
+from numpy.typing import NDArray
 from pydelatin import Delatin
 import trimesh
 from typing import Tuple, Dict, List, Set
@@ -17,17 +18,17 @@ DensityRange = Tuple[float, float]  # Alias for readability
 
 def convert_delatin_mesh_to_sub_meshes(
         mesh: Delatin,
-        segmentation_map: np.ndarray
-) -> Dict[str, Tuple[np.ndarray, np.ndarray]]:
+        segmentation_map: NDArray[np.uint8]
+) -> Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]:
     """
     Convert Delatin mesh into sub-meshes based on a segmentation map.
 
     Args:
         mesh (Delatin): Delatin object containing vertices and faces.
-        segmentation_map (np.ndarray): 3-channel segmentation map (RGB) indicating terrain categories.
+        segmentation_map (NDArray[np.uint8]): 3-channel segmentation map (RGB) indicating terrain categories.
 
     Returns:
-        Dict[str, Tuple[np.ndarray, np.ndarray]]: A dictionary mapping segmentation categories to sub-meshes.
+        Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]: A dictionary mapping segmentation categories to sub-meshes.
     """
     logger.info("Converting Delatin mesh to sub-meshes...")
 
@@ -60,7 +61,7 @@ def convert_delatin_mesh_to_sub_meshes(
 
 
 def generate_mesh_objects_from_delation_sub_meshes(
-        delatin_sub_meshes: Dict[str, Tuple[np.ndarray, np.ndarray]],
+        delatin_sub_meshes: Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]],
         biomes_paths: List[str],
         grass_densities: Tuple[DensityRange, DensityRange, DensityRange] = ((60, 100.), (0., 0.1), (0.1, 5.)),
         biome_label_indices: Tuple[int, int, int] = (255, 0, 0),
@@ -70,7 +71,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
     Generate mesh objects from Delatin sub-meshes, apply biomes, and delete the object after.
 
     Args:
-        delatin_sub_meshes (Dict[str, Tuple[np.ndarray, np.ndarray]]): The Delatin sub-meshes (vertices and faces).
+        delatin_sub_meshes (Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]): The Delatin sub-meshes (vertices and faces).
         biomes_paths (List[str]): The biomes paths to be applied to the objects.
         grass_densities (Tuple[DensityRange, DensityRange, DensityRange], optional): The grass densities.
         biome_label_indices (Tuple[int, int, int], optional): The biome label indices.
@@ -133,18 +134,22 @@ def generate_mesh_objects_from_delation_sub_meshes(
         logger.info(f"Deleted object '{object_name}' after biome application.")
 
 
-def _assign_vertex_z_values(vertices: np.ndarray, segmentation_map: np.ndarray) -> np.ndarray:
+def _assign_vertex_z_values(
+        vertices: NDArray[np.float32],
+        segmentation_map: NDArray[np.uint8]
+) -> NDArray[np.int64]:
     """
     Assign Z values to vertices based on segmentation map categories.
 
     Args:
-        vertices (np.ndarray): Array of vertex positions.
-        segmentation_map (np.ndarray): Segmentation map with 3 categories (RGB).
+        vertices (NDArray[np.float32]): Array of vertex positions.
+        segmentation_map (NDArray[np.uint8]): Segmentation map with 3 categories (RGB).
 
     Returns:
-        np.ndarray: Updated Z values for each vertex.
+        NDArray[np.int64]: Updated Z values for each vertex.
     """
     logger.debug("Assigning Z values to vertices based on segmentation map.")
+
     return np.select(
         [
             _is_category(vertices, segmentation_map, category_idx)
@@ -155,35 +160,42 @@ def _assign_vertex_z_values(vertices: np.ndarray, segmentation_map: np.ndarray) 
     )
 
 
-def _is_category(vertices: np.ndarray, segmentation_map: np.ndarray, category_idx: int) -> np.ndarray:
+def _is_category(
+        vertices: NDArray[np.float32],
+        segmentation_map: NDArray[np.uint8],
+        category_idx: int
+) -> NDArray[np.bool_]:
     """
     Check if each vertex belongs to a specific category in the segmentation map.
 
     Args:
-        vertices (np.ndarray): Array of vertex positions.
-        segmentation_map (np.ndarray): Segmentation map.
+        vertices (NDArray[np.float32]): Array of vertex positions.
+        segmentation_map (NDArray[np.uint8]): Segmentation map.
         category_idx (int): Index of the category to check (0: texture, 1: grass, 2: beds).
 
     Returns:
-        np.ndarray: Boolean array indicating whether each vertex belongs to the given category.
+        NDArray[np.bool_]: Boolean array indicating whether each vertex belongs to the given category.
     """
     x_coords = vertices[:, 0].astype(int)
     y_coords = vertices[:, 1].astype(int)
     logger.debug(f"Checking category {category_idx} for vertices.")
+
     return np.asarray(segmentation_map[x_coords, y_coords, category_idx] == 255)
 
 
-def _classify_faces_by_z_value(faces: np.ndarray, z_values_per_face: np.ndarray) -> Tuple[
-    np.ndarray, np.ndarray, np.ndarray]:
+def _classify_faces_by_z_value(
+        faces: NDArray[np.uint32],
+        z_values_per_face: NDArray[np.float32]
+) -> Tuple[NDArray[np.uint32], NDArray[np.uint32], NDArray[np.uint32]]:
     """
     Classify faces based on the Z values of their vertices.
 
     Args:
-        faces (np.ndarray): Array of mesh faces.
-        z_values_per_face (np.ndarray): Z values for each face's vertices.
+        faces (NDArray[np.uint32]): Array of mesh faces.
+        z_values_per_face (NDArray[np.float32]): Z values for each face's vertices.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray]: A tuple of arrays for grass faces, texture faces, and beds faces.
+        Tuple[NDArray[np.uint32], NDArray[np.uint32], NDArray[np.uint32]]: A tuple of arrays for grass faces, texture faces, and beds faces.
     """
     logger.debug("Classifying faces by Z values.")
     grass_faces = []
@@ -201,19 +213,23 @@ def _classify_faces_by_z_value(faces: np.ndarray, z_values_per_face: np.ndarray)
     logger.debug(
         f"Classified {len(grass_faces)} grass faces, {len(texture_faces)} texture faces, and {len(beds_faces)} beds faces."
     )
+
     return np.array(grass_faces), np.array(texture_faces), np.array(beds_faces)
 
 
-def _create_trimesh_sub_mesh(vertices: np.ndarray, faces: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+def _create_trimesh_sub_mesh(
+        vertices: NDArray[np.float32],
+        faces: NDArray[np.uint32]
+) -> Tuple[NDArray[np.float32], NDArray[np.uint32]]:
     """
     Creates a trimesh-compatible sub-mesh.
 
     Args:
-        vertices (np.ndarray): Array of mesh vertices.
-        faces (np.ndarray): Faces for the sub-mesh.
+        vertices (NDArray[np.float32]): Array of mesh vertices.
+        faces (NDArray[np.uint32]): Faces for the sub-mesh.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray]: A tuple of (vertices, faces) arrays representing the sub-mesh.
+        Tuple[NDArray[np.float64], NDArray[np.uint64]]: A tuple of (vertices, faces) arrays representing the sub-mesh.
     """
     if len(faces) == 0:
         logger.debug("No faces found for this sub-mesh.")
@@ -221,6 +237,7 @@ def _create_trimesh_sub_mesh(vertices: np.ndarray, faces: np.ndarray) -> Tuple[n
 
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
     logger.info(f"Created trimesh sub-mesh with {len(faces)} faces.")
+
     return np.array(mesh.vertices), np.array(mesh.faces)
 
 
