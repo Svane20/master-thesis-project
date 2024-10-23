@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alpha_threshold
-from bpy_utils.bpy_ops import render_image
+from bpy_utils.bpy_ops import render_image, save_as_blend_file
 from configuration.hdri import HDRIConfiguration
 from constants.directories import HOUSES_DIRECTORY
 from custom_logging.custom_logger import setup_logger
@@ -175,8 +175,9 @@ def main() -> None:
         # Update camera location
         update_camera_position(location=location)
 
-        # Save as a .blend file
-        # save_as_blend_file(image_name=f"{IMAGE_NAME}_{index}")
+        # Save the blend file
+        if index == 0:
+            save_as_blend_file(image_name=IMAGE_NAME)
 
         # Render the image
         render_image(write_still=True)
