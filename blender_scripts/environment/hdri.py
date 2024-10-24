@@ -83,16 +83,16 @@ def add_sky_to_scene(
     tree_nodes.clear()
 
     logger.debug("Adding HDRI to the scene.")
-    add_hdri(configuration, random_hdri_path, tree_nodes, node_tree)
+    _add_hdri(configuration, random_hdri_path, tree_nodes, node_tree)
 
     logger.debug("Adding procedural sky texture to the scene.")
-    add_sky_texture(configuration, tree_nodes, node_tree, seed)
+    _add_sky_texture(configuration, tree_nodes, node_tree, seed)
 
     logger.debug("Setting up world output shader.")
     _setup_world_output(tree_nodes, node_tree)
 
 
-def add_hdri(
+def _add_hdri(
         configuration: HDRIConfiguration,
         path: Path,
         tree_nodes: bpy.types.bpy_prop_collection,
@@ -117,7 +117,7 @@ def add_hdri(
     _link_hdri_nodes(node_tree, node_background, node_environment, node_blackbody, node_multiply)
 
 
-def add_sky_texture(
+def _add_sky_texture(
         configuration: HDRIConfiguration,
         tree_nodes: bpy.types.bpy_prop_collection,
         node_tree: bpy.types.ShaderNodeTree,

@@ -12,7 +12,7 @@ SCENE = "Scene"
 VIEW_LAYER = "ViewLayer"
 
 
-class BlendFilePropertyKey(Enum):
+class BlendFilePropertyKey(str, Enum):
     """
     Enum for selecting specific data blocks from a blend file.
 

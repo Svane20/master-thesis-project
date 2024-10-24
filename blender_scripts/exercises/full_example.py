@@ -33,8 +33,6 @@ def setup_terrain() -> NDArray[np.float32]:
     Returns:
         NDArray[np.float32]: A height map (2D array) representing terrain.
     """
-
-    # Get all grass biomes
     grass_biomes = get_all_biomes_by_directory()
 
     # Create terrain and segmentation map
@@ -47,13 +45,9 @@ def setup_terrain() -> NDArray[np.float32]:
         seed=SEED
     )
 
-    # Create a Delatin mesh from the terrain
     delatin_mesh = create_delatin_mesh_from_height_map(height_map)
-
-    # Convert the Delatin mesh to sub-meshes
     delatin_sub_meshes = convert_delatin_mesh_to_sub_meshes(delatin_mesh, segmentation_map)
 
-    # Generate mesh objects from the Delatin sub-meshes
     generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes=delatin_sub_meshes,
         biomes_paths=grass_biomes,
@@ -92,7 +86,6 @@ def setup_the_sky(configuration: HDRIConfiguration) -> None:
     Args:
         configuration (HDRIConfiguration): The HDRI configuration.
     """
-    # Add sky to the scene
     add_sky_to_scene(configuration=configuration, seed=SEED)
 
 
@@ -108,19 +101,15 @@ def setup_the_scene() -> Tuple[Path, NDArray[np.float64]]:
     Returns:
         Tuple[Path, NDArray[np.float64]]: The playground directory and camera iterations.
     """
-    # Add a light to the scene
     create_random_light(
         light_name="Sun",
         seed=SEED,
     )
 
-    # Set the alpha threshold for the scene
     set_scene_alpha_threshold(alpha_threshold=0.5)
 
-    # Get the playground directory
     playground_directory = get_playground_directory_with_tag(output_name=IMAGE_NAME)
 
-    # Get the camera iterations
     iterations = get_camera_iterations(seed=SEED)
 
     return playground_directory, iterations
@@ -136,13 +125,10 @@ def initialize() -> Tuple[Path, NDArray[np.float32], NDArray[np.float64]]:
     # Setup rendering engine
     setup()
 
-    # Set up the terrain
     height_map = setup_terrain()
 
-    # Spawn objects in the scene
     spawn_objects_in_the_scene(height_map)
 
-    # Set up the sky
     setup_the_sky(configuration=HDRIConfiguration())
 
     # Set up the scene
@@ -152,6 +138,7 @@ def initialize() -> Tuple[Path, NDArray[np.float32], NDArray[np.float64]]:
 
 
 def main() -> None:
+    """The main function to render the images from multiple camera angles."""
     # Set up the scene
     playground_directory, height_map, iterations = initialize()
 
@@ -164,7 +151,6 @@ def main() -> None:
         current_iteration = index + 1
         logger.info(f"Rendering image {current_iteration}/{total_iterations}")
 
-        # Get random camera location
         location = get_random_camera_location(
             iteration=iteration,
             height_map=height_map,
@@ -172,14 +158,11 @@ def main() -> None:
             seed=SEED
         )
 
-        # Update camera location
         update_camera_position(location=location)
 
-        # Save the blend file
         if index == 0:
             save_as_blend_file(image_name=IMAGE_NAME)
 
-        # Render the image
         render_image(write_still=True)
 
         # Rename the rendered image and masks
