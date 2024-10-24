@@ -10,6 +10,9 @@ from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
 
+IMAGES_DIRNAME = "images"
+MASKS_DIRNAME = "masks"
+
 
 def create_directory(path: Path) -> None:
     """
@@ -63,6 +66,10 @@ def get_playground_directory_with_tag(output_name: str = None) -> Path:
     directory = PLAYGROUND_DIRECTORY / tag
     create_directory(directory)
 
+    # Create subdirectories for images and masks
+    create_directory(directory / IMAGES_DIRNAME)
+    create_directory(directory / MASKS_DIRNAME)
+
     return directory
 
 
@@ -92,15 +99,27 @@ def move_rendered_images_to_playground(
     for image in rendered_images:
         try:
             if image_prefix in image.name:
-                filepath = (directory / f"{image_prefix}_{iteration}.{file_extension}").as_posix()
+                filepath = _get_playground_file_path(directory, IMAGES_DIRNAME, image_prefix, iteration, file_extension)
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
             elif id_mask_prefix in image.name:
-                filepath = (directory / f"{id_mask_prefix}_{iteration}.{file_extension}").as_posix()
+                filepath = _get_playground_file_path(
+                    directory,
+                    MASKS_DIRNAME,
+                    id_mask_prefix,
+                    iteration,
+                    file_extension
+                )
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
             elif environment_prefix in image.name:
-                filepath = (directory / f"{environment_prefix}_{iteration}.{file_extension}").as_posix()
+                filepath = _get_playground_file_path(
+                    directory,
+                    MASKS_DIRNAME,
+                    environment_prefix,
+                    iteration,
+                    file_extension
+                )
                 image.rename(filepath)
                 logger.info(f"Moved {image.name} to {filepath}")
         except Exception as e:
@@ -134,14 +153,18 @@ def cleanup_files(
         remove_temporary_files(directory=BLENDER_FILES_DIRECTORY, extension=FileExtension.BLEND)
 
 
-def remove_temporary_files(directory: Path, image_name: str = None, extension: FileExtension = FileExtension.PNG) -> None:
+def remove_temporary_files(
+        directory: Path,
+        image_name: str = None,
+        extension: FileExtension = FileExtension.PNG
+) -> None:
     """
     Remove temporary files matching the specified extension and pattern in the directory.
 
     Args:
         directory (Path): The directory to search for files.
         image_name (str, optional): The name of the image. If None, delete all files with the specified extension.
-        extension (str, optional): The file extension to filter by. Defaults to PNG.
+        extension (FileExtension, optional): The file extension to filter by. Defaults to PNG.
 
     Raises:
         Exception: If the file deletion fails.
@@ -163,3 +186,26 @@ def remove_temporary_files(directory: Path, image_name: str = None, extension: F
     except Exception as e:
         logger.error(f"Failed to delete files in {directory}: {e}")
         raise
+
+
+def _get_playground_file_path(
+        directory: Path,
+        subdirectory: str,
+        output_name: str,
+        iteration: int,
+        file_extension: str
+) -> str:
+    """
+    Get the path to a file in the playground directory.
+
+    Args:
+        directory (Path): The playground directory.
+        subdirectory (str): The subdirectory name.
+        output_name (str): The name of the output file.
+        iteration (int): The current iteration number.
+        file_extension (str): The file extension.
+
+    Returns:
+        str: The path to the file in the playground directory.
+    """
+    return (directory / f"{subdirectory}" / f"{output_name}_{iteration}.{file_extension}").as_posix()
