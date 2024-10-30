@@ -2,10 +2,10 @@
 __pycache__
 .idea/
 
+# Blender Generation Project
 output
 playground
 temp
-repo
 blender_files
 .env
 configuration.json
