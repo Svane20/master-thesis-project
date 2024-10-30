@@ -46,7 +46,7 @@ data:
             value: -b -y
 ---
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: flamenco-manager
   namespace: flamenco
@@ -57,6 +57,7 @@ spec:
   selector:
     matchLabels:
       app: flamenco-manager
+  serviceName: "flamenco-manager"
   template:
     metadata:
       labels:

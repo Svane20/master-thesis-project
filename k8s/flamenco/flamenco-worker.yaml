@@ -20,7 +20,7 @@ metadata:
   labels:
     app: flamenco-worker
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: flamenco-worker

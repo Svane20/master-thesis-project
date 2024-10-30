@@ -1,5 +1,37 @@
 # Deployment on Kubernetes
 
+## Flamenco
+
+### Create namespace
+
+````bash
+kubectl create namespace flamenco
+````
+
+### Deploy Flamenco Manager
+
+````bash
+kubectl apply -f flamenco-manager.yaml
+````
+
+### Deploy Flamenco Worker
+
+````bash
+kubectl apply -f flamenco-worker.yaml
+````
+
+### Access Flamenco Manager
+
+````bash
+kubectl port-forward svc/flamenco-manager 8080:8080 --namespace flamenco
+````
+
+### Add Blender file to NFS storage
+
+````bash
+kubectl cp test.blend flamenco-manager-0:/var/flamenco/output/jobs/test.blend -n flamenco
+````
+
 ## Minio
 
 ### Create namespace
@@ -76,7 +108,7 @@ helm install prometheus prometheus-community/prometheus --namespace monitoring -
 helm install grafana grafana/grafana --namespace monitoring --create-namespace
 ```
 
-# Blender WebAPI
+# WebAPI
 
 ## Deploy
 

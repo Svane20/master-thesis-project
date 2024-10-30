@@ -7,7 +7,7 @@ class JobSubmission(BaseModel):
     blend_file: str
     frame_start: int
     frame_end: int
-    output_path: str
+    output_root: str
     project: str
     user_email: str
     user_name: str
@@ -38,8 +38,8 @@ def prepare_payload(job: JobSubmission) -> Dict[str, any]:
             "frames": f"{job.frame_start}-{job.frame_end}",
             "has_previews": job.has_previews,
             "image_file_extension": job.image_file_extension,
-            "render_output_path": job.output_path,
-            "render_output_root": "/var/flamenco/output"  # Adjust based on your shared storage path
+            "render_output_path": f"{job.output_path}/output",
+            "render_output_root": job.output_path
         },
         "submitter_platform": job.submitter_platform,
         "type": job.job_type
