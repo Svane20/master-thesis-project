@@ -1,5 +1,3 @@
-bpy~=4.2.0
-fake-bpy-module-latest==20240910
 fastapi[standard]~=0.114.0
 uvicorn~=0.30.6
 pydantic~=2.9.1
