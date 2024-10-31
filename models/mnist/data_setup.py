@@ -1,8 +1,8 @@
-from typing import Any, Tuple, List
-
 from torch.utils.data import DataLoader
 from torchvision import datasets
 from torchvision.transforms import ToTensor
+
+from typing import Any, Tuple, List
 
 
 def create_data_loaders(batch_size: int) -> Tuple[DataLoader[Any], DataLoader[Any], List[str]]:
