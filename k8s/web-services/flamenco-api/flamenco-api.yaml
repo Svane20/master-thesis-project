@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: blender-web-api
+  name: flamenco-api
   labels:
-    app: blender-web-api
+    app: flamenco-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: blender-web-api
+      app: flamenco-api
   template:
     metadata:
       labels:
-        app: blender-web-api
+        app: flamenco-api
     spec:
       containers:
-        - name: blender-web-api
-          image: svane222/blender-web-api:latest
+        - name: flamenco-api
+          image: svane222/flamenco-api:latest
           imagePullPolicy: Always
           env:
             - name: ENVIRONMENT
@@ -27,10 +27,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: blender-web-api-service
+  name: flamenco-api-service
 spec:
   selector:
-    app: blender-web-api
+    app: flamenco-api
   ports:
     - protocol: TCP
       port: 80
@@ -40,7 +40,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: blender-web-api-ingress
+  name: flamenco-api-ingress
   annotations:
     nginx.ingress.kubernetes.io/rewrite-target: /
 spec:
@@ -52,6 +52,6 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: blender-web-api-service
+                name: flamenco-api-service
                 port:
                   number: 80
