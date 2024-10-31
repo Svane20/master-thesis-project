@@ -11,7 +11,6 @@ class FashionMnistModelV0(nn.Module):
         hidden_units (int): Number of hidden units.
         output_shape (int): Output shape.
     """
-
     def __init__(self, input_shape: int, hidden_units: int, output_shape: int) -> None:
         super().__init__()
 

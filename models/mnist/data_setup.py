@@ -15,7 +15,6 @@ def create_data_loaders(batch_size: int) -> Tuple[DataLoader[Any], DataLoader[An
     Returns:
         Tuple[DataLoader[Any], DataLoader[Any], List[str]]: Training data loader, test data loader, and class names
     """
-
     # Get the training and test datasets
     train_data = _get_train_data()
     test_data = _get_test_data()
