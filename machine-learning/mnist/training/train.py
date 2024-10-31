@@ -1,4 +1,6 @@
-import torch
+from torch import nn
+import torch.optim as optim
+from torch.optim import lr_scheduler
 
 import argparse
 import sys
@@ -62,9 +64,10 @@ def main():
     if args.show_summary:
         get_model_summary(model, input_size=(32, 1, 28, 28))
 
-    # Setup loss function and optimizer
-    criterion = torch.nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    # Setup loss function, optimizer, and learning rate scheduler
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=args.lr)
+    scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
     # Train the model
     engine.train(
@@ -74,7 +77,8 @@ def main():
         train_dataloader=train_dataloader,
         test_dataloader=test_dataloader,
         device=device,
-        epochs=args.epochs
+        epochs=args.epochs,
+        scheduler=scheduler,
     )
 
     # Save the model

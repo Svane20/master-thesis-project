@@ -1,6 +1,8 @@
 import torch
+from torchvision import transforms
 
 from tqdm.auto import tqdm
+from PIL import Image
 
 
 def evaluate_model(
@@ -33,3 +35,24 @@ def evaluate_model(
             y_preds.append(y_pred.cpu())
 
     return torch.cat(y_preds)
+
+
+def predict_image(
+        image: Image.Image,
+        model: torch.nn.Module,
+        transform: transforms.Compose,
+        device: torch.device
+) -> int:
+    """
+    Predict the class of an image.
+
+    Args:
+        image (Image.Image): Image to predict
+        model (torch.nn.Module): Model to use for prediction
+        transform (transforms.Compose): Transform to apply to the image
+        device (torch.device): Device to use for prediction
+
+    Returns:
+        int: Predicted class
+    """
+    pass

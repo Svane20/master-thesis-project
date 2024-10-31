@@ -13,6 +13,7 @@ def train(
         optimizer: torch.optim.Optimizer,
         epochs: int,
         device: torch.device,
+        scheduler: torch.optim.lr_scheduler = None,
 ) -> Dict[str, List[float]]:
     """
     Trains and evaluates a model
@@ -29,6 +30,7 @@ def train(
         optimizer (torch.optim.Optimizer): Optimizer
         epochs (int): Number of epochs to train for
         device (torch.device): Device to run the training on
+        scheduler (torch.optim.lr_scheduler): Learning rate scheduler. Default is None.
     """
     # Initialize Weights & Biases
     wandb.init(
@@ -58,7 +60,8 @@ def train(
             dataloader=train_dataloader,
             criterion=criterion,
             optimizer=optimizer,
-            device=device
+            device=device,
+            scheduler=scheduler,
         )
 
         # Test step
@@ -144,7 +147,8 @@ def _train_step(
         dataloader: torch.utils.data.DataLoader,
         criterion: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
-        device: torch.device
+        device: torch.device,
+        scheduler: torch.optim.lr_scheduler = None,
 ) -> Tuple[float, float]:
     """
     Trains a model for a single epoch
@@ -154,6 +158,7 @@ def _train_step(
         dataloader (torch.utils.data.DataLoader): Data loader
         criterion (torch.nn.Module): Loss function
         optimizer (torch.optim.Optimizer): Optimizer
+        scheduler (torch.optim.lr_scheduler): Learning rate scheduler. Default is None.
         device (torch.device): Device to run the training on
 
     Returns:
@@ -187,6 +192,9 @@ def _train_step(
         # Calculate accuracy
         y_pred_class = torch.argmax(torch.softmax(y_pred, dim=1), dim=1)
         train_acc += (y_pred_class == y).sum().item() / len(y_pred)
+
+    if scheduler is not None:
+        scheduler.step()
 
     # Adjust the loss and accuracy values
     train_loss /= len(dataloader)
