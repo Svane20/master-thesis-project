@@ -1,6 +1,8 @@
 import torch
 from torch import nn
 
+from model.model_builder import DoubleConvBlock
+
 
 class FashionMnistModelV0(nn.Module):
     """
@@ -11,6 +13,7 @@ class FashionMnistModelV0(nn.Module):
         hidden_units (int): Number of hidden units.
         output_shape (int): Output shape.
     """
+
     def __init__(self, input_shape: int, hidden_units: int, output_shape: int) -> None:
         super().__init__()
 
@@ -34,42 +37,3 @@ class FashionMnistModelV0(nn.Module):
 
     def forward(self, x: torch.Tensor):
         return self.classifier(self.block_2(self.block_1(x)))
-
-
-class DoubleConvBlock(nn.Module):
-    """
-    Double Convolutional Block with ReLU activation function.
-
-    Args:
-        in_channels (int): Number of input channels.
-        out_channels (int): Number of output channels.
-    """
-    def __init__(self, in_channels: int, out_channels: int) -> None:
-        super().__init__()
-
-        self.double_conv = nn.Sequential(
-            nn.Conv2d(
-                in_channels=in_channels,
-                out_channels=out_channels,
-                kernel_size=3
-            ),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(
-                in_channels=out_channels,
-                out_channels=out_channels,
-                kernel_size=3
-            ),
-            nn.ReLU(inplace=True),
-        )
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass.
-
-        Args:
-            x (torch.Tensor): Input tensor.
-
-        Returns:
-            torch.Tensor: Output tensor.
-        """
-        return self.double_conv(x)

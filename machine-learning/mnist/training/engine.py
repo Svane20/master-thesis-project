@@ -117,7 +117,7 @@ def eval_step(
     test_loss, test_acc = 0, 0
 
     with torch.inference_mode():
-        for batch, (X, y) in enumerate(dataloader):
+        for _, (X, y) in enumerate(dataloader):
             # Send data to target device
             X, y = X.to(device), y.to(device)
 
@@ -164,7 +164,7 @@ def _train_step(
     # Setup train loss and train accuracy values
     train_loss, train_acc = 0, 0
 
-    for batch, (X, y) in enumerate(dataloader):
+    for _, (X, y) in enumerate(dataloader):
         # Send data to target device
         X, y = X.to(device), y.to(device)
 

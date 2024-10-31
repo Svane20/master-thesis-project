@@ -3,7 +3,10 @@ import torch
 import argparse
 import sys
 
-import data_setup, engine, model_builder, utils
+from utils import set_seeds, save_model, get_model_summary, get_device
+from model.mnist import FashionMnistModelV0
+from training import engine
+from dataset.data_loader import create_data_loaders
 
 
 def parse_args():
@@ -13,6 +16,7 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
     parser.add_argument("--epochs", type=int, default=15, help="Number of epochs for training")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument("--show-summary", type=bool, default=False, help="Show the summary of the model")
 
     args = parser.parse_args()
 
@@ -24,9 +28,8 @@ def parse_args():
         print("Error: learning rate must be a positive float.")
         sys.exit(1)
 
-    # Validate number of epochs (e.g., must be positive)
     if args.epochs <= 0:
-        print("Error: num_epochs must be a positive integer.")
+        print("Error: epochs must be a positive integer.")
         sys.exit(1)
 
     return args
@@ -37,20 +40,27 @@ def main():
     args = parse_args()
 
     # Create data loaders
-    train_dataloader, test_dataloader, class_names = data_setup.create_data_loaders(batch_size=args.batch_size)
+    train_dataloader, test_dataloader, class_names = create_data_loaders(
+        batch_size=args.batch_size,
+        root="../data"
+    )
 
     # Set random seed
     if args.seed is not None:
-        utils.set_seeds(seed=args.seed)
+        set_seeds(seed=args.seed)
 
     # Setup device
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = get_device()
 
-    model = model_builder.FashionMnistModelV0(
+    model = FashionMnistModelV0(
         input_shape=1,
         hidden_units=10,
         output_shape=len(class_names)
     ).to(device)
+
+    # Summary of model
+    if args.show_summary:
+        get_model_summary(model, input_size=(32, 1, 28, 28))
 
     # Setup loss function and optimizer
     criterion = torch.nn.CrossEntropyLoss()
@@ -68,7 +78,7 @@ def main():
     )
 
     # Save the model
-    utils.save_model(model=model, model_name=args.model_name)
+    save_model(model=model, model_name=args.model_name)
 
 
 if __name__ == "__main__":
