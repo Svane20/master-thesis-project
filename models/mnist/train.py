@@ -68,7 +68,7 @@ def main():
     )
 
     # Save the model
-    utils.save_model(model=model, model_name=f"{args.model_name}_model")
+    utils.save_model(model=model, model_name=args.model_name)
 
 
 if __name__ == "__main__":
