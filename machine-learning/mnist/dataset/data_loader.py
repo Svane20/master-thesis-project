@@ -6,20 +6,19 @@ from typing import Any, Tuple, List
 from dataset.mnist_dataset import get_train_data, get_test_data
 
 
-def create_data_loaders(batch_size: int, root: str = 'data') -> Tuple[DataLoader[Any], DataLoader[Any], List[str]]:
+def create_data_loaders(batch_size: int) -> Tuple[DataLoader[Any], DataLoader[Any], List[str]]:
     """
     Create data loaders for FashionMNIST training and test datasets.
 
     Args:
         batch_size (int): Batch size for the data loaders.
-        root (str): Root directory to save the data. Default is 'data'.
 
     Returns:
         Tuple[DataLoader[Any], DataLoader[Any], List[str]]: Training data loader, test data loader, and class names
     """
     # Get the training and test datasets
-    train_data = get_train_data(root)
-    test_data = get_test_data(root)
+    train_data = get_train_data()
+    test_data = get_test_data()
 
     # Get class names
     class_names = train_data.classes

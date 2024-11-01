@@ -42,10 +42,7 @@ def main():
     args = parse_args()
 
     # Create data loaders
-    train_dataloader, test_dataloader, class_names = create_data_loaders(
-        batch_size=args.batch_size,
-        root="../data"
-    )
+    train_dataloader, test_dataloader, class_names = create_data_loaders(batch_size=args.batch_size)
 
     # Set random seed
     if args.seed is not None:

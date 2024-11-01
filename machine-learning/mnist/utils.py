@@ -4,6 +4,8 @@ from torchinfo import summary
 from pathlib import Path
 from typing import Tuple, List
 
+from constants.directories import MODELS_DIRECTORY
+
 
 def set_seeds(seed: int = 42) -> None:
     """
@@ -61,7 +63,7 @@ def get_model_summary(
 def save_model(
         model: torch.nn.Module,
         model_name: str,
-        directory: str = "models",
+        directory: Path = MODELS_DIRECTORY,
         extension: str = "pth"
 ) -> None:
     """
@@ -73,11 +75,10 @@ def save_model(
         directory (str): Directory to save the model to. Default is "models".
         extension (str): Extension to use. Default is ".pth".
     """
-    dir_path = Path(directory)
-    dir_path.mkdir(parents=True, exist_ok=True)
+    directory.mkdir(parents=True, exist_ok=True)
 
     assert extension in ["pth", "pt"], "Extension must be either 'pth' or 'pt'"
-    save_path = dir_path / f"{model_name}.{extension}"
+    save_path = directory / f"{model_name}.{extension}"
 
     print(f"[INFO] Saving model to {save_path}")
     torch.save(obj=model.state_dict(), f=save_path)
@@ -85,7 +86,7 @@ def save_model(
 
 def load_trained_model(
         model: torch.nn.Module,
-        model_path: str,
+        model_path: Path,
 ) -> torch.nn.Module:
     """
     Loads a trained model from the specified path.
@@ -97,6 +98,6 @@ def load_trained_model(
     Returns:
         torch.nn.Module: Model with trained weights.
     """
-    model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path, weights_only=True))
 
     return model
