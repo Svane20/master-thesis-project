@@ -1,24 +1,27 @@
 from torch.utils.data import DataLoader
 from torchvision import datasets
+from torchvision.transforms import transforms
 
 from typing import Any, Tuple, List
 
 from dataset.mnist_dataset import get_train_data, get_test_data
 
 
-def create_data_loaders(batch_size: int) -> Tuple[DataLoader[Any], DataLoader[Any], List[str]]:
+def create_data_loaders(batch_size: int, transform: transforms.Compose) -> Tuple[
+    DataLoader[Any], DataLoader[Any], List[str]]:
     """
     Create data loaders for FashionMNIST training and test datasets.
 
     Args:
         batch_size (int): Batch size for the data loaders.
+        transform (transforms.Compose): Transform to apply to the data.
 
     Returns:
         Tuple[DataLoader[Any], DataLoader[Any], List[str]]: Training data loader, test data loader, and class names
     """
     # Get the training and test datasets
-    train_data = get_train_data()
-    test_data = get_test_data()
+    train_data = get_train_data(transform)
+    test_data = get_test_data(transform)
 
     # Get class names
     class_names = train_data.classes

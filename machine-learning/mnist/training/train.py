@@ -1,4 +1,5 @@
 from torch import nn
+from torchvision.transforms import transforms
 import torch.optim as optim
 from torch.optim import lr_scheduler
 
@@ -42,7 +43,14 @@ def main():
     args = parse_args()
 
     # Create data loaders
-    train_dataloader, test_dataloader, class_names = create_data_loaders(batch_size=args.batch_size)
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.5], std=[0.5])  # Normalize for 1-channel grayscale
+    ])
+    train_dataloader, test_dataloader, class_names = create_data_loaders(
+        batch_size=args.batch_size,
+        transform=transform
+    )
 
     # Set random seed
     if args.seed is not None:

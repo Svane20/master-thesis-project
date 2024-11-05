@@ -7,3 +7,4 @@ torchmetrics~=1.5.1
 mlxtend~=0.23.1
 torchinfo~=1.8.0
 pillow~=11.0.0
+numpy~=1.26.4
