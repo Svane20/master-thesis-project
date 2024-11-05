@@ -1,8 +1,10 @@
 import torch
-from torchvision import transforms
+from torchvision.transforms import transforms
 
 from tqdm.auto import tqdm
 from PIL import Image
+import numpy as np
+from typing import Tuple
 
 
 def evaluate_model(
@@ -23,12 +25,12 @@ def evaluate_model(
     """
     y_preds = []
 
+    model.to(device)
     model.eval()
+
     with torch.inference_mode():
         for X, y in tqdm(data_loader, desc="Making predictions"):
-            X, y = X.to(device), y.to(device)
-
-            y_logits = model(X)
+            y_logits = model(X.to(device))
 
             y_pred = torch.softmax(y_logits, dim=1).argmax(dim=1)
 
@@ -37,22 +39,45 @@ def evaluate_model(
     return torch.cat(y_preds)
 
 
-def predict_image(
-        image: Image.Image,
+def predict(
         model: torch.nn.Module,
-        transform: transforms.Compose,
-        device: torch.device
-) -> int:
+        image: Image.Image,
+        device: torch.device,
+        transform: transforms.Compose = None,
+) -> Tuple[int, np.ndarray]:
     """
     Predict the class of an image.
 
     Args:
-        image (Image.Image): Image to predict
         model (torch.nn.Module): Model to use for prediction
+        image (torch.Tensor): Image to predict the class for
         transform (transforms.Compose): Transform to apply to the image
         device (torch.device): Device to use for prediction
 
     Returns:
-        int: Predicted class
+        Tuple[int, torch.Tensor]: Predicted class and probabilities
     """
-    pass
+    # Preprocess the image
+    if transform is not None:
+        image_transform = transform
+    else:
+        image_transform = transforms.Compose([
+            transforms.Resize((28, 28)),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5], std=[0.5])
+        ])
+
+    transformed_image = image_transform(image).unsqueeze(dim=0)
+
+    # Move model to device and set to evaluation mode
+    model.to(device)
+    model.eval()
+
+
+    with torch.inference_mode():
+        pred = model(transformed_image.to(device))
+
+    probabilities = torch.softmax(pred, dim=1).cpu().squeeze().numpy()
+    label = int(probabilities.argmax())
+
+    return label, probabilities

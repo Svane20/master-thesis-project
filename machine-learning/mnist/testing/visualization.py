@@ -1,6 +1,8 @@
 import torch
 from torchmetrics import ConfusionMatrix
 
+from PIL import Image
+import numpy as np
 from matplotlib import pyplot as plt
 import mlxtend.plotting as mlxplt
 from typing import Literal, List
@@ -29,4 +31,26 @@ def plot_confusion_matrix(
         figsize=(10, 10),
         class_names=class_names,
     )
+    plt.show()
+
+
+def plot_prediction(
+        class_names: List[str],
+        image: Image.Image,
+        label: int,
+        probabilities: np.ndarray,
+):
+    """
+    Plot the prediction.
+
+    Args:
+        class_names (List[str]): List of class names.
+        image (Image.Image): Image.
+        label (int): The predicted label.
+        probabilities (np.ndarray): The predictions of the image.
+    """
+    plt.figure()
+    plt.imshow(image, cmap="gray")
+    plt.title(f"Prediction: {class_names[label]} | Probability: {probabilities.max():.3f}")
+    plt.axis("off")
     plt.show()
