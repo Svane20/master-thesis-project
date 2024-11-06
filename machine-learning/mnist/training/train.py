@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 from torchvision.transforms import transforms
 import torch.optim as optim
@@ -14,9 +15,9 @@ from dataset.data_loader import create_data_loaders
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train a FashionMNIST model.")
-    parser.add_argument("--model_name", type=str, default="FashionMNISTModelV0", help="Model name")
+    parser.add_argument("--model_name", type=str, default="FashionMNISTModelV1", help="Model name")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training")
-    parser.add_argument("--lr", type=float, default=1e-3, help="Learning rate")
+    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
     parser.add_argument("--epochs", type=int, default=15, help="Number of epochs for training")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--show-summary", type=bool, default=False, help="Show the summary of the model")
