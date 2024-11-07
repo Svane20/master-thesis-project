@@ -21,10 +21,10 @@ MODELS_PATH: Path = MODELS_DIRECTORY / "FashionMNISTModelV0.pth"
 def load_model(classes: List[str], target_device: torch.device):
     loaded_model = FashionMnistModelV0(
         input_shape=1,
-        hidden_units=10,
+        hidden_units=32,
         output_shape=len(classes)
     )
-    loaded_model = load_trained_model(loaded_model, MODELS_PATH).to(target_device)
+    loaded_model = load_trained_model(loaded_model, MODELS_PATH, target_device).to(target_device)
 
     return loaded_model
 

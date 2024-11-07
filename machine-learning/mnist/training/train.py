@@ -59,9 +59,10 @@ def main():
     # Setup device
     device = get_device()
 
+    # Instantiate the model
     model = FashionMnistModelV0(
         input_shape=1,
-        hidden_units=10,
+        hidden_units=32,
         output_shape=len(class_names)
     ).to(device)
 

@@ -87,6 +87,7 @@ def save_model(
 def load_trained_model(
         model: torch.nn.Module,
         model_path: Path,
+        device: torch.device
 ) -> torch.nn.Module:
     """
     Loads a trained model from the specified path.
@@ -94,10 +95,11 @@ def load_trained_model(
     Args:
         model (torch.nn.Module): Model to load the trained weights into.
         model_path (str): Path to the trained model.
+        device (torch.Device): Device to load the model to.
 
     Returns:
         torch.nn.Module: Model with trained weights.
     """
-    model.load_state_dict(torch.load(model_path, weights_only=True))
+    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
 
     return model

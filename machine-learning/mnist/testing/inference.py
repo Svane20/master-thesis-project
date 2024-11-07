@@ -73,7 +73,6 @@ def predict(
     model.to(device)
     model.eval()
 
-
     with torch.inference_mode():
         pred = model(transformed_image.to(device))
 

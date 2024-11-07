@@ -19,18 +19,20 @@ class FashionMnistModelV0(nn.Module):
 
         self.block_1 = nn.Sequential(
             DoubleConvBlock(in_channels=input_shape, out_channels=hidden_units),
-            nn.MaxPool2d(kernel_size=2)
+            nn.MaxPool2d(kernel_size=2),
+            nn.Dropout(0.25)
         )
 
         self.block_2 = nn.Sequential(
-            DoubleConvBlock(in_channels=hidden_units, out_channels=hidden_units),
-            nn.MaxPool2d(kernel_size=2)
+            DoubleConvBlock(in_channels=hidden_units, out_channels=hidden_units * 2),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Dropout(0.25)
         )
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(
-                in_features=hidden_units * 4 * 4,
+                in_features=hidden_units * 2 * 7 * 7,
                 out_features=output_shape
             )
         )
