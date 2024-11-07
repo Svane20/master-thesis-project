@@ -2,9 +2,9 @@ import torch
 from torchinfo import summary
 
 from pathlib import Path
-from typing import Tuple, List
+from typing import Tuple, List, Optional, Dict, Any
 
-from constants.directories import MODELS_DIRECTORY
+from constants.directories import CHECKPOINTS_DIRECTORY
 
 
 def set_seeds(seed: int = 42) -> None:
@@ -15,7 +15,7 @@ def set_seeds(seed: int = 42) -> None:
         seed (int): Random seed to set. Default is 42.
     """
     torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
 def get_device() -> torch.device:
@@ -60,46 +60,104 @@ def get_model_summary(
     )
 
 
-def save_model(
+def save_checkpoint(
         model: torch.nn.Module,
+        optimizer: torch.optim.Optimizer,
+        scheduler: torch.optim.lr_scheduler,
+        epoch: int,
+        loss: float,
+        accuracy: float,
         model_name: str,
-        directory: Path = MODELS_DIRECTORY,
+        directory: Path = CHECKPOINTS_DIRECTORY,
         extension: str = "pth"
 ) -> None:
     """
-    Saves a model to the specified directory.
+    Saves a model checkpoint to the specified directory.
 
     Args:
         model (torch.nn.Module): Model to save.
+        optimizer (torch.optim.Optimizer): Optimizer to save.
+        scheduler (torch.optim.lr_scheduler): Learning rate scheduler to save.
+        epoch (int): Epoch number.
+        loss (float): Loss value.
+        accuracy (float): Accuracy value.
         model_name (str): Name of the model.
         directory (str): Directory to save the model to. Default is "models".
         extension (str): Extension to use. Default is ".pth".
     """
     directory.mkdir(parents=True, exist_ok=True)
+    save_path = directory / f"{model_name}_best_checkpoint.{extension}"
 
-    assert extension in ["pth", "pt"], "Extension must be either 'pth' or 'pt'"
-    save_path = directory / f"{model_name}.{extension}"
+    print(f"[INFO] Saving model checkpoint to {save_path}")
 
-    print(f"[INFO] Saving model to {save_path}")
-    torch.save(obj=model.state_dict(), f=save_path)
+    torch.save(
+        obj={
+            "epoch": epoch,
+            "model_state_dict": model.state_dict(),
+            "optimizer_state_dict": optimizer.state_dict(),
+            'scheduler_state_dict': scheduler.state_dict(),
+            "loss": loss,
+            "accuracy": accuracy
+        },
+        f=save_path
+    )
+
+    print(f"[INFO] Best model saved at epoch {epoch + 1} with val_loss: {loss:.4f}")
 
 
-def load_trained_model(
+def load_checkpoint(
         model: torch.nn.Module,
-        model_path: Path,
-        device: torch.device
-) -> torch.nn.Module:
+        model_name: str,
+        device: torch.device,
+        directory: Path = CHECKPOINTS_DIRECTORY,
+        extension: str = "pth",
+        optimizer: Optional[torch.optim.Optimizer] = None,
+        scheduler: Optional[Any] = None,
+) -> Tuple[torch.nn.Module, Optional[torch.optim.Optimizer], Optional[Any], Dict[str, Any]]:
     """
-    Loads a trained model from the specified path.
+    Loads the model, optimizer, and scheduler states from a checkpoint file.
 
     Args:
-        model (torch.nn.Module): Model to load the trained weights into.
-        model_path (str): Path to the trained model.
-        device (torch.Device): Device to load the model to.
+        model (torch.nn.Module): Model to load the weights into.
+        model_name (str): Name of the model.
+        directory (Path): Directory to save the model to. Default is "checkpoints".
+        extension (str): Extension to use. Default is ".pth".
+        optimizer (torch.optim.Optimizer, optional): Optimizer to restore the state. Default is None.
+        scheduler (any, optional): Scheduler to restore the state. Default is None.
+        device (torch.device): Device to load the model onto.
 
     Returns:
-        torch.nn.Module: Model with trained weights.
+        Tuple[torch.nn.Module, Optional[torch.optim.Optimizer], Optional[Any], Dict[str, Any]]:
+            - Model with loaded weights.
+            - Optimizer with loaded state (if provided).
+            - Scheduler with loaded state (if provided).
+            - Dictionary containing additional info such as epoch, loss, and accuracy.
     """
-    model.load_state_dict(torch.load(model_path, map_location=device, weights_only=True))
+    model_file = directory / f"{model_name}_best_checkpoint.{extension}"
+    if not model_file.exists():
+        raise FileNotFoundError(f"Checkpoint file not found at: {model_file}")
 
-    return model
+    # Load the checkpoint
+    checkpoint = torch.load(model_file, map_location=device, weights_only=True)
+
+    # Load model state
+    model.load_state_dict(checkpoint["model_state_dict"])
+    model.to(device)
+    model.eval()  # Set to evaluation mode for inference
+
+    # Load optimizer state if provided
+    if optimizer and "optimizer_state_dict" in checkpoint:
+        optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+
+    # Load scheduler state if provided
+    if scheduler and "scheduler_state_dict" in checkpoint:
+        scheduler.load_state_dict(checkpoint["scheduler_state_dict"])
+
+    # Additional checkpoint information
+    checkpoint_info = {
+        "epoch": checkpoint.get("epoch"),
+        "loss": checkpoint.get("loss"),
+        "accuracy": checkpoint.get("accuracy")
+    }
+
+    return model, optimizer, scheduler, checkpoint_info

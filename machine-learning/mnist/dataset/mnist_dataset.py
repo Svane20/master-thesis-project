@@ -1,40 +1,23 @@
-from torchvision import datasets
+from torchvision.datasets import FashionMNIST
 from torchvision.transforms import transforms
 
 from constants.directories import DATA_DIRECTORY
 
 
-def get_test_data(transform: transforms.Compose) -> datasets.FashionMNIST:
+def get_dataset(train: bool, transform: transforms.Compose) -> FashionMNIST:
     """
-    Get FashionMNIST test data.
+    Get FashionMNIST dataset.
 
     Args:
+        train (bool): If True, returns the training dataset; otherwise, returns the test dataset.
         transform (transforms.Compose): Transform to apply to the data.
 
     Returns:
-        datasets.FashionMNIST: Test data.
+        FashionMNIST: The requested dataset.
     """
-    return datasets.FashionMNIST(
+    return FashionMNIST(
         root=DATA_DIRECTORY,
-        train=False,
-        download=True,
-        transform=transform
-    )
-
-
-def get_train_data(transform: transforms.Compose) -> datasets.FashionMNIST:
-    """
-    Get FashionMNIST training data.
-
-    Args:
-        transform (transforms.Compose): Transform to apply to the data.
-
-    Returns:
-        datasets.FashionMNIST: Training data.
-    """
-    return datasets.FashionMNIST(
-        root=DATA_DIRECTORY,
-        train=True,
+        train=train,
         download=True,
         transform=transform
     )

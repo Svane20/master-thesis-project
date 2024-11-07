@@ -2,5 +2,5 @@ from pathlib import Path
 
 BASE_DIRECTORY: Path = Path(__file__).resolve().parent.parent
 
-MODELS_DIRECTORY = BASE_DIRECTORY / "models"
+CHECKPOINTS_DIRECTORY = BASE_DIRECTORY / "checkpoints"
 DATA_DIRECTORY = BASE_DIRECTORY / "data"

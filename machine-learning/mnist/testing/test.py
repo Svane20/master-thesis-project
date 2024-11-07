@@ -2,31 +2,31 @@ import torch
 from PIL import Image
 from torchvision.transforms import transforms
 
-from typing import List
-from pathlib import Path
+from typing import List, Tuple, Optional, Dict, Any
 
-from constants.directories import MODELS_DIRECTORY
 from dataset.data_loader import create_test_data_loader
-from dataset.mnist_dataset import get_test_data
+from dataset.mnist_dataset import get_dataset
 from model.mnist import FashionMnistModelV0
 from testing.inference import evaluate_model, predict
 from testing.visualization import plot_confusion_matrix, plot_prediction
-from utils import load_trained_model, get_device
+from utils import load_checkpoint, get_device
 
 SEED: int = 42
 BATCH_SIZE: int = 32
-MODELS_PATH: Path = MODELS_DIRECTORY / "FashionMNISTModelV0.pth"
+MODEL_NAME: str = "FashionMNISTModelV0"
 
 
-def load_model(classes: List[str], target_device: torch.device):
+def load_model(
+        classes: List[str],
+        target_device: torch.device
+) -> Tuple[torch.nn.Module, Optional[torch.optim.Optimizer], Optional[Any], Dict[str, Any]]:
     loaded_model = FashionMnistModelV0(
         input_shape=1,
         hidden_units=32,
         output_shape=len(classes)
     )
-    loaded_model = load_trained_model(loaded_model, MODELS_PATH, target_device).to(target_device)
 
-    return loaded_model
+    return load_checkpoint(model=loaded_model, model_name=MODEL_NAME, device=target_device)
 
 
 if __name__ == "__main__":
@@ -35,7 +35,7 @@ if __name__ == "__main__":
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5], std=[0.5])
     ])
-    test_data = get_test_data(transform)
+    test_data = get_dataset(train=False, transform=transform)
     test_data_loader = create_test_data_loader(test_data, batch_size=BATCH_SIZE)
 
     # Setup device
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     class_names = test_data.classes
 
     # Load trained model
-    model = load_model(class_names, device)
+    model, _, _, _ = load_model(class_names, device)
 
     # Make predictions
     y_preds = evaluate_model(model, test_data_loader, device)
