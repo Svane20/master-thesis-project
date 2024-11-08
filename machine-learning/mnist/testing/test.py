@@ -3,6 +3,7 @@ from PIL import Image
 from torchvision.transforms import transforms
 
 from typing import List, Tuple, Optional, Dict, Any
+import os
 
 from dataset.data_loader import create_test_data_loader
 from dataset.mnist_dataset import get_dataset
@@ -35,8 +36,12 @@ if __name__ == "__main__":
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.5], std=[0.5])
     ])
-    test_data = get_dataset(train=False, transform=transform)
-    test_data_loader = create_test_data_loader(test_data, batch_size=BATCH_SIZE)
+    test_data = get_dataset(train=False, transform=transform, )
+    test_data_loader = create_test_data_loader(
+        test_data,
+        batch_size=BATCH_SIZE,
+        num_workers=os.cpu_count() if torch.cuda.is_available() else 2,
+    )
 
     # Setup device
     device = get_device()
