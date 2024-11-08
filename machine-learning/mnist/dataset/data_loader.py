@@ -1,5 +1,4 @@
-from torch.utils.data import DataLoader
-from torchvision.datasets import FashionMNIST
+from torch.utils.data import DataLoader, Dataset
 from torchvision.transforms import transforms
 
 from typing import Any, Tuple, List
@@ -23,7 +22,7 @@ def create_data_loaders(
         pin_memory (bool): Whether to pin memory for faster data loading. Default is True.
 
     Returns:
-        Tuple[DataLoader[Any], DataLoader[Any], List[str]]: Training data loader, test data loader, and class names
+        Tuple[DataLoader[Dataset], DataLoader[Dataset], List[str]]: Training data loader, test data loader, and class names
     """
     # Get the training and test datasets
     train_data = get_dataset(train=True, transform=transform)
@@ -40,12 +39,12 @@ def create_data_loaders(
 
 
 def create_train_data_loader(
-        train_data: FashionMNIST,
+        train_data: Dataset,
         batch_size: int,
         shuffle: bool = True,
         num_workers: int = 1,
         pin_memory: bool = True
-) -> DataLoader[Any]:
+) -> DataLoader[Dataset]:
     """
     Create a data loader for the training data.
 
@@ -57,7 +56,7 @@ def create_train_data_loader(
         pin_memory (bool): Whether to pin memory for faster data loading. Default is True.
 
     Returns:
-        DataLoader[Any]: Data loader for the training data
+        DataLoader[Dataset]: Data loader for the training data
     """
     return DataLoader(
         train_data,
@@ -69,14 +68,14 @@ def create_train_data_loader(
 
 
 def create_test_data_loader(
-        test_data: FashionMNIST,
+        test_data: Dataset,
         batch_size: int,
         shuffle: bool = False,
         num_workers: int = 1,
         pin_memory: bool = True,
-) -> DataLoader[Any]:
+) -> DataLoader[Dataset]:
     """
-    Create a data loader for the training data.
+    Create a data loader for the test data.
 
     Args:
         test_data (datasets.FashionMNIST): Training data
@@ -86,7 +85,7 @@ def create_test_data_loader(
         pin_memory (bool): Whether to pin memory for faster data loading. Default is True.
 
     Returns:
-        DataLoader[Any]: Data loader for the training data
+        DataLoader[Dataset]: Data loader for the test data
     """
     return DataLoader(
         test_data,

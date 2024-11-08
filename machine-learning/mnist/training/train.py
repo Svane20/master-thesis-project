@@ -7,11 +7,22 @@ from torch.optim import lr_scheduler
 
 import argparse
 import sys
+import warnings
 
 from utils import set_seeds, get_model_summary, get_device
 from model.mnist import FashionMnistModelV0
 from training import engine
 from dataset.data_loader import create_data_loaders
+
+
+def setup_torch_backend():
+    if torch.cuda.is_available():
+        # Mixed Precision Training if available
+        torch.backends.cuda.matmul.allow_tf32 = True if torch.cuda.get_device_capability() >= (8, 0) else False
+        torch.backends.cudnn.benchmark = True  # Enable if input sizes are constant
+        torch.backends.cudnn.deterministic = False  # Set False for better performance
+    else:
+        warnings.warn("GPU is not available. Running on CPU.")
 
 
 def parse_args():
@@ -58,13 +69,9 @@ def main():
     if args.seed is not None:
         set_seeds(seed=args.seed)
 
-    # Set CuDNN benchmark and deterministic
-    torch.backends.cudnn.benchmark = True  # Enable if input sizes are constant
-    torch.backends.cudnn.deterministic = False  # Set False for better performance
-    torch.backends.cuda.matmul.allow_tf32 = True  # Enable TF32 for mixed precision
-
-    # Setup device
+    # Setup device and torch backend
     device = get_device()
+    setup_torch_backend()
 
     # Instantiate the model
     model = FashionMnistModelV0(
@@ -77,11 +84,11 @@ def main():
     if args.show_summary:
         get_model_summary(model, input_size=(32, 1, 28, 28))
 
-    # Setup loss function, optimizer, lr scheduler and gradient scaler
+    # Setup loss function, optimizer, lr scheduler and gradient scaler (Mixed Precision)
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
-    scaler = torch.amp.GradScaler()  # Mixed Precision Training
+    scaler = torch.amp.GradScaler() if device.type == "cuda" and torch.cuda.get_device_capability() >= (8, 0) else None
 
     # Train the model
     engine.train(

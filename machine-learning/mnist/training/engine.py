@@ -2,8 +2,9 @@ import torch
 
 import wandb
 from tqdm.auto import tqdm
-from typing import Tuple
+from typing import Tuple, Optional
 import time
+from contextlib import nullcontext
 
 from utils import save_checkpoint
 
@@ -15,7 +16,7 @@ def train(
         test_dataloader: torch.utils.data.DataLoader,
         criterion: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
-        scaler: torch.amp.GradScaler,
+        scaler: Optional[torch.amp.GradScaler],
         epochs: int,
         device: torch.device,
         scheduler: torch.optim.lr_scheduler = None,
@@ -35,7 +36,7 @@ def train(
         test_dataloader (torch.utils.data.DataLoader): Data loader for testing
         criterion (torch.nn.Module): Loss function
         optimizer (torch.optim.Optimizer): Optimizer
-        scaler (torch.amp.GradScaler): Gradient scaler
+        scaler (Optional[torch.amp.GradScaler]): Gradient scaler
         epochs (int): Number of epochs to train for
         device (torch.device): Device to run the training on
         scheduler (torch.optim.lr_scheduler): Learning rate scheduler. Default is None.
@@ -59,8 +60,11 @@ def train(
     early_stop_counter = 0
     early_stop_patience = 5  # Stop if no improvement in 5 epochs
 
+    # Track training time
+    training_start_time = time.time()
+
     for epoch in tqdm(range(epochs), disable=disable_progress_bar):
-        start_time = time.time()
+        start_epoch_time = time.time()
 
         # Train step
         train_loss, train_acc = _train_one_epoch(
@@ -94,7 +98,7 @@ def train(
         current_lr = optimizer.param_groups[0]["lr"]
 
         # Calculate epoch duration
-        epoch_duration = time.time() - start_time
+        epoch_duration = time.time() - start_epoch_time
 
         # Log metrics to Weights & Biases
         wandb.log({
@@ -136,6 +140,16 @@ def train(
         if early_stop_counter >= early_stop_patience:
             print(f"Early stopping triggered at epoch {epoch + 1}")
             break
+
+    # Calculate total training time
+    total_training_time = time.time() - training_start_time
+
+    # Print total training time
+    total_training_time_minutes = total_training_time / 60
+    print(f"[INFO] Total training time: {total_training_time_minutes:.2f} minutes")
+
+    # Finish Weights & Biases run
+    wandb.finish()
 
 
 def eval_step(
@@ -179,7 +193,7 @@ def eval_step(
             # Send data to target device
             X, y = X.to(device), y.to(device)
 
-            with torch.amp.autocast(device_type=device.type):
+            with torch.amp.autocast(device_type=device.type) if device.type == "cuda" else nullcontext():
                 # Forward pass
                 test_pred_logits = model(X)
 
@@ -203,7 +217,7 @@ def _train_one_epoch(
         dataloader: torch.utils.data.DataLoader,
         criterion: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
-        scaler: torch.amp.GradScaler,
+        scaler: Optional[torch.amp.GradScaler],
         epoch: int,
         num_epochs: int,
         device: torch.device,
@@ -217,7 +231,7 @@ def _train_one_epoch(
         dataloader (torch.utils.data.DataLoader): Data loader
         criterion (torch.nn.Module): Loss function
         optimizer (torch.optim.Optimizer): Optimizer
-        scaler (torch.amp.GradScaler): Gradient scaler
+        scaler (Optional[torch.amp.GradScaler]): Gradient scaler
         epoch (int): Current epoch
         num_epochs (int): Total number of epochs
         device (torch.device): Device to run the training on
@@ -242,7 +256,7 @@ def _train_one_epoch(
         # Send data to target device
         X, y = X.to(device), y.to(device)
 
-        with torch.amp.autocast(device_type=device.type):
+        with torch.amp.autocast(device_type=device.type) if device.type == "cuda" else nullcontext():
             # Forward pass
             y_pred = model(X)
 
@@ -252,12 +266,19 @@ def _train_one_epoch(
         # Zero gradients
         optimizer.zero_grad()
 
-        # Backward pass
-        scaler.scale(loss).backward()
+        if scaler is not None and device.type == "cuda":
+            # Backward pass
+            scaler.scale(loss).backward()
 
-        # Update weights
-        scaler.step(optimizer)
-        scaler.update()
+            # Update weights
+            scaler.step(optimizer)
+            scaler.update()
+        else:
+            # Backward pass
+            loss.backward()
+
+            # Update weights
+            optimizer.step()
 
         # Accumulate loss and accuracy for each batch
         train_loss += loss.item()

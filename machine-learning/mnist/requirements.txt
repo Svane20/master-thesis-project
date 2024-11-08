@@ -1,10 +1,10 @@
 torch~=2.5.1
 torchvision~=0.20.1
 matplotlib~=3.9.2
-tqdm~=4.66.6
+tqdm~=4.66.5
 wandb~=0.18.5
 torchmetrics~=1.5.1
 mlxtend~=0.23.1
 torchinfo~=1.8.0
-pillow~=11.0.0
+pillow~=10.4.0
 numpy~=1.26.4

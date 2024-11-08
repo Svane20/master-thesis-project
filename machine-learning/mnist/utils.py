@@ -15,6 +15,7 @@ def set_seeds(seed: int = 42) -> None:
         seed (int): Random seed to set. Default is 42.
     """
     torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
 

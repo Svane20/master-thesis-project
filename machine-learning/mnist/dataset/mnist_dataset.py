@@ -1,10 +1,11 @@
+from torch.utils.data import Dataset
 from torchvision.datasets import FashionMNIST
 from torchvision.transforms import transforms
 
 from constants.directories import DATA_DIRECTORY
 
 
-def get_dataset(train: bool, transform: transforms.Compose) -> FashionMNIST:
+def get_dataset(train: bool, transform: transforms.Compose) -> Dataset:
     """
     Get FashionMNIST dataset.
 
@@ -13,7 +14,7 @@ def get_dataset(train: bool, transform: transforms.Compose) -> FashionMNIST:
         transform (transforms.Compose): Transform to apply to the data.
 
     Returns:
-        FashionMNIST: The requested dataset.
+        Dataset: The requested dataset.
     """
     return FashionMNIST(
         root=DATA_DIRECTORY,
