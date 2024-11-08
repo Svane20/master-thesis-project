@@ -9,7 +9,7 @@ from dataset.mnist_dataset import get_dataset
 def create_data_loaders(
         batch_size: int,
         transform: transforms.Compose,
-        num_workers: int = 1,
+        num_workers: int = 2,
         pin_memory: bool = True
 ) -> Tuple[DataLoader[Any], DataLoader[Any], List[str]]:
     """
@@ -42,7 +42,7 @@ def create_train_data_loader(
         train_data: Dataset,
         batch_size: int,
         shuffle: bool = True,
-        num_workers: int = 1,
+        num_workers: int = 2,
         pin_memory: bool = True
 ) -> DataLoader[Dataset]:
     """
@@ -71,7 +71,7 @@ def create_test_data_loader(
         test_data: Dataset,
         batch_size: int,
         shuffle: bool = False,
-        num_workers: int = 1,
+        num_workers: int = 2,
         pin_memory: bool = True,
 ) -> DataLoader[Dataset]:
     """

@@ -8,6 +8,7 @@ from torch.optim import lr_scheduler
 import argparse
 import sys
 import warnings
+import os
 
 from utils import set_seeds, get_model_summary, get_device
 from model.mnist import FashionMnistModelV0
@@ -29,8 +30,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Train a FashionMNIST model.")
     parser.add_argument("--model_name", type=str, default="FashionMNISTModelV0", help="Model name")
     parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training", choices=range(1, 129))
-    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate", choices=[0.001, 0.01, 0.1, 0.0001])
-    parser.add_argument("--epochs", type=int, default=15, help="Number of epochs for training", choices=range(1, 100))
+    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate", choices=[0.0001, 0.001, 0.01, 0.1])
+    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs for training", choices=range(1, 100))
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument("--show-summary", type=bool, default=False, help="Show the summary of the model")
 
@@ -62,7 +63,8 @@ def main():
     ])
     train_dataloader, test_dataloader, class_names = create_data_loaders(
         batch_size=args.batch_size,
-        transform=transform
+        transform=transform,
+        num_workers=os.cpu_count() if torch.cuda.is_available() else 2,
     )
 
     # Set random seed
@@ -102,7 +104,6 @@ def main():
         device=device,
         epochs=args.epochs,
         scheduler=scheduler,
-        disable_progress_bar=True
     )
 
 
