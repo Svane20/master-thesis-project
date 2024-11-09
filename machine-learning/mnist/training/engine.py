@@ -80,7 +80,7 @@ def train(
         )
 
         # Test step
-        test_loss, test_acc = eval_step(
+        test_loss, test_acc = _test_one_epoch(
             model=model,
             dataloader=test_dataloader,
             criterion=criterion,
@@ -150,66 +150,6 @@ def train(
 
     # Finish Weights & Biases run
     wandb.finish()
-
-
-def eval_step(
-        model: torch.nn.Module,
-        dataloader: torch.utils.data.DataLoader,
-        criterion: torch.nn.Module,
-        epoch: int,
-        num_epochs: int,
-        device: torch.device,
-        disable_progress_bar: bool = False
-) -> Tuple[float, float]:
-    """
-    Evaluates a model for a single epoch
-
-    Args:
-        model (torch.nn.Module): Model to evaluate
-        dataloader (torch.utils.data.DataLoader): Data loader
-        criterion (torch.nn.Module): Loss function
-        epoch (int): Current epoch
-        num_epochs (int): Total number of epochs
-        device (torch.device): Device to run the evaluation on
-        disable_progress_bar (bool): Disable tqdm progress bar. Default is False
-
-    Returns:
-        Tuple[float, float]: Average loss and accuracy values
-    """
-    model.eval()
-
-    # Setup test loss and test accuracy values
-    test_loss, test_acc = 0, 0
-
-    progress_bar = tqdm(
-        dataloader,
-        desc=f"Testing Epoch {epoch}/{num_epochs}",
-        total=len(dataloader),
-        disable=disable_progress_bar
-    )
-
-    with torch.inference_mode():
-        for X, y in progress_bar:
-            # Send data to target device
-            X, y = X.to(device), y.to(device)
-
-            with torch.amp.autocast(device_type=device.type) if device.type == "cuda" else nullcontext():
-                # Forward pass
-                test_pred_logits = model(X)
-
-                # Calculate loss
-                loss = criterion(test_pred_logits, y)
-
-                # Accumulate loss and accuracy for each batch
-                test_loss += loss.item()
-                test_pred_labels = test_pred_logits.argmax(dim=1)
-                test_acc += ((test_pred_labels == y).sum().item() / len(test_pred_labels))
-
-        # Adjust the loss and accuracy values
-        test_loss /= len(dataloader)
-        test_acc /= len(dataloader)
-
-    return test_loss, test_acc
 
 
 def _train_one_epoch(
@@ -298,3 +238,63 @@ def _train_one_epoch(
     train_acc /= len(dataloader)
 
     return train_loss, train_acc
+
+
+def _test_one_epoch(
+        model: torch.nn.Module,
+        dataloader: torch.utils.data.DataLoader,
+        criterion: torch.nn.Module,
+        epoch: int,
+        num_epochs: int,
+        device: torch.device,
+        disable_progress_bar: bool = False
+) -> Tuple[float, float]:
+    """
+    Evaluates a model for a single epoch
+
+    Args:
+        model (torch.nn.Module): Model to evaluate
+        dataloader (torch.utils.data.DataLoader): Data loader
+        criterion (torch.nn.Module): Loss function
+        epoch (int): Current epoch
+        num_epochs (int): Total number of epochs
+        device (torch.device): Device to run the evaluation on
+        disable_progress_bar (bool): Disable tqdm progress bar. Default is False
+
+    Returns:
+        Tuple[float, float]: Average loss and accuracy values
+    """
+    model.eval()
+
+    # Setup test loss and test accuracy values
+    test_loss, test_acc = 0, 0
+
+    progress_bar = tqdm(
+        dataloader,
+        desc=f"Testing Epoch {epoch}/{num_epochs}",
+        total=len(dataloader),
+        disable=disable_progress_bar
+    )
+
+    with torch.inference_mode():
+        for X, y in progress_bar:
+            # Send data to target device
+            X, y = X.to(device), y.to(device)
+
+            with torch.amp.autocast(device_type=device.type) if device.type == "cuda" else nullcontext():
+                # Forward pass
+                test_pred_logits = model(X)
+
+                # Calculate loss
+                loss = criterion(test_pred_logits, y)
+
+                # Accumulate loss and accuracy for each batch
+                test_loss += loss.item()
+                test_pred_labels = test_pred_logits.argmax(dim=1)
+                test_acc += ((test_pred_labels == y).sum().item() / len(test_pred_labels))
+
+        # Adjust the loss and accuracy values
+        test_loss /= len(dataloader)
+        test_acc /= len(dataloader)
+
+    return test_loss, test_acc
