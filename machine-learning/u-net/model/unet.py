@@ -6,9 +6,12 @@ from model.model_builder import DoubleConv, UpSample, DownSample
 
 class UNet(nn.Module):
     """
-    UNet model for semantic segmentation.
-    """
+    UNet model for semantic segmentation with arbitrary input sizes.
 
+    Args:
+        in_channels (int): Number of input channels. Default is 3.
+        out_channels (int): Number of output channels. Default is 1.
+    """
     def __init__(self, in_channels: int = 3, out_channels: int = 1) -> None:
         super().__init__()
 

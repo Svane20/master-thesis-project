@@ -6,8 +6,11 @@ import torch.nn.functional as F
 class DoubleConv(nn.Module):
     """
     Double Convolution Block with Batch Normalization and ReLU Activation
-    """
 
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+    """
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
 
@@ -28,13 +31,16 @@ class DoubleConv(nn.Module):
 class DownSample(nn.Module):
     """
     Down Sampling Layer with Max Pooling and Double Convolution
-    """
 
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+    """
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
 
         self.max_pool_conv = nn.Sequential(
-            nn.MaxPool2d(kernel_size=2),
+            nn.MaxPool2d(kernel_size=2, ceil_mode=True), # Handle arbitrary input sizes
             DoubleConv(in_channels, out_channels),
         )
 
@@ -45,8 +51,11 @@ class DownSample(nn.Module):
 class UpSample(nn.Module):
     """
     Up Sampling Layer with Double Convolution and Transposed Convolution
-    """
 
+    Args:
+        in_channels (int): Number of input channels.
+        out_channels (int): Number of output channels.
+    """
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
 
