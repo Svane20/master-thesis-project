@@ -261,14 +261,14 @@ def _test_one_epoch(
     test_loss = 0
 
     progress_bar = tqdm(
-        dataloader,
+        enumerate(dataloader),
         desc=f"Testing Epoch {epoch}/{num_epochs}",
         total=len(dataloader),
         disable=disable_progress_bar
     )
 
     with torch.inference_mode():
-        for X, y in progress_bar:
+        for batch, (X, y) in progress_bar:
             # Send data to target device
             X, y = X.to(device), y.to(device)
 
@@ -279,8 +279,15 @@ def _test_one_epoch(
                 # Calculate loss
                 loss = criterion(test_pred_logits, y)
 
-                # Accumulate loss and accuracy for each batch
-                test_loss += loss.item()
+            # Accumulate loss and accuracy for each batch
+            test_loss += loss.item()
+
+            # Update progress bar
+            progress_bar.set_postfix(
+                {
+                    "test_loss": test_loss / (batch + 1),
+                }
+            )
 
         # Adjust the loss and accuracy values
         test_loss /= len(dataloader)

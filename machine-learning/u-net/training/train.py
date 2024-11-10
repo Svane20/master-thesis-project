@@ -27,7 +27,7 @@ def parse_args() -> argparse.Namespace:
     """
     parser = argparse.ArgumentParser(description="Train a U-Net model.")
     parser.add_argument("--model_name", type=str, default="UNetV0", help="Model name")
-    parser.add_argument("--batch_size", type=int, default=32, help="Batch size for training", choices=range(1, 129))
+    parser.add_argument("--batch_size", type=int, default=8, help="Batch size for training", choices=range(1, 129))
     parser.add_argument("--lr", type=float, default=0.001, help="Learning rate", choices=[0.0001, 0.001, 0.01, 0.1])
     parser.add_argument("--epochs", type=int, default=10, help="Number of epochs for training", choices=range(1, 100))
     parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
@@ -82,7 +82,7 @@ def get_data_loaders(batch_size: int) -> Tuple[DataLoader, DataLoader]:
     """
     # Define the transformations
     train_image_transform = transforms.Compose([
-        transforms.Resize((512, 512)),
+        transforms.Resize((224, 224)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
         transforms.ToTensor(),
@@ -92,14 +92,14 @@ def get_data_loaders(batch_size: int) -> Tuple[DataLoader, DataLoader]:
         ),
     ])
     train_mask_transform = transforms.Compose([
-        transforms.Resize((512, 512)),
+        transforms.Resize((224, 224)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomVerticalFlip(p=0.5),
         transforms.ToTensor(),
     ])
 
     test_image_transform = transforms.Compose([
-        transforms.Resize((512, 512)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
         transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
@@ -107,7 +107,7 @@ def get_data_loaders(batch_size: int) -> Tuple[DataLoader, DataLoader]:
         ),
     ])
     test_mask_transform = transforms.Compose([
-        transforms.Resize((512, 512)),
+        transforms.Resize((224, 224)),
         transforms.ToTensor(),
     ])
 
@@ -149,7 +149,7 @@ def main() -> None:
 
     # Print the model summary
     if args.show_summary:
-        get_model_summary(model, input_size=(args.batch_size, 3, 512, 512))
+        get_model_summary(model, input_size=(args.batch_size, 3, 224, 224))
 
     # Setup loss function, optimizer, lr scheduler and gradient scaler (Mixed Precision)
     criterion = nn.BCEWithLogitsLoss()
