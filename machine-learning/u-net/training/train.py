@@ -2,7 +2,7 @@ import torch
 import torch.cuda.amp
 from torch import nn, optim
 from torch.optim import lr_scheduler
-from torchvision.transforms import v2
+from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from typing import Tuple
@@ -81,28 +81,44 @@ def get_data_loaders(batch_size: int) -> Tuple[DataLoader, DataLoader]:
         Tuple[DataLoader, DataLoader]: Training and test data loaders.
     """
     # Define the transformations
-    train_transform = v2.Compose([
-        v2.Resize((512, 512)),
-        v2.RandomHorizontalFlip(p=0.5),
-        v2.RandomVerticalFlip(p=0.5),
-        v2.ToTensor(),
-        v2.Normalize(
+    train_image_transform = transforms.Compose([
+        transforms.Resize((512, 512)),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomVerticalFlip(p=0.5),
+        transforms.ToTensor(),
+        transforms.Normalize(
             mean=[0.485, 0.456, 0.406],
             std=[0.229, 0.224, 0.225],
         ),
     ])
+    train_mask_transform = transforms.Compose([
+        transforms.Resize((512, 512)),
+        transforms.RandomHorizontalFlip(p=0.5),
+        transforms.RandomVerticalFlip(p=0.5),
+        transforms.ToTensor(),
+    ])
 
-    test_transform = v2.Compose([
-        v2.Resize((512, 512)),
-        v2.ToTensor(),
+    test_image_transform = transforms.Compose([
+        transforms.Resize((512, 512)),
+        transforms.ToTensor(),
+        transforms.Normalize(
+            mean=[0.485, 0.456, 0.406],
+            std=[0.229, 0.224, 0.225],
+        ),
+    ])
+    test_mask_transform = transforms.Compose([
+        transforms.Resize((512, 512)),
+        transforms.ToTensor(),
     ])
 
     return create_data_loaders(
         train_directory=DATA_TRAIN_DIRECTORY,
         test_directory=DATA_TEST_DIRECTORY,
         batch_size=batch_size,
-        transform=train_transform,
-        target_transform=test_transform,
+        transform_image=train_image_transform,
+        transform_mask=train_mask_transform,
+        target_transform_image=test_image_transform,
+        target_transform_mask=test_mask_transform,
         num_workers=os.cpu_count() if torch.cuda.is_available() else 2,
     )
 
@@ -133,7 +149,7 @@ def main() -> None:
 
     # Print the model summary
     if args.show_summary:
-        get_model_summary(model, input_size=(32, 3, 512, 512))
+        get_model_summary(model, input_size=(args.batch_size, 3, 512, 512))
 
     # Setup loss function, optimizer, lr scheduler and gradient scaler (Mixed Precision)
     criterion = nn.BCEWithLogitsLoss()

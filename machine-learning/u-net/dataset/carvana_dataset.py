@@ -16,6 +16,7 @@ class CarvanaDataset(Dataset):
         image_directory (pathlib.Path): Path to the images' directory.
         mask_directory (pathlib.Path): Path to the masks' directory.
         transform (callable, optional): Optional transform to be applied on an image.
+        target_transform (callable, optional): Optional transform to be applied on a mask.
     """
 
     def __init__(
@@ -23,11 +24,13 @@ class CarvanaDataset(Dataset):
             image_directory: Path,
             mask_directory: Path,
             transform: Optional[Callable] = None,
+            target_transform: Optional[Callable] = None,
     ) -> None:
         self.image_directory = image_directory
         self.mask_directory = mask_directory
 
         self.transform = transform
+        self.target_transform = target_transform
 
         self.images = os.listdir(image_directory)
 
@@ -57,12 +60,13 @@ class CarvanaDataset(Dataset):
         image = Image.open(image_path).convert("RGB")
         mask = Image.open(mask_path).convert("L")
 
+        # Apply transformations
         if self.transform:
             image = self.transform(image)
-            mask = self.transform(mask)
+        if self.target_transform:
+            mask = self.target_transform(mask)
 
-        # Convert mask to binary mask
-        mask = torch.tensor(np.array(mask, dtype=np.float32) / 255.0)
-        mask[mask == 1.0] = 1.0
+        # Ensure the mask is a float tensor
+        mask = mask.float()
 
         return image, mask

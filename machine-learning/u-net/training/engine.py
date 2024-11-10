@@ -189,7 +189,7 @@ def _train_one_epoch(
 
     for batch, (X, y) in progress_bar:
         # Send data to target device
-        X, y = X.to(device), y.float().unsqueeze(1).to(device)
+        X, y = X.to(device), y.to(device)
 
         with torch.amp.autocast(device_type=device.type) if device.type == "cuda" else nullcontext():
             # Forward pass
@@ -270,7 +270,7 @@ def _test_one_epoch(
     with torch.inference_mode():
         for X, y in progress_bar:
             # Send data to target device
-            X, y = X.to(device), y.float().unsqueeze(1).to(device)
+            X, y = X.to(device), y.to(device)
 
             with torch.amp.autocast(device_type=device.type) if device.type == "cuda" else nullcontext():
                 # Forward pass
