@@ -68,7 +68,7 @@ def get_data_loaders(batch_size: int) -> DataLoader:
     )
 
 
-if __name__ == "__main__":
+def main():
     # Get test data loader
     test_data_loader = get_data_loaders(batch_size=BATCH_SIZE)
 
@@ -84,3 +84,6 @@ if __name__ == "__main__":
     # Save the predictions
     save_predictions_as_images(model, test_data_loader, device)
 
+
+if __name__ == "__main__":
+    main()
