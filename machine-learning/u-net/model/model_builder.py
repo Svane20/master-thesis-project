@@ -11,6 +11,7 @@ class DoubleConv(nn.Module):
         in_channels (int): Number of input channels.
         out_channels (int): Number of output channels.
     """
+
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
 
@@ -36,11 +37,12 @@ class DownSample(nn.Module):
         in_channels (int): Number of input channels.
         out_channels (int): Number of output channels.
     """
+
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
 
         self.max_pool_conv = nn.Sequential(
-            nn.MaxPool2d(kernel_size=2, ceil_mode=True), # Handle arbitrary input sizes
+            nn.MaxPool2d(kernel_size=2, ceil_mode=True),  # Handle arbitrary input sizes
             DoubleConv(in_channels, out_channels),
         )
 
@@ -56,6 +58,7 @@ class UpSample(nn.Module):
         in_channels (int): Number of input channels.
         out_channels (int): Number of output channels.
     """
+
     def __init__(self, in_channels: int, out_channels: int):
         super().__init__()
 

@@ -4,7 +4,7 @@ import torch.nn as nn
 from model.model_builder import DoubleConv, UpSample, DownSample
 
 
-class UNet(nn.Module):
+class UNetV0(nn.Module):
     """
     UNet model for semantic segmentation with arbitrary input sizes.
 
@@ -12,6 +12,7 @@ class UNet(nn.Module):
         in_channels (int): Number of input channels. Default is 3.
         out_channels (int): Number of output channels. Default is 1.
     """
+
     def __init__(self, in_channels: int = 3, out_channels: int = 1) -> None:
         super().__init__()
 
@@ -50,14 +51,3 @@ class UNet(nn.Module):
         up4 = self.up4(up3, down1)
 
         return self.classifier(up4)
-
-
-if __name__ == '__main__':
-    input_image = torch.rand((1, 3, 512, 512))
-    model = UNet(in_channels=3, out_channels=1)
-
-    total_params = sum(p.numel() for p in model.parameters())
-    print(f"Total parameters: {total_params:,}") # Total parameters: 31,036,672
-
-    outputs = model(input_image)
-    print(f"Output shape: {outputs.shape}") # Output shape: torch.Size([1, 1, 512, 512])
