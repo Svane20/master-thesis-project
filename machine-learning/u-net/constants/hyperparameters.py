@@ -1,0 +1,4 @@
+BATCH_SIZE: int = 8
+LEARNING_RATE: float = 0.001
+NUM_EPOCHS: int = 10
+SEED: int = 42

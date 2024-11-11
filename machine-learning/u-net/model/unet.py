@@ -1,62 +1,64 @@
 import torch
 import torch.nn as nn
-from torchvision.models import vgg16_bn, VGG16_BN_Weights
 
-from model.parts import DoubleConv, UpSample
+from model.model_builder import DoubleConv, UpSample, DownSample
 
 
-class UNet(nn.Module):
+class UNetV0(nn.Module):
     """
-    U-Net architecture with VGG-16 backbone for encoder
+    UNet model for semantic segmentation with arbitrary input sizes.
+
+    Args:
+        in_channels (int): Number of input channels. Default is 3.
+        out_channels (int): Number of output channels. Default is 1.
+        dropout (float): Dropout probability. Default is 0.5.
     """
 
-    def __init__(self):
+    def __init__(self, in_channels: int = 3, out_channels: int = 1, dropout: float = 0.5) -> None:
         super().__init__()
 
-        # Load VGG16 with weights
-        vgg16 = vgg16_bn(weights=VGG16_BN_Weights.DEFAULT)
-        features = list(vgg16.features.children())
+        # Define the encoder (contracting path)
+        self.inc = DoubleConv(in_channels, 64, dropout=dropout)
+        self.down1 = DownSample(64, 128, dropout=dropout)
+        self.down2 = DownSample(128, 256, dropout=dropout)
+        self.down3 = DownSample(256, 512, dropout=dropout)
 
-        # Use VGG-16 layers for down-sampling
-        self.enc1 = nn.Sequential(*features[:6])  # First block of VGG16
-        self.enc2 = nn.Sequential(*features[6:13])  # Second block
-        self.enc3 = nn.Sequential(*features[13:20])  # Third block
-        self.enc4 = nn.Sequential(*features[20:27])  # Fourth block
+        # Define the bottleneck
+        self.bottle_neck = DownSample(512, 1024, dropout=dropout)
 
-        # Bottleneck
-        self.bottle_neck = DoubleConv(512, 1024)
+        # Define the decoder (expansive path)
+        self.up1 = UpSample(1024, 512, dropout=dropout)
+        self.up2 = UpSample(512, 256, dropout=dropout)
+        self.up3 = UpSample(256, 128, dropout=dropout)
+        self.up4 = UpSample(128, 64, dropout=dropout)
 
-        # Up-sampling
-        self.up1 = UpSample(1024, 512)
-        self.up2 = UpSample(512, 256)
-        self.up3 = UpSample(256, 128)
-        self.up4 = UpSample(128, 64)
-
-        # Output layer
-        self.classifier = nn.Conv2d(64, 1, kernel_size=1)
+        # Define the classifier
+        self.classifier = nn.Conv2d(64, out_channels, kernel_size=1, bias=False)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        down1 = self.enc1(x)
-        down2 = self.enc2(down1)
-        down3 = self.enc3(down2)
-        down4 = self.enc4(down3)
+        # Encoder
+        down1 = self.inc(x)
+        down2 = self.down1(down1)
+        down3 = self.down2(down2)
+        down4 = self.down3(down3)
 
+        # Bottleneck
         bottle_neck = self.bottle_neck(down4)
 
+        # Decoder with skip connections
         up1 = self.up1(bottle_neck, down4)
         up2 = self.up2(up1, down3)
         up3 = self.up3(up2, down2)
         up4 = self.up4(up3, down1)
 
-        return torch.sigmoid(self.classifier(up4))
+        return self.classifier(up4)
 
 
-if __name__ == '__main__':
-    input_image = torch.rand((1, 3, 512, 512))
-    model = UNet()
+if __name__ == "__main__":
+    # Create a dummy input tensor with batch size 1 and image size 224x224
+    dummy_input = torch.randn(1, 3, 224, 224)
+    model = UNetV0()
+    output = model(dummy_input)
 
-    total_params = sum(p.numel() for p in model.parameters())
-    print(f"Total parameters: {total_params:,}")
-
-    outputs = model(input_image)
-    print(f"Output shape: {outputs.shape}")
+    print(f"Output shape: {output.shape}")
+    assert output.shape == torch.Size([1, 1, 224, 224]), "Output shape is incorrect"
