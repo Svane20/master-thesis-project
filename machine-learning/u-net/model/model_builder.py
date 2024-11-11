@@ -10,20 +10,31 @@ class DoubleConv(nn.Module):
     Args:
         in_channels (int): Number of input channels.
         out_channels (int): Number of output channels.
+        dropout (float): Dropout probability. Default is 0.0.
     """
 
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int, out_channels: int, dropout: float = 0.0):
         super().__init__()
 
-        self.double_conv = nn.Sequential(
+        layers = [
             nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(num_features=out_channels),
             nn.ReLU(inplace=True),
+        ]
 
+        if dropout > 0.0:
+            layers.append(nn.Dropout2d(p=dropout))
+
+        layers.extend([
             nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1, bias=False),
             nn.BatchNorm2d(num_features=out_channels),
             nn.ReLU(inplace=True),
-        )
+        ])
+
+        if dropout > 0.0:
+            layers.append(nn.Dropout2d(p=dropout))
+
+        self.double_conv = nn.Sequential(*layers)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         return self.double_conv(x)
@@ -36,14 +47,15 @@ class DownSample(nn.Module):
     Args:
         in_channels (int): Number of input channels.
         out_channels (int): Number of output channels.
+        dropout (float): Dropout probability. Default is 0.0.
     """
 
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int, out_channels: int, dropout: float = 0.0):
         super().__init__()
 
         self.max_pool_conv = nn.Sequential(
             nn.MaxPool2d(kernel_size=2, ceil_mode=True),  # Handle arbitrary input sizes
-            DoubleConv(in_channels, out_channels),
+            DoubleConv(in_channels, out_channels, dropout=dropout),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -57,13 +69,14 @@ class UpSample(nn.Module):
     Args:
         in_channels (int): Number of input channels.
         out_channels (int): Number of output channels.
+        dropout (float): Dropout probability. Default is 0.0.
     """
 
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int, out_channels: int, dropout: float = 0.0):
         super().__init__()
 
         self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False)
-        self.conv = DoubleConv(out_channels * 2, out_channels)
+        self.conv = DoubleConv(out_channels * 2, out_channels, dropout=dropout)
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
         x1 = self.up(x1)

@@ -11,25 +11,26 @@ class UNetV0(nn.Module):
     Args:
         in_channels (int): Number of input channels. Default is 3.
         out_channels (int): Number of output channels. Default is 1.
+        dropout (float): Dropout probability. Default is 0.5.
     """
 
-    def __init__(self, in_channels: int = 3, out_channels: int = 1) -> None:
+    def __init__(self, in_channels: int = 3, out_channels: int = 1, dropout: float = 0.5) -> None:
         super().__init__()
 
         # Define the encoder (contracting path)
-        self.inc = DoubleConv(in_channels, 64)
-        self.down1 = DownSample(64, 128)
-        self.down2 = DownSample(128, 256)
-        self.down3 = DownSample(256, 512)
+        self.inc = DoubleConv(in_channels, 64, dropout=dropout)
+        self.down1 = DownSample(64, 128, dropout=dropout)
+        self.down2 = DownSample(128, 256, dropout=dropout)
+        self.down3 = DownSample(256, 512, dropout=dropout)
 
         # Define the bottleneck
-        self.bottle_neck = DownSample(512, 1024)
+        self.bottle_neck = DownSample(512, 1024, dropout=dropout)
 
         # Define the decoder (expansive path)
-        self.up1 = UpSample(1024, 512)
-        self.up2 = UpSample(512, 256)
-        self.up3 = UpSample(256, 128)
-        self.up4 = UpSample(128, 64)
+        self.up1 = UpSample(1024, 512, dropout=dropout)
+        self.up2 = UpSample(512, 256, dropout=dropout)
+        self.up3 = UpSample(256, 128, dropout=dropout)
+        self.up4 = UpSample(128, 64, dropout=dropout)
 
         # Define the classifier
         self.classifier = nn.Conv2d(64, out_channels, kernel_size=1, bias=False)
@@ -51,3 +52,13 @@ class UNetV0(nn.Module):
         up4 = self.up4(up3, down1)
 
         return self.classifier(up4)
+
+
+if __name__ == "__main__":
+    # Create a dummy input tensor with batch size 1 and image size 224x224
+    dummy_input = torch.randn(1, 3, 224, 224)
+    model = UNetV0()
+    output = model(dummy_input)
+
+    print(f"Output shape: {output.shape}")
+    assert output.shape == torch.Size([1, 1, 224, 224]), "Output shape is incorrect"

@@ -1,6 +1,8 @@
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 
+import albumentations as A
+
 from typing import Tuple
 from pathlib import Path
 
@@ -11,10 +13,8 @@ def create_data_loaders(
         train_directory: Path,
         test_directory: Path,
         batch_size: int,
-        transform_image: transforms.Compose,
-        transform_mask: transforms.Compose,
-        target_transform_image: transforms.Compose,
-        target_transform_mask: transforms.Compose,
+        transform: A.Compose,
+        target_transform: A.Compose,
         num_workers: int = 2,
         pin_memory: bool = True
 ) -> Tuple[DataLoader[Dataset], DataLoader[Dataset]]:
@@ -25,10 +25,8 @@ def create_data_loaders(
         train_directory (Path): Path to the training data directory.
         test_directory (Path): Path to the test data directory.
         batch_size (int): Batch size for the data loaders.
-        transform_image (transforms.Compose): Transform to apply to the training image data.
-        transform_mask (transforms.Compose): Transform to apply to the training mask data.
-        target_transform_image (transforms.Compose): Transform to apply to the test image data.
-        target_transform_mask (transforms.Compose): Transform to apply to the test mask data.
+        transform (albumentations.Compose): Transform to apply to the image data.
+        target_transform (albumentations.Compose): Transform to apply to the mask data.
         num_workers (int): Number of workers to use for data loading. Default is 1.
         pin_memory (bool): Whether to pin memory for faster data loading. Default is True.
 
@@ -38,8 +36,7 @@ def create_data_loaders(
     train_dataloader = create_train_data_loader(
         train_directory,
         batch_size,
-        transform_image,
-        transform_mask,
+        transform=transform,
         num_workers=num_workers,
         pin_memory=pin_memory
     )
@@ -47,8 +44,7 @@ def create_data_loaders(
     test_dataloader = create_test_data_loader(
         test_directory,
         batch_size,
-        target_transform_image,
-        target_transform_mask,
+        transform=target_transform,
         num_workers=num_workers,
         pin_memory=pin_memory
     )
@@ -59,8 +55,7 @@ def create_data_loaders(
 def create_train_data_loader(
         directory: Path,
         batch_size: int,
-        transform: transforms.Compose,
-        target_transform: transforms.Compose,
+        transform: A.Compose,
         shuffle: bool = True,
         num_workers: int = 2,
         pin_memory: bool = True
@@ -71,8 +66,7 @@ def create_train_data_loader(
     Args:
         directory (Path): Path to the training data directory.
         batch_size (int): Batch size for the data loader
-        transform (transforms.Compose): Transform to apply to the image data.
-        target_transform (transforms.Compose): Transform to apply to the mask data.
+        transform (albumentations.Compose): Transform to apply to the image data.
         shuffle (bool): Whether to shuffle the data. Default is True.
         num_workers (int): Number of workers to use for data loading. Default is 1.
         pin_memory (bool): Whether to pin memory for faster data loading. Default is True.
@@ -84,7 +78,6 @@ def create_train_data_loader(
         image_directory=directory / "images",
         mask_directory=directory / "masks",
         transform=transform,
-        target_transform=target_transform
     )
 
     return DataLoader(
@@ -99,8 +92,7 @@ def create_train_data_loader(
 def create_test_data_loader(
         directory: Path,
         batch_size: int,
-        transform: transforms.Compose,
-        target_transform: transforms.Compose,
+        transform: A.Compose,
         shuffle: bool = False,
         num_workers: int = 2,
         pin_memory: bool = True
@@ -111,8 +103,7 @@ def create_test_data_loader(
     Args:
         directory (Path): Path to the training data directory.
         batch_size (int): Batch size for the data loader
-        transform (transforms.Compose): Transform to apply to the image data.
-        target_transform (transforms.Compose): Transform to apply to the mask data.
+        transform (albumentations.Compose): Transform to apply to the image data.
         batch_size (int): Batch size for the data loader
         shuffle (bool): Whether to shuffle the data. Default is False.
         num_workers (int): Number of workers to use for data loading. Default is 1.
@@ -125,7 +116,6 @@ def create_test_data_loader(
         image_directory=directory / "images",
         mask_directory=directory / "masks",
         transform=transform,
-        target_transform=target_transform
     )
 
     return DataLoader(

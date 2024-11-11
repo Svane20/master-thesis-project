@@ -1,19 +1,17 @@
 import torch
-from torchvision import transforms
 from torch.utils.data import DataLoader
 
 import os
 from typing import Tuple, Optional, Any, Dict
 
 from constants.directories import DATA_TEST_DIRECTORY
-from dataset.data_loader import create_test_data_loader
+from constants.hyperparameters import BATCH_SIZE
+from constants.outputs import MODEL_NAME
+from dataset.data_loaders import create_test_data_loader
+from dataset.transforms import get_test_transforms
 from model.unet import UNetV0
 from testing.inference import evaluate_model, save_predictions_as_images
 from utils import load_checkpoint, get_device
-
-SEED: int = 42
-BATCH_SIZE: int = 8
-MODEL_NAME: str = "UNetV0"
 
 
 def load_model(
@@ -46,18 +44,7 @@ def get_data_loaders(batch_size: int) -> DataLoader:
     Returns:
         DataLoader: Test data loader.
     """
-    image_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        ),
-    ])
-    mask_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
+    image_transform, mask_transform = get_test_transforms()
 
     return create_test_data_loader(
         directory=DATA_TEST_DIRECTORY,

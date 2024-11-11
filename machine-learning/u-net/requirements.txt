@@ -8,3 +8,4 @@ mlxtend~=0.23.1
 torchinfo~=1.8.0
 pillow~=10.4.0
 numpy~=1.26.4
+albumentations~=1.4.21

@@ -2,7 +2,6 @@ import torch
 import torch.cuda.amp
 from torch import nn, optim
 from torch.optim import lr_scheduler
-from torchvision import transforms
 from torch.utils.data import DataLoader
 
 from typing import Tuple
@@ -12,9 +11,13 @@ import warnings
 import os
 
 from constants.directories import DATA_TRAIN_DIRECTORY, DATA_TEST_DIRECTORY
-from dataset.data_loader import create_data_loaders
+from constants.hyperparameters import BATCH_SIZE, SEED, LEARNING_RATE, NUM_EPOCHS
+from constants.outputs import MODEL_NAME
+from dataset.data_loaders import create_data_loaders
+from dataset.transforms import get_train_transforms, get_test_transforms
 from model.unet import UNetV0
 from training import engine
+from training import custom_criterions
 from utils import set_seeds, get_device, get_model_summary
 
 
@@ -26,11 +29,29 @@ def parse_args() -> argparse.Namespace:
         argparse.Namespace: Parsed command-line arguments.
     """
     parser = argparse.ArgumentParser(description="Train a U-Net model.")
-    parser.add_argument("--model_name", type=str, default="UNetV0", help="Model name")
-    parser.add_argument("--batch_size", type=int, default=8, help="Batch size for training", choices=range(1, 129))
-    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate", choices=[0.0001, 0.001, 0.01, 0.1])
-    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs for training", choices=range(1, 100))
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
+    parser.add_argument("--model_name", type=str, default=MODEL_NAME, help="Model name")
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=BATCH_SIZE,
+        help="Batch size for training",
+        choices=range(1, 129)
+    )
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=LEARNING_RATE,
+        help="Learning rate",
+        choices=[0.0001, 0.001, 0.01, 0.1]
+    )
+    parser.add_argument(
+        "--epochs",
+        type=int,
+        default=NUM_EPOCHS,
+        help="Number of epochs for training",
+        choices=range(1, 100)
+    )
+    parser.add_argument("--seed", type=int, default=SEED, help="Random seed for reproducibility")
     parser.add_argument("--show-summary", type=bool, default=False, help="Show the summary of the model")
 
     args = parser.parse_args()
@@ -80,45 +101,15 @@ def get_data_loaders(batch_size: int) -> Tuple[DataLoader, DataLoader]:
     Returns:
         Tuple[DataLoader, DataLoader]: Training and test data loaders.
     """
-    # Define the transformations
-    train_image_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        ),
-    ])
-    train_mask_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandomVerticalFlip(p=0.5),
-        transforms.ToTensor(),
-    ])
-
-    test_image_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(
-            mean=[0.485, 0.456, 0.406],
-            std=[0.229, 0.224, 0.225],
-        ),
-    ])
-    test_mask_transform = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-    ])
+    transform = get_train_transforms()
+    target_transform = get_test_transforms()
 
     return create_data_loaders(
         train_directory=DATA_TRAIN_DIRECTORY,
         test_directory=DATA_TEST_DIRECTORY,
         batch_size=batch_size,
-        transform_image=train_image_transform,
-        transform_mask=train_mask_transform,
-        target_transform_image=test_image_transform,
-        target_transform_mask=test_mask_transform,
+        transform=transform,
+        target_transform=target_transform,
         num_workers=os.cpu_count() if torch.cuda.is_available() else 2,
     )
 
@@ -145,6 +136,7 @@ def main() -> None:
     model = UNetV0(
         in_channels=3,
         out_channels=1,
+        dropout=0.5
     ).to(device)
 
     # Print the model summary
@@ -152,10 +144,10 @@ def main() -> None:
         get_model_summary(model, input_size=(args.batch_size, 3, 224, 224))
 
     # Setup loss function, optimizer, lr scheduler and gradient scaler (Mixed Precision)
-    criterion = nn.BCEWithLogitsLoss()
+    criterion = custom_criterions.BCEDiceLoss()
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
-    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5)
-    scaler = torch.amp.GradScaler() if device.type == "cuda" and torch.cuda.get_device_capability() >= (8, 0) else None
+    scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=5)
+    scaler = torch.amp.GradScaler() if device.type == "cuda" else None
 
     # Train the model
     engine.train(

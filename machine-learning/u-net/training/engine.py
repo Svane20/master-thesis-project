@@ -2,10 +2,12 @@ import torch
 
 import wandb
 from tqdm.auto import tqdm
-from typing import Optional
+from typing import Optional, Tuple, Any
 import time
 from contextlib import nullcontext
 
+from metrics.DICE import calculate_DICE
+from metrics.IoU import calculate_IoU
 from utils import save_checkpoint
 
 
@@ -56,7 +58,7 @@ def train(
         }
     )
 
-    best_val_loss = float('inf')
+    best_val_dice = 0.0
     early_stop_counter = 0
     early_stop_patience = 5  # Stop if no improvement in 5 epochs
 
@@ -67,7 +69,7 @@ def train(
         start_epoch_time = time.time()
 
         # Train step
-        train_loss = _train_one_epoch(
+        train_loss, train_iou, train_dice = _train_one_epoch(
             model=model,
             dataloader=train_data_loader,
             criterion=criterion,
@@ -80,7 +82,7 @@ def train(
         )
 
         # Test step
-        test_loss = _test_one_epoch(
+        test_loss, test_iou, test_dice = _test_one_epoch(
             model=model,
             dataloader=test_data_loader,
             criterion=criterion,
@@ -92,7 +94,7 @@ def train(
 
         # Update learning rate
         if scheduler is not None:
-            scheduler.step(test_loss)
+            scheduler.step(test_dice)
 
         # Get current learning rate
         current_lr = optimizer.param_groups[0]["lr"]
@@ -104,21 +106,25 @@ def train(
         wandb.log({
             "epoch": epoch + 1,
             "train/loss": train_loss,
+            "train/IoU": train_iou,
+            "train/Dice": train_dice,
             "test/loss": test_loss,
+            "test/IoU": test_iou,
+            "test/Dice": test_dice,
             "learning_rate": current_lr,
             "epoch_duration": epoch_duration
         })
 
         print(
             f"Epoch: {epoch + 1}/{epochs} | "
-            f"train_loss: {train_loss:.4f} | "
-            f"test_loss: {test_loss:.4f} | "
-            f"epoch_duration: {epoch_duration:.4f} "
+            f"Train Loss: {train_loss:.4f} | Train IoU: {train_iou:.4f} | Train Dice: {train_dice:.4f} | "
+            f"Test Loss: {test_loss:.4f} | Test IoU: {test_iou:.4f} | Test Dice: {test_dice:.4f} | "
+            f"LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s"
         )
 
         # Checkpointing - Save the best model
-        if test_loss < best_val_loss:
-            best_val_loss = test_loss
+        if test_dice > best_val_dice:
+            best_val_dice = test_dice
             save_checkpoint(
                 model=model,
                 model_name=model_name,
@@ -157,7 +163,7 @@ def _train_one_epoch(
         num_epochs: int,
         device: torch.device,
         disable_progress_bar: bool = False
-) -> float:
+) -> Tuple[float, float, float]:
     """
     Trains a model for a single epoch
 
@@ -173,12 +179,15 @@ def _train_one_epoch(
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
 
     Returns:
-        float: Average loss values
+        Tuple[float, float, float]: Average loss, IoU and DICE values
     """
     model.train()
 
-    # Setup train loss and train accuracy values
+    # Setup training loss and metrics values
     train_loss = 0
+    train_iou = 0
+    train_dice = 0
+    num_batches = 0
 
     progress_bar = tqdm(
         enumerate(dataloader),
@@ -218,17 +227,32 @@ def _train_one_epoch(
         # Accumulate loss for each batch
         train_loss += loss.item()
 
+        # Calculate metrics
+        with torch.inference_mode():
+            preds = torch.sigmoid(y_pred)
+            preds = (preds > 0.5).float()
+            batch_iou = calculate_IoU(preds, y)
+            batch_dice = calculate_DICE(preds, y)
+
+        train_iou += batch_iou
+        train_dice += batch_dice
+        num_batches += 1
+
         # Update progress bar
         progress_bar.set_postfix(
             {
                 "train_loss": train_loss / (batch + 1),
+                "train_iou": train_iou / num_batches,
+                "train_dice": train_dice / num_batches,
             }
         )
 
-    # Adjust the loss and accuracy values
-    train_loss /= len(dataloader)
+    # Compute average metrics
+    train_loss /= num_batches
+    train_iou /= num_batches
+    train_dice /= num_batches
 
-    return train_loss
+    return train_loss, train_iou, train_dice
 
 
 def _test_one_epoch(
@@ -239,7 +263,7 @@ def _test_one_epoch(
         num_epochs: int,
         device: torch.device,
         disable_progress_bar: bool = False
-) -> float:
+) -> Tuple[float, float, float]:
     """
     Evaluates a model for a single epoch
 
@@ -253,12 +277,15 @@ def _test_one_epoch(
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
 
     Returns:
-        float: Average loss values
+        Tuple[float, float, float]: Average loss, IoU and DICE values
     """
     model.eval()
 
-    # Setup test loss and test accuracy values
+    # Setup test loss and metrics values
     test_loss = 0
+    test_iou = 0
+    test_dice = 0
+    num_batches = 0
 
     progress_bar = tqdm(
         enumerate(dataloader),
@@ -282,14 +309,28 @@ def _test_one_epoch(
             # Accumulate loss and accuracy for each batch
             test_loss += loss.item()
 
+            # Calculate metrics
+            preds = torch.sigmoid(test_pred_logits)
+            preds = (preds > 0.5).float()
+            batch_iou = calculate_IoU(preds, y)
+            batch_dice = calculate_DICE(preds, y)
+
+            test_iou += batch_iou
+            test_dice += batch_dice
+            num_batches += 1
+
             # Update progress bar
             progress_bar.set_postfix(
                 {
                     "test_loss": test_loss / (batch + 1),
+                    "test_iou": test_iou / num_batches,
+                    "test_dice": test_dice / num_batches,
                 }
             )
 
-        # Adjust the loss and accuracy values
-        test_loss /= len(dataloader)
+    # Compute average metrics
+    test_loss /= num_batches
+    test_iou /= num_batches
+    test_dice /= num_batches
 
-    return test_loss
+    return test_loss, test_iou, test_dice
