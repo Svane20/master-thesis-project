@@ -7,7 +7,9 @@ import numpy as np
 import os
 from PIL import Image
 from pathlib import Path
-from typing import Tuple, Optional, Callable
+from typing import Tuple, Optional
+
+os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 
 class CarvanaDataset(Dataset):
@@ -68,5 +70,9 @@ class CarvanaDataset(Dataset):
             # Convert to tensor if no transform is provided
             image = ToTensorV2()(image=image)['image']
             mask = torch.tensor(mask, dtype=torch.float32).unsqueeze(0)
+
+        # Ensure the mask has a channel dimension
+        if mask.ndim == 2:
+            mask = mask.unsqueeze(0)
 
         return image, mask

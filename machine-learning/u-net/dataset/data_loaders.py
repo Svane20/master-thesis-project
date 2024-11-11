@@ -1,12 +1,13 @@
 from torch.utils.data import DataLoader, Dataset
-from torchvision import transforms
 
 import albumentations as A
-
 from typing import Tuple
 from pathlib import Path
+import os
 
 from dataset.carvana_dataset import CarvanaDataset
+
+os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 
 def create_data_loaders(

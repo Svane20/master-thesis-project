@@ -1,8 +1,11 @@
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
 from typing import Tuple
+import os
 
 from constants.outputs import IMAGE_SIZE
+
+os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 
 def get_train_transforms(image_size: Tuple[int, int] = IMAGE_SIZE) -> A.Compose:

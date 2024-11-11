@@ -10,8 +10,11 @@ from constants.outputs import MODEL_NAME
 from dataset.data_loaders import create_test_data_loader
 from dataset.transforms import get_test_transforms
 from model.unet import UNetV0
-from testing.inference import evaluate_model, save_predictions_as_images
+from testing.inference import evaluate_model
+from testing.visualization import save_predictions
 from utils import load_checkpoint, get_device
+
+os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 
 def load_model(
@@ -44,13 +47,12 @@ def get_data_loaders(batch_size: int) -> DataLoader:
     Returns:
         DataLoader: Test data loader.
     """
-    image_transform, mask_transform = get_test_transforms()
+    transform = get_test_transforms()
 
     return create_test_data_loader(
         directory=DATA_TEST_DIRECTORY,
         batch_size=batch_size,
-        transform=image_transform,
-        target_transform=mask_transform,
+        transform=transform,
         num_workers=os.cpu_count() if torch.cuda.is_available() else 2,
     )
 
@@ -64,12 +66,13 @@ def main():
 
     # Load trained model
     model, _, _, _ = load_model(device)
+    model.to(device)
 
     # Make predictions
-    evaluate_model(model, test_data_loader, device)
+    # evaluate_model(model, test_data_loader, device)
 
     # Save the predictions
-    save_predictions_as_images(model, test_data_loader, device)
+    save_predictions(model, test_data_loader, device, num_batches=1)
 
 
 if __name__ == "__main__":

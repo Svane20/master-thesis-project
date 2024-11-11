@@ -1,10 +1,11 @@
 import torch
-from torchvision.utils import save_image
 
 from tqdm.auto import tqdm
-from pathlib import Path
 
-from constants.directories import OUTPUT_DIRECTORY
+from metrics.DICE import calculate_DICE
+from metrics.IoU import calculate_IoU
+from metrics.precision import calculate_precision
+from metrics.recall import calculate_recall
 
 
 def evaluate_model(
@@ -20,70 +21,51 @@ def evaluate_model(
         data_loader (torch.utils.data.DataLoader): Data loader
         device (torch.device): Device to use for evaluation
     """
+    # Initialize variables
     num_correct = 0
     num_pixels = 0
-    dice_score = 0
+
+    # Initialize variables for metrics
+    total_dice = 0
+    total_iou = 0
+    total_precision = 0.0
+    total_recall = 0.0
+
+    # Initialize variables for counting
+    num_batches = 0
 
     model.eval()
 
     with torch.inference_mode():
-        for X, y in tqdm(data_loader, desc="Making predictions"):
+        for X, y in tqdm(data_loader, desc="Evaluating"):
             X, y = X.to(device), y.to(device)
 
             y_logits = model(X)
             y_preds = torch.sigmoid(y_logits)
-
             preds = (y_preds > 0.5).float()
+
+            # Calculate metrics
             num_correct += (preds == y).sum()
             num_pixels += torch.numel(preds)
-            dice_score += (2 * (preds * y).sum()) / ((preds + y).sum() + 1e-8)
 
-    print(f"Got {num_correct} / {num_pixels} with accuracy {num_correct / num_pixels * 100:.2f}")
+            total_dice += calculate_DICE(preds, y)
+            total_iou += calculate_IoU(preds, y)
+            total_precision += calculate_precision(preds, y)
+            total_recall += calculate_recall(preds, y)
 
-    print(f"Dice score: {dice_score / len(data_loader)}")
+            num_batches += 1
 
+    # Compute average metrics
+    accuracy = num_correct / num_pixels * 100
+    avg_dice = total_dice / num_batches
+    avg_iou = total_iou / num_batches
+    avg_precision = total_precision / num_batches
+    avg_recall = total_recall / num_batches
+    avg_f1_score = 2 * (avg_precision * avg_recall) / (avg_precision + avg_recall + 1e-6)
 
-def save_predictions_as_images(
-        model: torch.nn.Module,
-        data_loader: torch.utils.data.DataLoader,
-        device: torch.device,
-        directory: Path = OUTPUT_DIRECTORY,
-) -> None:
-    """
-    Save the model predictions as images.
-
-    Args:
-        model (torch.nn.Module): Model to evaluate
-        data_loader (torch.utils.data.DataLoader): Data loader
-        device (torch.device): Device to use for evaluation
-        directory (Path): Directory to save the images to. Default is "output".
-    """
-    model.eval()
-
-    with torch.inference_mode():
-        for batch, (X, y) in tqdm(enumerate(data_loader), desc="Saving predictions"):
-            X, y = X.to(device), y.to(device)
-
-            y_logits = model(X)
-            y_preds = torch.sigmoid(y_logits)
-
-            preds = (y_preds > 0.5).float()
-
-            # Create directory if it does not exist
-            directory.mkdir(parents=True, exist_ok=True)
-
-            # Create subdirectories for predictions and targets
-            prediction_directory = directory / "predictions"
-            target_directory = directory / "targets"
-            prediction_directory.mkdir(parents=True, exist_ok=True)
-            target_directory.mkdir(parents=True, exist_ok=True)
-
-            prediction_path = prediction_directory / f"prediction_{batch}.png"
-            target_path = target_directory / f"target_{batch}.png"
-
-            # Save the predictions and target images
-            save_image(preds, prediction_path)
-            save_image(y, target_path)
-
-            print(f"Saved prediction at {prediction_path}")
-            print(f"Saved target at {target_path}")
+    print(f"Accuracy: {accuracy:.2f}%")
+    print(f"Average Dice Score: {avg_dice:.4f}")
+    print(f"Average IoU Score: {avg_iou:.4f}")
+    print(f"Average Precision: {avg_precision:.4f}")
+    print(f"Average Recall: {avg_recall:.4f}")
+    print(f"Average F1 Score: {avg_f1_score:.4f}")

@@ -1,6 +1,6 @@
 import torch
 import torch.cuda.amp
-from torch import nn, optim
+from torch import optim
 from torch.optim import lr_scheduler
 from torch.utils.data import DataLoader
 
@@ -19,6 +19,8 @@ from model.unet import UNetV0
 from training import engine
 from training import custom_criterions
 from utils import set_seeds, get_device, get_model_summary
+
+os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 
 def parse_args() -> argparse.Namespace:
