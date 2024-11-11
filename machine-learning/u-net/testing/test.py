@@ -69,7 +69,7 @@ def main():
     model.to(device)
 
     # Make predictions
-    # evaluate_model(model, test_data_loader, device)
+    evaluate_model(model, test_data_loader, device)
 
     # Save the predictions
     save_predictions(model, test_data_loader, device, num_batches=1)
