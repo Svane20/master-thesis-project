@@ -106,7 +106,17 @@ def train(
         wandb.log({
             "epoch": epoch + 1,
             "learning_rate": current_lr,
-            "epoch_duration": epoch_duration
+            "epoch_duration": epoch_duration,
+            "train/loss": train_loss,
+            "train/IoU": train_iou,
+            "train/IoU_edge": train_iou_edge,
+            "train/Dice": train_dice,
+            "train/Dice_edge": train_dice_edge,
+            "test/loss": test_loss,
+            "test/IoU": test_iou,
+            "test/IoU_edge": test_iou_edge,
+            "test/Dice": test_dice,
+            "test/Dice_edge": test_dice_edge
         })
 
         print(
@@ -260,14 +270,6 @@ def _train_one_epoch(
     train_dice /= num_batches
     train_dice_edge /= num_batches
 
-    wandb.log({
-        "train/loss": train_loss,
-        "train/IoU": train_iou,
-        "train/IoU_edge": train_iou_edge,
-        "train/Dice": train_dice,
-        "train/Dice_edge": train_dice_edge
-    })
-
     return train_loss, train_iou, train_iou_edge, train_dice, train_dice_edge
 
 
@@ -359,13 +361,5 @@ def _test_one_epoch(
     test_iou_edge /= num_batches
     test_dice /= num_batches
     test_dice_edge /= num_batches
-
-    wandb.log({
-        "test/loss": test_loss,
-        "test/IoU": test_iou,
-        "test/IoU_edge": test_iou_edge,
-        "test/Dice": test_dice,
-        "test/Dice_edge": test_dice_edge
-    })
 
     return test_loss, test_iou, test_iou_edge, test_dice, test_dice_edge

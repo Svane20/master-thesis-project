@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from scipy.ndimage import sobel
+import numpy as np
 
 
 class DiceLoss(nn.Module):
@@ -51,11 +52,10 @@ class EdgeWeightedBCEDiceLoss(nn.Module):
     """
     Combined loss of Binary Cross Entropy (BCE) and Dice Loss with edge weights.
 
-    This loss function combines the strengths of both BCE and Dice Loss. BCE is effective for
-    pixel-wise classification, while Dice Loss helps improve overlap between the predicted
-    mask and ground truth. Additionally, this loss function applies edge weights in the ground
-    truth mask to the BCE to improve edge detection making the model focus more on accurately
-    segmenting edge regions while still considering the entire mask.
+    This loss function combines the strengths of both BCE and Dice Loss.
+    BCE is effective for pixel-wise classification, while Dice Loss helps improve overlap between the predicted mask and ground truth.
+    Additionally, this loss function applies edge weights in the ground truth mask to the BCE to improve edge detection,
+    making the model focus more on accurately segmenting edge regions while still considering the entire mask.
 
     Args:
         edge_weight (float): Additional weight applied to edge regions in the BCE loss term.
@@ -84,14 +84,13 @@ class EdgeWeightedBCEDiceLoss(nn.Module):
         Returns:
             torch.Tensor: The combined loss, with edge-weighted BCE and Dice Loss.
         """
-
         # Step 1: Calculate edge map for the target mask
         # Apply Sobel filter to detect edges in the ground truth mask
         targets_np = targets.cpu().numpy()
 
         # Use Sobel filter to create an edge map, marking edges in the ground truth mask
-        edges = (torch.tensor([sobel(target, axis=0) + sobel(target, axis=1) for target in targets_np])
-                 .to(targets.device))  # Convert edges back to torch.
+        edges_np = np.array([sobel(target, axis=0) + sobel(target, axis=1) for target in targets_np])
+        edges = torch.tensor(edges_np, device=targets.device)  # Convert edges back to torch tensor
         edges = (edges > 0).float()  # Convert edge map to binary mask, where edges are marked as 1
 
         # Step 2: Apply edge weighting to BCE loss
