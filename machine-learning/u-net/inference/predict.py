@@ -8,8 +8,9 @@ import numpy as np
 from constants.directories import CHECKPOINTS_DIRECTORY, PREDICTIONS_DIRECTORY, DATA_TEST_DIRECTORY
 from constants.outputs import IMAGE_SIZE
 from dataset.transforms import get_test_transforms
-from metrics.DICE import calculate_DICE
-from metrics.IoU import calculate_IoU
+from metrics.DICE import calculate_DICE, calculate_edge_DICE
+from metrics.IoU import calculate_IoU, calculate_edge_IoU
+from model.unet import UNetV0
 from utils import get_device
 
 
@@ -24,18 +25,14 @@ def load_trained_model(checkpoint_path: str, device: torch.device):
     Returns:
         torch.nn.Module: Loaded model.
     """
-    from model.unet import UNetV0  # Import your U-Net model definition
-
-    # Initialize the model architecture
     model = UNetV0(
         in_channels=3,
         out_channels=1,
-        dropout=0.5  # Use the same dropout as during training
+        dropout=0.5
     ).to(device)
 
-    # Load the saved model weights
     model.load_state_dict(torch.load(checkpoint_path, map_location=device, weights_only=True)['model_state_dict'])
-    model.eval()  # Set model to evaluation mode
+    model.eval()
 
     return model
 
@@ -134,10 +131,14 @@ def main():
 
     # Compute metrics
     dice_score = calculate_DICE(pred_mask_tensor, gt_mask_tensor)
+    dice_edge_score = calculate_edge_DICE(pred_mask_tensor, gt_mask_tensor)
     iou_score = calculate_IoU(pred_mask_tensor, gt_mask_tensor)
+    iou_edge_score = calculate_edge_IoU(pred_mask_tensor, gt_mask_tensor)
 
     print(f"Dice Score: {dice_score:.4f}")
+    print(f"Dice Edge Score: {dice_edge_score:.4f}")
     print(f"IoU Score: {iou_score:.4f}")
+    print(f"IoU Edge Score: {iou_edge_score:.4f}")
 
     # Create the prediction directory if it does not exist
     PREDICTIONS_DIRECTORY.mkdir(parents=True, exist_ok=True)

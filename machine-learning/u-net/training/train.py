@@ -146,7 +146,7 @@ def main() -> None:
         get_model_summary(model, input_size=(args.batch_size, 3, 224, 224))
 
     # Setup loss function, optimizer, lr scheduler and gradient scaler (Mixed Precision)
-    criterion = custom_criterions.BCEDiceLoss()
+    criterion = custom_criterions.EdgeWeightedBCEDiceLoss(edge_weight=5)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=5)
     scaler = torch.amp.GradScaler() if device.type == "cuda" else None

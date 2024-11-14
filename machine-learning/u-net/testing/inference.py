@@ -2,10 +2,8 @@ import torch
 
 from tqdm.auto import tqdm
 
-from metrics.DICE import calculate_DICE
-from metrics.IoU import calculate_IoU
-from metrics.precision import calculate_precision
-from metrics.recall import calculate_recall
+from metrics.DICE import calculate_DICE, calculate_edge_DICE
+from metrics.IoU import calculate_IoU, calculate_edge_IoU
 
 
 def evaluate_model(
@@ -27,9 +25,9 @@ def evaluate_model(
 
     # Initialize variables for metrics
     total_dice = 0
+    total_dice_edge = 0
     total_iou = 0
-    total_precision = 0.0
-    total_recall = 0.0
+    total_iou_edge = 0
 
     # Initialize variables for counting
     num_batches = 0
@@ -49,23 +47,21 @@ def evaluate_model(
             num_pixels += torch.numel(preds)
 
             total_dice += calculate_DICE(preds, y)
+            total_dice_edge += calculate_edge_DICE(preds, y)
             total_iou += calculate_IoU(preds, y)
-            total_precision += calculate_precision(preds, y)
-            total_recall += calculate_recall(preds, y)
+            total_iou_edge += calculate_edge_IoU(preds, y)
 
             num_batches += 1
 
     # Compute average metrics
     accuracy = num_correct / num_pixels * 100
     avg_dice = total_dice / num_batches
+    avg_dice_edge = total_dice_edge / num_batches
     avg_iou = total_iou / num_batches
-    avg_precision = total_precision / num_batches
-    avg_recall = total_recall / num_batches
-    avg_f1_score = 2 * (avg_precision * avg_recall) / (avg_precision + avg_recall + 1e-6)
+    avg_iou_edge = total_iou_edge / num_batches
 
     print(f"Accuracy: {accuracy:.2f}%")
     print(f"Average Dice Score: {avg_dice:.4f}")
+    print(f"Average Edge Dice Score: {avg_dice_edge:.4f}")
     print(f"Average IoU Score: {avg_iou:.4f}")
-    print(f"Average Precision: {avg_precision:.4f}")
-    print(f"Average Recall: {avg_recall:.4f}")
-    print(f"Average F1 Score: {avg_f1_score:.4f}")
+    print(f"Average Edge IoU Score: {avg_iou_edge:.4f}")

@@ -6,8 +6,8 @@ from typing import Optional, Tuple, Any
 import time
 from contextlib import nullcontext
 
-from metrics.DICE import calculate_DICE
-from metrics.IoU import calculate_IoU
+from metrics.DICE import calculate_DICE, calculate_edge_DICE
+from metrics.IoU import calculate_IoU, calculate_edge_IoU
 from utils import save_checkpoint
 
 
@@ -69,7 +69,7 @@ def train(
         start_epoch_time = time.time()
 
         # Train step
-        train_loss, train_iou, train_dice = _train_one_epoch(
+        train_loss, train_iou, train_iou_edge, train_dice, train_dice_edge = _train_one_epoch(
             model=model,
             dataloader=train_data_loader,
             criterion=criterion,
@@ -82,7 +82,7 @@ def train(
         )
 
         # Test step
-        test_loss, test_iou, test_dice = _test_one_epoch(
+        test_loss, test_iou, test_iou_edge, test_dice, test_dice_edge = _test_one_epoch(
             model=model,
             dataloader=test_data_loader,
             criterion=criterion,
@@ -105,12 +105,6 @@ def train(
         # Log metrics to Weights & Biases
         wandb.log({
             "epoch": epoch + 1,
-            "train/loss": train_loss,
-            "train/IoU": train_iou,
-            "train/Dice": train_dice,
-            "test/loss": test_loss,
-            "test/IoU": test_iou,
-            "test/Dice": test_dice,
             "learning_rate": current_lr,
             "epoch_duration": epoch_duration
         })
@@ -118,7 +112,9 @@ def train(
         print(
             f"Epoch: {epoch + 1}/{epochs} | "
             f"Train Loss: {train_loss:.4f} | Train IoU: {train_iou:.4f} | Train Dice: {train_dice:.4f} | "
+            f"Train IoU Edge: {train_iou_edge:.4f} | Train Dice Edge: {train_dice_edge:.4f} | "
             f"Test Loss: {test_loss:.4f} | Test IoU: {test_iou:.4f} | Test Dice: {test_dice:.4f} | "
+            f"Test IoU Edge: {test_iou_edge:.4f} | Test Dice Edge: {test_dice_edge:.4f} | "
             f"LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s"
         )
 
@@ -147,6 +143,7 @@ def train(
 
     # Print total training time
     total_training_time_minutes = total_training_time / 60
+    wandb.log({"training_time": total_training_time_minutes})
     print(f"[INFO] Total training time: {total_training_time_minutes:.2f} minutes")
 
     # Finish Weights & Biases run
@@ -163,7 +160,7 @@ def _train_one_epoch(
         num_epochs: int,
         device: torch.device,
         disable_progress_bar: bool = False
-) -> Tuple[float, float, float]:
+) -> Tuple[float, float, float, float, float]:
     """
     Trains a model for a single epoch
 
@@ -179,15 +176,18 @@ def _train_one_epoch(
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
 
     Returns:
-        Tuple[float, float, float]: Average loss, IoU and DICE values
+        Tuple[float, float, float, float, float]: Average loss, IoU, IoU for edges, DICE, DICE for edges values
     """
     model.train()
 
-    # Setup training loss and metrics values
+    # Initialize training loss and metrics values
     train_loss = 0
-    train_iou = 0
-    train_dice = 0
     num_batches = 0
+
+    train_iou = 0
+    train_iou_edge = 0
+    train_dice = 0
+    train_dice_edge = 0
 
     progress_bar = tqdm(
         enumerate(dataloader),
@@ -232,27 +232,43 @@ def _train_one_epoch(
             preds = torch.sigmoid(y_pred)
             preds = (preds > 0.5).float()
             batch_iou = calculate_IoU(preds, y)
+            batch_edge_iou = calculate_edge_IoU(preds, y)
             batch_dice = calculate_DICE(preds, y)
+            batch_edge_dice = calculate_edge_DICE(preds, y)
 
         train_iou += batch_iou
+        train_iou_edge += batch_edge_iou
         train_dice += batch_dice
+        train_dice_edge += batch_edge_dice
         num_batches += 1
 
         # Update progress bar
         progress_bar.set_postfix(
             {
-                "train_loss": train_loss / (batch + 1),
+                "train_loss": train_loss / num_batches,
                 "train_iou": train_iou / num_batches,
+                "train_iou_edge": train_iou_edge / num_batches,
                 "train_dice": train_dice / num_batches,
+                "train_dice_edge": train_dice_edge / num_batches
             }
         )
 
     # Compute average metrics
     train_loss /= num_batches
     train_iou /= num_batches
+    train_iou_edge /= num_batches
     train_dice /= num_batches
+    train_dice_edge /= num_batches
 
-    return train_loss, train_iou, train_dice
+    wandb.log({
+        "train/loss": train_loss,
+        "train/IoU": train_iou,
+        "train/IoU_edge": train_iou_edge,
+        "train/Dice": train_dice,
+        "train/Dice_edge": train_dice_edge
+    })
+
+    return train_loss, train_iou, train_iou_edge, train_dice, train_dice_edge
 
 
 def _test_one_epoch(
@@ -263,7 +279,7 @@ def _test_one_epoch(
         num_epochs: int,
         device: torch.device,
         disable_progress_bar: bool = False
-) -> Tuple[float, float, float]:
+) -> Tuple[float, float, float, float, float]:
     """
     Evaluates a model for a single epoch
 
@@ -277,15 +293,18 @@ def _test_one_epoch(
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
 
     Returns:
-        Tuple[float, float, float]: Average loss, IoU and DICE values
+        Tuple[float, float, float, float, float]: Average loss, IoU, IoU for edges, DICE, DICE for edges values
     """
     model.eval()
 
-    # Setup test loss and metrics values
+    # Initialize training loss and metrics values
     test_loss = 0
-    test_iou = 0
-    test_dice = 0
     num_batches = 0
+
+    test_iou = 0
+    test_iou_edge = 0
+    test_dice = 0
+    test_dice_edge = 0
 
     progress_bar = tqdm(
         enumerate(dataloader),
@@ -313,24 +332,40 @@ def _test_one_epoch(
             preds = torch.sigmoid(test_pred_logits)
             preds = (preds > 0.5).float()
             batch_iou = calculate_IoU(preds, y)
+            batch_edge_iou = calculate_edge_IoU(preds, y)
             batch_dice = calculate_DICE(preds, y)
+            batch_edge_dice = calculate_edge_DICE(preds, y)
 
             test_iou += batch_iou
+            test_iou_edge += batch_edge_iou
             test_dice += batch_dice
+            test_dice_edge += batch_edge_dice
             num_batches += 1
 
             # Update progress bar
             progress_bar.set_postfix(
                 {
-                    "test_loss": test_loss / (batch + 1),
+                    "test_loss": test_loss / num_batches,
                     "test_iou": test_iou / num_batches,
+                    "test_iou_edge": test_iou_edge / num_batches,
                     "test_dice": test_dice / num_batches,
+                    "test_dice_edge": test_dice_edge / num_batches
                 }
             )
 
     # Compute average metrics
     test_loss /= num_batches
     test_iou /= num_batches
+    test_iou_edge /= num_batches
     test_dice /= num_batches
+    test_dice_edge /= num_batches
 
-    return test_loss, test_iou, test_dice
+    wandb.log({
+        "test/loss": test_loss,
+        "test/IoU": test_iou,
+        "test/IoU_edge": test_iou_edge,
+        "test/Dice": test_dice,
+        "test/Dice_edge": test_dice_edge
+    })
+
+    return test_loss, test_iou, test_iou_edge, test_dice, test_dice_edge
