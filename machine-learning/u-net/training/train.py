@@ -135,11 +135,7 @@ def main() -> None:
         clear_cuda_cache()
 
     # Instantiate the model
-    model = UNetV0(
-        in_channels=3,
-        out_channels=1,
-        dropout=0.5
-    ).to(device)
+    model = UNetV0(in_channels=3, out_channels=1, dropout=0.5).to(device)
 
     # Print the model summary
     if args.show_summary:
