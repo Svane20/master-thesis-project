@@ -160,7 +160,8 @@ def main() -> None:
             device=device,
             directory=Path(args.checkpoint_path).parent,
             optimizer=optimizer,
-            scheduler=scheduler
+            scheduler=scheduler,
+            is_eval=False
         )
         start_epoch = checkpoint_info["epoch"] + 1  # Continue from the next epoch
         print(f"Checkpoint loaded. Resuming training from epoch {start_epoch}")

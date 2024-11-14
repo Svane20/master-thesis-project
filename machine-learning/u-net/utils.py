@@ -111,6 +111,7 @@ def load_checkpoint(
         extension: str = "pth",
         optimizer: Optional[torch.optim.Optimizer] = None,
         scheduler: Optional[Any] = None,
+        is_eval: bool = True
 ) -> Tuple[torch.nn.Module, Optional[torch.optim.Optimizer], Optional[Any], Dict[str, Any]]:
     """
     Loads the model, optimizer, and scheduler states from a checkpoint file.
@@ -123,6 +124,7 @@ def load_checkpoint(
         optimizer (torch.optim.Optimizer, optional): Optimizer to restore the state. Default is None.
         scheduler (any, optional): Scheduler to restore the state. Default is None.
         device (torch.device): Device to load the model onto.
+        is_eval (bool): Set the model to evaluation mode. Default is True.
 
     Returns:
         Tuple[torch.nn.Module, Optional[torch.optim.Optimizer], Optional[Any], Dict[str, Any]]:
@@ -141,7 +143,11 @@ def load_checkpoint(
     # Load model state
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to(device)
-    model.eval()  # Set to evaluation mode for inference
+
+    if is_eval:
+        model.eval()  # Set to evaluation mode for inference
+    else:
+        model.train()  # Set to training mode for fine-tuning
 
     # Load optimizer state if provided
     if optimizer and "optimizer_state_dict" in checkpoint:
