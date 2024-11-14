@@ -9,6 +9,7 @@ import argparse
 import sys
 import warnings
 import os
+from pathlib import Path
 
 from constants.directories import DATA_TRAIN_DIRECTORY, DATA_TEST_DIRECTORY
 from constants.hyperparameters import BATCH_SIZE, SEED, LEARNING_RATE, NUM_EPOCHS
@@ -18,7 +19,7 @@ from dataset.transforms import get_train_transforms, get_test_transforms
 from model.unet import UNetV0
 from training import engine
 from training import custom_criterions
-from utils import set_seeds, get_device, get_model_summary
+from utils import set_seeds, get_device, get_model_summary, load_checkpoint
 
 os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
@@ -55,6 +56,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--seed", type=int, default=SEED, help="Random seed for reproducibility")
     parser.add_argument("--show-summary", type=bool, default=False, help="Show the summary of the model")
+    parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to the checkpoint for fine-tuning")
 
     args = parser.parse_args()
 
@@ -120,8 +122,6 @@ def main() -> None:
     # Parse command-line arguments
     args = parse_args()
 
-    train_data_loader, test_data_loader = get_data_loaders(batch_size=args.batch_size)
-
     # Set random seed
     if args.seed is not None:
         set_seeds(seed=args.seed)
@@ -151,6 +151,25 @@ def main() -> None:
     scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=5)
     scaler = torch.amp.GradScaler() if device.type == "cuda" else None
 
+    # Load checkpoint if specified
+    if args.checkpoint_path:
+        print(f"Loading checkpoint from {args.checkpoint_path}")
+        model, optimizer, scheduler, checkpoint_info = load_checkpoint(
+            model=model,
+            model_name=args.model_name,
+            device=device,
+            directory=Path(args.checkpoint_path).parent,
+            optimizer=optimizer,
+            scheduler=scheduler
+        )
+        start_epoch = checkpoint_info["epoch"] + 1  # Continue from the next epoch
+        print(f"Checkpoint loaded. Resuming training from epoch {start_epoch}")
+    else:
+        start_epoch = 0
+
+    # Prepare data loaders
+    train_data_loader, test_data_loader = get_data_loaders(batch_size=args.batch_size)
+
     # Train the model
     engine.train(
         model=model,
@@ -163,6 +182,7 @@ def main() -> None:
         device=device,
         epochs=args.epochs,
         scheduler=scheduler,
+        start_epoch=start_epoch
     )
 
 

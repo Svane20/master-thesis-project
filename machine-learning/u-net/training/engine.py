@@ -23,7 +23,8 @@ def train(
         device: torch.device,
         scheduler: torch.optim.lr_scheduler = None,
         disable_progress_bar: bool = False,
-        early_stop_patience: int = 5
+        early_stop_patience: int = 5,
+        start_epoch: int = 0,
 ) -> None:
     """
     Trains and evaluates a model
@@ -45,6 +46,7 @@ def train(
         scheduler (torch.optim.lr_scheduler): Learning rate scheduler. Default is None.
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
         early_stop_patience (int): Number of epochs to wait for improvement before stopping. Default is 5
+        start_epoch (int): Epoch to start from. Default is 0
     """
     # Initialize Weights & Biases
     wandb.init(
@@ -64,7 +66,7 @@ def train(
     early_stop_counter = 0
     training_start_time = time.time()
 
-    for epoch in tqdm(range(epochs), disable=disable_progress_bar):
+    for epoch in tqdm(range(start_epoch, start_epoch + epochs), disable=disable_progress_bar):
         start_epoch_time = time.time()
 
         # Train step
