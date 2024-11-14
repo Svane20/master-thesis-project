@@ -2,7 +2,7 @@ import torch
 
 import wandb
 from tqdm.auto import tqdm
-from typing import Optional, Tuple, Any
+from typing import Optional, Tuple
 import time
 from contextlib import nullcontext
 
@@ -22,7 +22,8 @@ def train(
         epochs: int,
         device: torch.device,
         scheduler: torch.optim.lr_scheduler = None,
-        disable_progress_bar: bool = False
+        disable_progress_bar: bool = False,
+        early_stop_patience: int = 5
 ) -> None:
     """
     Trains and evaluates a model
@@ -43,6 +44,7 @@ def train(
         device (torch.device): Device to run the training on
         scheduler (torch.optim.lr_scheduler): Learning rate scheduler. Default is None.
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
+        early_stop_patience (int): Number of epochs to wait for improvement before stopping. Default is 5
     """
     # Initialize Weights & Biases
     wandb.init(
@@ -60,9 +62,6 @@ def train(
 
     best_val_dice = 0.0
     early_stop_counter = 0
-    early_stop_patience = 5  # Stop if no improvement in 5 epochs
-
-    # Track training time
     training_start_time = time.time()
 
     for epoch in tqdm(range(epochs), disable=disable_progress_bar):
@@ -191,13 +190,7 @@ def _train_one_epoch(
     model.train()
 
     # Initialize training loss and metrics values
-    train_loss = 0
-    num_batches = 0
-
-    train_iou = 0
-    train_iou_edge = 0
-    train_dice = 0
-    train_dice_edge = 0
+    train_loss, train_iou, train_iou_edge, train_dice, train_dice_edge, num_batches = 0, 0, 0, 0, 0, 0
 
     progress_bar = tqdm(
         enumerate(dataloader),
@@ -239,12 +232,8 @@ def _train_one_epoch(
 
         # Calculate metrics
         with torch.inference_mode():
-            preds = torch.sigmoid(y_pred)
-            preds = (preds > 0.5).float()
-            batch_iou = calculate_IoU(preds, y)
-            batch_edge_iou = calculate_edge_IoU(preds, y)
-            batch_dice = calculate_DICE(preds, y)
-            batch_edge_dice = calculate_edge_DICE(preds, y)
+            batch_iou, batch_edge_iou, batch_dice, batch_edge_dice = _calculate_batch_metrics(y_pred, y)
+            num_batches += 1
 
         train_iou += batch_iou
         train_iou_edge += batch_edge_iou
@@ -300,13 +289,7 @@ def _test_one_epoch(
     model.eval()
 
     # Initialize training loss and metrics values
-    test_loss = 0
-    num_batches = 0
-
-    test_iou = 0
-    test_iou_edge = 0
-    test_dice = 0
-    test_dice_edge = 0
+    test_loss, test_iou, test_iou_edge, test_dice, test_dice_edge, num_batches = 0, 0, 0, 0, 0, 0
 
     progress_bar = tqdm(
         enumerate(dataloader),
@@ -322,21 +305,16 @@ def _test_one_epoch(
 
             with torch.amp.autocast(device_type=device.type) if device.type == "cuda" else nullcontext():
                 # Forward pass
-                test_pred_logits = model(X)
+                y_pred = model(X)
 
                 # Calculate loss
-                loss = criterion(test_pred_logits, y)
+                loss = criterion(y_pred, y)
 
             # Accumulate loss and accuracy for each batch
             test_loss += loss.item()
 
             # Calculate metrics
-            preds = torch.sigmoid(test_pred_logits)
-            preds = (preds > 0.5).float()
-            batch_iou = calculate_IoU(preds, y)
-            batch_edge_iou = calculate_edge_IoU(preds, y)
-            batch_dice = calculate_DICE(preds, y)
-            batch_edge_dice = calculate_edge_DICE(preds, y)
+            batch_iou, batch_edge_iou, batch_dice, batch_edge_dice = _calculate_batch_metrics(y_pred, y)
 
             test_iou += batch_iou
             test_iou_edge += batch_edge_iou
@@ -363,3 +341,29 @@ def _test_one_epoch(
     test_dice_edge /= num_batches
 
     return test_loss, test_iou, test_iou_edge, test_dice, test_dice_edge
+
+
+def _calculate_batch_metrics(
+        y_pred: torch.Tensor,
+        y_true: torch.Tensor
+) -> Tuple[float, float, float, float]:
+    """
+    Calculates metrics for a batch of data
+
+    Args:
+        y_pred (torch.Tensor): Predictions
+        y_true (torch.Tensor): Ground truth
+
+    Returns:
+        Tuple[float, float, float, float]: IoU, IoU for edges, DICE, DICE for edges values
+    """
+    # Calculate metrics
+    preds = torch.sigmoid(y_pred)
+    preds = (preds > 0.5).float()
+
+    iou = calculate_IoU(preds, y_true)
+    iou_edge = calculate_edge_IoU(preds, y_true)
+    dice = calculate_DICE(preds, y_true)
+    dice_edge = calculate_edge_DICE(preds, y_true)
+
+    return iou, iou_edge, dice, dice_edge
