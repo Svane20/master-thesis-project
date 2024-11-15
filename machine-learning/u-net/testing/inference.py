@@ -62,6 +62,6 @@ def evaluate_model(
 
     print(f"Accuracy: {accuracy:.2f}%")
     print(f"Average Dice Score: {avg_dice:.4f}")
-    print(f"Average Edge Dice Score: {avg_dice_edge:.4f}")
+    print(f"Average Dice Edge Score: {avg_dice_edge:.4f}")
     print(f"Average IoU Score: {avg_iou:.4f}")
-    print(f"Average Edge IoU Score: {avg_iou_edge:.4f}")
+    print(f"Average IoU Edge Score: {avg_iou_edge:.4f}")

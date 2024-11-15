@@ -6,7 +6,7 @@ from typing import Tuple, Optional, Any, Dict
 
 from constants.directories import DATA_TEST_DIRECTORY
 from constants.hyperparameters import BATCH_SIZE
-from constants.outputs import MODEL_NAME
+from constants.outputs import MODEL_OUTPUT_NAME
 from dataset.data_loaders import create_test_data_loader
 from dataset.transforms import get_test_transforms
 from model.unet import UNetV0
@@ -34,7 +34,7 @@ def load_model(
         out_channels=1,
     )
 
-    return load_checkpoint(model=loaded_model, model_name=MODEL_NAME, device=target_device)
+    return load_checkpoint(model=loaded_model, model_name=MODEL_OUTPUT_NAME, device=target_device)
 
 
 def get_data_loaders(batch_size: int) -> DataLoader:

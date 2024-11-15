@@ -94,7 +94,7 @@ def generate_prediction_mask(
 
 def main():
     # Path to the saved model checkpoint
-    checkpoint_path = CHECKPOINTS_DIRECTORY / "UNetV0_best_checkpoint.pth"
+    checkpoint_path = CHECKPOINTS_DIRECTORY / "UNetV0_EdgeDetection_Tuned_best_checkpoint.pth"
 
     # Device configuration
     device = get_device()

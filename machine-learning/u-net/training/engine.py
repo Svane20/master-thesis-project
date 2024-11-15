@@ -62,11 +62,11 @@ def train(
         }
     )
 
-    best_val_dice = 0.0
-    early_stop_counter = 0
+    best_val_dice, early_stop_counter = 0.0, 0
+    num_epochs = start_epoch + epochs
     training_start_time = time.time()
 
-    for epoch in tqdm(range(start_epoch, start_epoch + epochs), disable=disable_progress_bar):
+    for epoch in tqdm(range(start_epoch, num_epochs), disable=disable_progress_bar):
         start_epoch_time = time.time()
 
         # Train step
@@ -77,7 +77,7 @@ def train(
             optimizer=optimizer,
             scaler=scaler,
             epoch=epoch,
-            num_epochs=epochs,
+            num_epochs=num_epochs,
             device=device,
             disable_progress_bar=disable_progress_bar
         )
@@ -88,7 +88,7 @@ def train(
             dataloader=test_data_loader,
             criterion=criterion,
             epoch=epoch,
-            num_epochs=epochs,
+            num_epochs=num_epochs,
             device=device,
             disable_progress_bar=disable_progress_bar
         )
@@ -121,7 +121,7 @@ def train(
         })
 
         print(
-            f"Epoch: {epoch + 1}/{epochs} | "
+            f"Epoch: {epoch + 1}/{num_epochs} | "
             f"Train Loss: {train_loss:.4f} | Train IoU: {train_iou:.4f} | Train Dice: {train_dice:.4f} | "
             f"Train IoU Edge: {train_iou_edge:.4f} | Train Dice Edge: {train_dice_edge:.4f} | "
             f"Test Loss: {test_loss:.4f} | Test IoU: {test_iou:.4f} | Test Dice: {test_dice:.4f} | "

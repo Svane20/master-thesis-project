@@ -11,9 +11,9 @@ import warnings
 import os
 from pathlib import Path
 
-from constants.directories import DATA_TRAIN_DIRECTORY, DATA_TEST_DIRECTORY
+from constants.directories import DATA_TRAIN_DIRECTORY, DATA_TEST_DIRECTORY, CHECKPOINTS_DIRECTORY
 from constants.hyperparameters import BATCH_SIZE, SEED, LEARNING_RATE, NUM_EPOCHS
-from constants.outputs import MODEL_NAME
+from constants.outputs import MODEL_OUTPUT_NAME, TRAINED_MODEL_CHECKPOINT_NAME
 from dataset.data_loaders import create_data_loaders
 from dataset.transforms import get_train_transforms, get_test_transforms
 from model.unet import UNetV0
@@ -32,7 +32,7 @@ def parse_args() -> argparse.Namespace:
         argparse.Namespace: Parsed command-line arguments.
     """
     parser = argparse.ArgumentParser(description="Train a U-Net model.")
-    parser.add_argument("--model_name", type=str, default=MODEL_NAME, help="Model name")
+    parser.add_argument("--model_name", type=str, default=MODEL_OUTPUT_NAME, help="Model name")
     parser.add_argument(
         "--batch_size",
         type=int,
@@ -56,7 +56,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--seed", type=int, default=SEED, help="Random seed for reproducibility")
     parser.add_argument("--show-summary", type=bool, default=False, help="Show the summary of the model")
-    parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to the checkpoint for fine-tuning")
+    parser.add_argument("--checkpoint_path", type=str, default=CHECKPOINTS_DIRECTORY, help="Path to the checkpoint for fine-tuning")
 
     args = parser.parse_args()
 
@@ -142,7 +142,7 @@ def main() -> None:
         get_model_summary(model, input_size=(args.batch_size, 3, 224, 224))
 
     # Setup loss function, optimizer, lr scheduler and gradient scaler (Mixed Precision)
-    criterion = custom_criterions.EdgeWeightedBCEDiceLoss(edge_weight=5)
+    criterion = custom_criterions.EdgeWeightedBCEDiceLoss(edge_weight=10)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=5)
     scaler = torch.amp.GradScaler() if device.type == "cuda" else None
@@ -152,9 +152,9 @@ def main() -> None:
         print(f"Loading checkpoint from {args.checkpoint_path}")
         model, optimizer, scheduler, checkpoint_info = load_checkpoint(
             model=model,
-            model_name=args.model_name,
+            model_name=TRAINED_MODEL_CHECKPOINT_NAME,
             device=device,
-            directory=Path(args.checkpoint_path).parent,
+            directory=Path(args.checkpoint_path),
             optimizer=optimizer,
             scheduler=scheduler,
             is_eval=False

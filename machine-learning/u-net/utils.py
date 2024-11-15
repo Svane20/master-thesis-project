@@ -119,7 +119,7 @@ def load_checkpoint(
     Args:
         model (torch.nn.Module): Model to load the weights into.
         model_name (str): Name of the model.
-        directory (Path): Directory to save the model to. Default is "checkpoints".
+        directory (Path): Directory to load the model checkpoint from. Default is "checkpoints".
         extension (str): Extension to use. Default is ".pth".
         optimizer (torch.optim.Optimizer, optional): Optimizer to restore the state. Default is None.
         scheduler (any, optional): Scheduler to restore the state. Default is None.
