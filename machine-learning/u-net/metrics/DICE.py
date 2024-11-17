@@ -2,6 +2,8 @@ import torch
 from scipy.ndimage import sobel
 import numpy as np
 
+EPSILON = 1e-6
+
 
 def calculate_DICE(predictions: torch.Tensor, targets: torch.Tensor) -> float:
     """
@@ -19,16 +21,16 @@ def calculate_DICE(predictions: torch.Tensor, targets: torch.Tensor) -> float:
     targets_flatten = targets.view(-1)
 
     # Ensure EPSILON is on the same device and data type as predictions
-    EPSILON = torch.tensor(1e-6, device=predictions.device, dtype=predictions.dtype)
+    epsilon = torch.tensor(EPSILON, device=predictions.device, dtype=predictions.dtype)
 
     # Calculate intersection and union
     intersection = (predictions_flatten * targets_flatten).sum()
-    dice = (2.0 * intersection + EPSILON) / (predictions_flatten.sum() + targets_flatten.sum() + EPSILON)
+    dice = (2.0 * intersection + epsilon) / (predictions_flatten.sum() + targets_flatten.sum() + epsilon)
 
     return dice.item()
 
 
-def calculate_edge_DICE(predictions: torch.Tensor, targets: torch.Tensor) -> float:
+def calculate_DICE_edge(predictions: torch.Tensor, targets: torch.Tensor) -> float:
     """
     Calculates Dice Coefficient between edge maps of predictions and targets.
 
@@ -68,6 +70,6 @@ def calculate_edge_DICE(predictions: torch.Tensor, targets: torch.Tensor) -> flo
 
     # Calculate Dice Coefficient for edges
     intersection = (edge_preds * edge_targets).sum()
-    dice = (2.0 * intersection + 1e-6) / (edge_preds.sum() + edge_targets.sum() + 1e-6)
+    dice = (2.0 * intersection + EPSILON) / (edge_preds.sum() + edge_targets.sum() + EPSILON)
 
     return dice.item()

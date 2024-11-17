@@ -12,7 +12,8 @@ from dataset.transforms import get_test_transforms
 from model.unet import UNetV0
 from testing.inference import evaluate_model
 from testing.visualization import save_predictions
-from utils import load_checkpoint, get_device
+from utils.checkpoints import load_checkpoint
+from utils.device import get_device
 
 os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
@@ -53,7 +54,7 @@ def get_data_loaders(batch_size: int) -> DataLoader:
         directory=DATA_TEST_DIRECTORY,
         batch_size=batch_size,
         transform=transform,
-        num_workers=os.cpu_count() if torch.cuda.is_available() else 2,
+        num_workers=os.cpu_count() - 1,
     )
 
 

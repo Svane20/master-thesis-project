@@ -3,3 +3,5 @@ wandb/
 checkpoints/
 output/
 predictions/
+
+torch_compile_debug/

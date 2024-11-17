@@ -16,7 +16,7 @@ def create_data_loaders(
         batch_size: int,
         transform: A.Compose,
         target_transform: A.Compose,
-        num_workers: int = 2,
+        num_workers: int = os.cpu_count() - 1,
         pin_memory: bool = True
 ) -> Tuple[DataLoader[Dataset], DataLoader[Dataset]]:
     """
@@ -58,7 +58,7 @@ def create_train_data_loader(
         batch_size: int,
         transform: A.Compose,
         shuffle: bool = True,
-        num_workers: int = 2,
+        num_workers: int = os.cpu_count() - 1,
         pin_memory: bool = True
 ) -> DataLoader[Dataset]:
     """
@@ -81,11 +81,15 @@ def create_train_data_loader(
         transform=transform,
     )
 
+    workers = max(1, num_workers)
+    persistent_workers = workers > 0 and pin_memory
+
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
-        num_workers=num_workers,
+        num_workers=workers,
+        persistent_workers=persistent_workers,
         pin_memory=pin_memory
     )
 
@@ -95,7 +99,7 @@ def create_test_data_loader(
         batch_size: int,
         transform: A.Compose,
         shuffle: bool = False,
-        num_workers: int = 2,
+        num_workers: int = os.cpu_count() - 1,
         pin_memory: bool = True
 ) -> DataLoader[Dataset]:
     """
@@ -119,10 +123,14 @@ def create_test_data_loader(
         transform=transform,
     )
 
+    workers = max(1, num_workers)
+    persistent_workers = workers > 0 and pin_memory
+
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
-        num_workers=num_workers,
+        num_workers=workers,
+        persistent_workers=persistent_workers,
         pin_memory=pin_memory
     )
