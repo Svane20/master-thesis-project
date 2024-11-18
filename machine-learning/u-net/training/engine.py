@@ -7,7 +7,7 @@ import time
 
 from configuration.weights_and_biases import WeightAndBiasesConfig
 from metrics.DICE import calculate_DICE, calculate_DICE_edge
-from utils.checkpoints import save_checkpoint, save_checkpoint_to_wandb
+from utils.checkpoints import save_checkpoint
 
 
 def train(
