@@ -14,7 +14,7 @@ os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 class CarvanaDataset(Dataset):
     """
-    Load ADE20K dataset.
+    Load Carvana dataset.
 
     Args:
         image_directory (pathlib.Path): Path to the images' directory.

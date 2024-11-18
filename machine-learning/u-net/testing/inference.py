@@ -1,11 +1,11 @@
 import torch
 
 from tqdm.auto import tqdm
+from PIL import Image
+import albumentations as A
+import numpy as np
 
-from metrics.DICE import calculate_DICE
-from metrics.IoU import calculate_IoU
-from metrics.precision import calculate_precision
-from metrics.recall import calculate_recall
+from metrics.DICE import calculate_DICE, calculate_DICE_edge
 
 
 def evaluate_model(
@@ -21,51 +21,60 @@ def evaluate_model(
         data_loader (torch.utils.data.DataLoader): Data loader
         device (torch.device): Device to use for evaluation
     """
-    # Initialize variables
-    num_correct = 0
-    num_pixels = 0
-
-    # Initialize variables for metrics
-    total_dice = 0
-    total_iou = 0
-    total_precision = 0.0
-    total_recall = 0.0
-
-    # Initialize variables for counting
-    num_batches = 0
-
     model.eval()
+
+    total_dice, total_dice_edge = 0, 0
+    num_batches = 0
 
     with torch.inference_mode():
         for X, y in tqdm(data_loader, desc="Evaluating"):
+            num_batches += 1
+
             X, y = X.to(device), y.to(device)
 
             y_logits = model(X)
             y_preds = torch.sigmoid(y_logits)
             preds = (y_preds > 0.5).float()
 
-            # Calculate metrics
-            num_correct += (preds == y).sum()
-            num_pixels += torch.numel(preds)
-
             total_dice += calculate_DICE(preds, y)
-            total_iou += calculate_IoU(preds, y)
-            total_precision += calculate_precision(preds, y)
-            total_recall += calculate_recall(preds, y)
-
-            num_batches += 1
+            total_dice_edge += calculate_DICE_edge(preds, y)
 
     # Compute average metrics
-    accuracy = num_correct / num_pixels * 100
     avg_dice = total_dice / num_batches
-    avg_iou = total_iou / num_batches
-    avg_precision = total_precision / num_batches
-    avg_recall = total_recall / num_batches
-    avg_f1_score = 2 * (avg_precision * avg_recall) / (avg_precision + avg_recall + 1e-6)
+    avg_dice_edge = total_dice_edge / num_batches
 
-    print(f"Accuracy: {accuracy:.2f}%")
     print(f"Average Dice Score: {avg_dice:.4f}")
-    print(f"Average IoU Score: {avg_iou:.4f}")
-    print(f"Average Precision: {avg_precision:.4f}")
-    print(f"Average Recall: {avg_recall:.4f}")
-    print(f"Average F1 Score: {avg_f1_score:.4f}")
+    print(f"Average Dice Edge Score: {avg_dice_edge:.4f}")
+
+
+def predict_image(
+        image: Image.Image,
+        model: torch.nn.Module,
+        transform: A.Compose,
+        device: torch.device,
+) -> np.ndarray:
+    """
+    Predict the binary mask for a single image.
+
+    Args:
+        image (Image.Image): Input image
+        model (torch.nn.Module): Model to use for prediction
+        transform (albumentations.Compose): Transform to apply to the image
+        device (torch.device): Device to use for inference
+
+    Returns:
+        np.ndarray: Predicted binary mask
+    """
+    model.eval()
+
+    # Convert PIL image to NumPy array and apply transforms
+    image_np = np.array(image)
+    transformed = transform(image=image_np)
+    image_tensor = transformed["image"].unsqueeze(0).to(device)  # Add batch dimension
+
+    with torch.inference_mode():
+        y_logits = model(image_tensor)
+        y_preds = torch.sigmoid(y_logits)
+        preds = (y_preds > 0.5).float()  # Binary mask
+
+    return preds.squeeze(0).cpu().numpy()  # Remove batch and convert to NumPy

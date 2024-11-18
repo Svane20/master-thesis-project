@@ -2,4 +2,3 @@ data/
 wandb/
 checkpoints/
 output/
-predictions/

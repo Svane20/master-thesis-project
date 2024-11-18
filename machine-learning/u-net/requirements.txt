@@ -9,3 +9,5 @@ torchinfo~=1.8.0
 pillow~=10.4.0
 numpy~=1.26.4
 albumentations~=1.4.15
+scipy~=1.13.1
+pydantic~=2.9.2

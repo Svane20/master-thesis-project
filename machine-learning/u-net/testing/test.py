@@ -1,18 +1,19 @@
 import torch
-from torch.utils.data import DataLoader
+from PIL import Image
 
 import os
 from typing import Tuple, Optional, Any, Dict
 
 from constants.directories import DATA_TEST_DIRECTORY
 from constants.hyperparameters import BATCH_SIZE
-from constants.outputs import MODEL_NAME
+from constants.outputs import MODEL_OUTPUT_NAME
 from dataset.data_loaders import create_test_data_loader
 from dataset.transforms import get_test_transforms
 from model.unet import UNetV0
-from testing.inference import evaluate_model
-from testing.visualization import save_predictions
-from utils import load_checkpoint, get_device
+from testing.inference import evaluate_model, predict_image
+from testing.visualization import save_predictions, save_prediction
+from utils.checkpoints import load_checkpoint
+from utils.device import get_device
 
 os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
@@ -34,32 +35,25 @@ def load_model(
         out_channels=1,
     )
 
-    return load_checkpoint(model=loaded_model, model_name=MODEL_NAME, device=target_device)
-
-
-def get_data_loaders(batch_size: int) -> DataLoader:
-    """
-    Get the test data loader.
-
-    Args:
-        batch_size (int): Batch size for the data loaders.
-
-    Returns:
-        DataLoader: Test data loader.
-    """
-    transform = get_test_transforms()
-
-    return create_test_data_loader(
-        directory=DATA_TEST_DIRECTORY,
-        batch_size=batch_size,
-        transform=transform,
-        num_workers=os.cpu_count() if torch.cuda.is_available() else 2,
-    )
+    return load_checkpoint(model=loaded_model, model_name=MODEL_OUTPUT_NAME, device=target_device)
 
 
 def main():
+    # Get test transforms
+    transform = get_test_transforms()
+
+    # Single image prediction
+    image_path = DATA_TEST_DIRECTORY / "images" / "cf89c3220bc4_03.jpg"
+    image = Image.open(image_path).convert("RGB")
+
     # Get test data loader
-    test_data_loader = get_data_loaders(batch_size=BATCH_SIZE)
+    test_data_loader = create_test_data_loader(
+        directory=DATA_TEST_DIRECTORY,
+        batch_size=BATCH_SIZE,
+        transform=transform,
+        num_workers=os.cpu_count() - 1,
+        pin_memory=True
+    )
 
     # Setup device
     device = get_device()
@@ -68,11 +62,13 @@ def main():
     model, _, _, _ = load_model(device)
     model.to(device)
 
-    # Make predictions
+    # Model evaluation
     evaluate_model(model, test_data_loader, device)
-
-    # Save the predictions
     save_predictions(model, test_data_loader, device, num_batches=1)
+
+    # Single image evaluation
+    predicted_mask = predict_image(image, model, transform, device)
+    save_prediction(image, predicted_mask)
 
 
 if __name__ == "__main__":
