@@ -40,7 +40,6 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--lr_decay", type=float, default=LEARNING_RATE_DECAY, help="Learning rate")
     parser.add_argument("--batch_size", type=int, default=BATCH_SIZE, help="Batch size for training")
     parser.add_argument("--epochs", type=int, default=NUM_EPOCHS, help="Number of epochs for training")
-    parser.add_argument("--warmup_epochs", type=int, default=5, help="Number of warmup epochs")
     parser.add_argument("--seed", type=int, default=SEED, help="Random seed for reproducibility")
     parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to the checkpoint for fine-tuning")
 
@@ -104,6 +103,7 @@ def main() -> None:
 
         # Load Checkpoint
         start_epoch = 0
+        best_val_dice = 0.0
         if args.checkpoint_path:
             model, optimizer, scheduler, checkpoint_info = load_checkpoint(
                 model=model,
@@ -112,8 +112,12 @@ def main() -> None:
                 directory=Path(args.checkpoint_path),
                 optimizer=optimizer,
                 scheduler=scheduler,
+                is_eval=False
             )
             start_epoch = checkpoint_info["epoch"] + 1
+            best_val_dice = checkpoint_info["dice_edge"]
+
+            print(f"[INFO] Loaded checkpoint from epoch {start_epoch} with val_loss: {best_val_dice:.4f}")
 
         # Prepare data loaders
         transform = get_train_transforms()
@@ -125,6 +129,7 @@ def main() -> None:
             transform=transform,
             target_transform=target_transform,
             num_workers=os.cpu_count() - 1,
+            pin_memory=True
         )
 
         try:
@@ -132,6 +137,7 @@ def main() -> None:
             engine.train(
                 run=run,
                 configuration=config,
+                metric_to_track=best_val_dice,
                 model=model,
                 criterion=criterion,
                 optimizer=optimizer,
@@ -142,8 +148,6 @@ def main() -> None:
                 device=device,
                 start_epoch=start_epoch
             )
-        except KeyboardInterrupt:
-            print("Training interrupted by user.")
         except Exception as e:
             print(f"An error occurred during training: {e}")
         finally:

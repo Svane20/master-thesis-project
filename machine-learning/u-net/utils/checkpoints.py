@@ -110,6 +110,7 @@ def load_checkpoint(
         device: torch.device,
         directory: Path = CHECKPOINTS_DIRECTORY,
         extension: str = "pth",
+        postfix: str = 'latest',
         optimizer: Optional[torch.optim.Optimizer] = None,
         scheduler: Optional[Any] = None,
         is_eval: bool = True
@@ -122,6 +123,7 @@ def load_checkpoint(
         model_name (str): Name of the model.
         directory (Path): Directory to load the model checkpoint from. Default is "checkpoints".
         extension (str): Extension to use. Default is ".pth".
+        postfix (str): Postfix to add to the saved model checkpoint. Default is "latest".
         optimizer (torch.optim.Optimizer, optional): Optimizer to restore the state. Default is None.
         scheduler (any, optional): Scheduler to restore the state. Default is None.
         device (torch.device): Device to load the model onto.
@@ -134,7 +136,7 @@ def load_checkpoint(
             - Scheduler with loaded state (if provided).
             - Dictionary containing additional info such as epoch, loss, and accuracy.
     """
-    model_file = directory / f"{model_name}_best_checkpoint.{extension}"
+    model_file = directory / f"{model_name}_{postfix}.{extension}"
     if not model_file.exists():
         raise FileNotFoundError(f"Checkpoint file not found at: {model_file}")
 
@@ -162,9 +164,11 @@ def load_checkpoint(
     checkpoint_info = {
         "epoch": checkpoint.get("epoch"),
         "loss": checkpoint.get("loss"),
+        "dice": checkpoint.get("dice"),
+        "dice_edge": checkpoint.get("dice_edge"),
     }
 
-    return model, optimizer, scheduler, checkpoint_info
+    return model, optimizer, scheduler, {**checkpoint_info}
 
 
 def load_checkpoint_from_wandb(

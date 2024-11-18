@@ -13,6 +13,7 @@ from utils.checkpoints import save_checkpoint
 def train(
         run: wandb.sdk.wandb_run.Run,
         configuration: WeightAndBiasesConfig,
+        metric_to_track: float,
         model: torch.nn.Module,
         train_data_loader: torch.utils.data.DataLoader,
         test_data_loader: torch.utils.data.DataLoader,
@@ -22,7 +23,7 @@ def train(
         device: torch.device,
         scheduler: torch.optim.lr_scheduler,
         disable_progress_bar: bool = False,
-        early_stop_patience: int = 5,
+        early_stop_patience: int = 10,
         start_epoch: int = 0,
 ) -> None:
     """
@@ -35,6 +36,7 @@ def train(
     Args:
         run (wandb.sdk.wandb_run.Run): Weights & Biases run object
         configuration (WeightAndBiasesConfig): Configuration for Weights & Biases
+        metric_to_track (float): Metric to track for checkpointing
         model (torch.nn.Module): Model to train and evaluate
         train_data_loader (torch.utils.data.DataLoader): Data loader for training
         test_data_loader (torch.utils.data.DataLoader): Data loader for testing
@@ -44,13 +46,14 @@ def train(
         device (torch.device): Device to run the training on
         scheduler (torch.optim.lr_scheduler): Learning rate scheduler.
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
-        early_stop_patience (int): Number of epochs to wait for improvement before stopping. Default is 5
+        early_stop_patience (int): Number of epochs to wait for improvement before stopping. Default is 10
         start_epoch (int): Epoch to start from. Default is 0
     """
     # Start Weights & Biases run
     run.watch(model, optimizer, log="all", log_freq=10)
 
-    best_val_dice, early_stop_counter = 0.0, 0
+    best_val_dice = metric_to_track
+    early_stop_counter = 0
     num_epochs = start_epoch + configuration.epochs
     training_start_time = time.time()
 
