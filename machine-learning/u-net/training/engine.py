@@ -5,19 +5,20 @@ from tqdm.auto import tqdm
 from typing import Optional, Tuple
 import time
 
+from configuration.weights_and_biases import WeightAndBiasesConfig
 from metrics.DICE import calculate_DICE, calculate_DICE_edge
 from utils.checkpoints import save_checkpoint
 
 
 def train(
+        run: wandb.sdk.wandb_run.Run,
+        configuration: WeightAndBiasesConfig,
         model: torch.nn.Module,
-        model_name: str,
         train_data_loader: torch.utils.data.DataLoader,
         test_data_loader: torch.utils.data.DataLoader,
         criterion: torch.nn.Module,
         optimizer: torch.optim.Optimizer,
         scaler: Optional[torch.amp.GradScaler],
-        epochs: int,
         device: torch.device,
         scheduler: torch.optim.lr_scheduler,
         disable_progress_bar: bool = False,
@@ -32,36 +33,25 @@ def train(
     in the same epoch loop.
 
     Args:
+        run (wandb.sdk.wandb_run.Run): Weights & Biases run object
+        configuration (WeightAndBiasesConfig): Configuration for Weights & Biases
         model (torch.nn.Module): Model to train and evaluate
-        model_name (str): Name of the model
         train_data_loader (torch.utils.data.DataLoader): Data loader for training
         test_data_loader (torch.utils.data.DataLoader): Data loader for testing
         criterion (torch.nn.Module): Loss function
         optimizer (torch.optim.Optimizer): Optimizer
         scaler (Optional[torch.amp.GradScaler]): Gradient scaler
-        epochs (int): Number of epochs to train for
         device (torch.device): Device to run the training on
         scheduler (torch.optim.lr_scheduler): Learning rate scheduler.
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
         early_stop_patience (int): Number of epochs to wait for improvement before stopping. Default is 5
         start_epoch (int): Epoch to start from. Default is 0
     """
-    # Initialize Weights & Biases
-    wandb.init(
-        project="U-NET",
-        config={
-            "epochs": epochs,
-            "batch_size": train_data_loader.batch_size,
-            "learning_rate": optimizer.param_groups[0]["lr"],
-            "dataset": "Carvana",
-            "architecture": "U-NET",
-            "model_name": model_name,
-            "device": device.type
-        }
-    )
+    # Start Weights & Biases run
+    run.watch(model, optimizer, log="all", log_freq=10)
 
     best_val_dice, early_stop_counter = 0.0, 0
-    num_epochs = start_epoch + epochs
+    num_epochs = start_epoch + configuration.epochs
     training_start_time = time.time()
 
     for epoch in tqdm(range(start_epoch, num_epochs), disable=disable_progress_bar):
@@ -106,7 +96,7 @@ def train(
         epoch_duration = time.time() - start_epoch_time
 
         # Log metrics to Weights & Biases
-        wandb.log({
+        run.log({
             "epoch": current_epoch,
             "learning_rate": current_lr,
             "epoch_duration": epoch_duration,
@@ -130,7 +120,7 @@ def train(
             best_val_dice = test_dice
             save_checkpoint(
                 model=model,
-                model_name=model_name,
+                model_name=configuration.name_of_model,
                 optimizer=optimizer,
                 scheduler=scheduler,
                 epoch=epoch,
@@ -149,8 +139,6 @@ def train(
     total_training_time = time.time() - training_start_time
     wandb.log({"training_time": total_training_time / 60})
     print(f"[INFO] Total training time: {total_training_time / 60:.2f} minutes")
-
-    wandb.finish()
 
 
 def _train_one_epoch(
