@@ -120,7 +120,7 @@ def train(
             best_val_dice = test_dice
 
             # Save the model checkpoint
-            checkpoint_path = save_checkpoint(
+            save_checkpoint(
                 model=model,
                 model_name=configuration.name_of_model,
                 optimizer=optimizer,
@@ -128,19 +128,6 @@ def train(
                 epoch=epoch,
                 loss=test_loss,
             )
-
-            # Save the model to Weights & Biases
-            try:
-                save_checkpoint_to_wandb(
-                    run=run,
-                    model_name=configuration.name_of_model,
-                    checkpoint_path=checkpoint_path,
-                    epoch=epoch,
-                    dice_score=test_dice,
-                    loss=test_loss
-                )
-            except Exception as e:
-                print(f"Failed to log artifact: {e}")
 
             early_stop_counter = 0
         else:
