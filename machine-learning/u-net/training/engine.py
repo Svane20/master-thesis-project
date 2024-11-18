@@ -2,7 +2,7 @@ import torch
 
 import wandb
 from tqdm.auto import tqdm
-from typing import Optional, Tuple
+from typing import Optional, Dict
 import time
 
 from configuration.weights_and_biases import WeightAndBiasesConfig
@@ -60,7 +60,7 @@ def train(
         current_epoch = epoch + 1
 
         # Train step
-        train_loss, train_dice, train_dice_edge = _train_one_epoch(
+        train_metrics = _train_one_epoch(
             model=model,
             dataloader=train_data_loader,
             criterion=criterion,
@@ -73,7 +73,7 @@ def train(
         )
 
         # Test step
-        test_loss, test_dice, test_dice_edge = _test_one_epoch(
+        test_metrics = _test_one_epoch(
             model=model,
             dataloader=test_data_loader,
             criterion=criterion,
@@ -85,7 +85,7 @@ def train(
 
         # Update learning rate - Ensure correct scheduler usage
         if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            scheduler.step(test_dice_edge)
+            scheduler.step(test_metrics["dice_edge"])
         else:
             scheduler.step()
 
@@ -100,34 +100,32 @@ def train(
             "epoch": current_epoch,
             "learning_rate": current_lr,
             "epoch_duration": epoch_duration,
-            "train/loss": train_loss,
-            "train/Dice": train_dice,
-            "train/Dice_edge": train_dice_edge,
-            "test/loss": test_loss,
-            "test/Dice": test_dice,
-            "test/Dice_edge": test_dice_edge
+            **{f"train/{k}": v for k, v in train_metrics.items()},
+            **{f"test/{k}": v for k, v in test_metrics.items()}
         })
 
         print(
             f"Epoch: {current_epoch}/{num_epochs} | "
-            f"Train Loss: {train_loss:.4f} | Train Dice: {train_dice:.4f} | Train Dice Edge: {train_dice_edge:.4f} | "
-            f"Test Loss: {test_loss:.4f} | Test Dice: {test_dice:.4f} | Test Dice Edge: {test_dice_edge:.4f} | "
+            f"Train Loss: {train_metrics['loss']:.4f} | Train Dice: {train_metrics['dice']:.4f} | Train Dice Edge: {train_metrics['dice_edge']:.4f} | "
+            f"Test Loss: {test_metrics['loss']:.4f} | Test Dice: {test_metrics['dice']:.4f} | Test Dice Edge: {test_metrics['dice_edge']:.4f} | "
             f"LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s"
         )
 
         # Checkpointing - Save the best model
-        if test_dice > best_val_dice:
-            best_val_dice = test_dice
+        test_dice_edge = test_metrics["dice_edge"]
+        if test_dice_edge > best_val_dice:
+            best_val_dice = test_dice_edge
 
-            # Save the model checkpoint
-            save_checkpoint(
-                model=model,
-                model_name=configuration.name_of_model,
-                optimizer=optimizer,
-                scheduler=scheduler,
-                epoch=epoch,
-                loss=test_loss,
-            )
+            try:
+                save_checkpoint(
+                    model=model,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    metrics={"epoch": current_epoch, **test_metrics},
+                    model_name=configuration.name_of_model,
+                )
+            except Exception as e:
+                print(f"An error occurred during checkpointing: {e}")
 
             early_stop_counter = 0
         else:
@@ -154,7 +152,7 @@ def _train_one_epoch(
         num_epochs: int,
         device: torch.device,
         disable_progress_bar: bool = False
-) -> Tuple[float, float, float]:
+) -> Dict[str, float]:
     """
     Trains a model for a single epoch
 
@@ -170,7 +168,7 @@ def _train_one_epoch(
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
 
     Returns:
-        Tuple[float, float, float]: Average loss, DICE, DICE for edges values
+        Dict[str, float]: Dictionary containing average loss, DICE, DICE for edges
     """
     model.train()
 
@@ -235,11 +233,13 @@ def _train_one_epoch(
         )
 
     # Compute average metrics
-    avg_loss = total_loss / num_batches
-    avg_dice = total_dice / num_batches
-    avg_dice_edge = total_dice_edge / num_batches
+    metrics = {
+        "loss": total_loss / num_batches,
+        "dice": total_dice / num_batches,
+        "dice_edge": total_dice_edge / num_batches
+    }
 
-    return avg_loss, avg_dice, avg_dice_edge
+    return metrics
 
 
 def _test_one_epoch(
@@ -250,7 +250,7 @@ def _test_one_epoch(
         num_epochs: int,
         device: torch.device,
         disable_progress_bar: bool = False
-) -> Tuple[float, float, float]:
+) -> Dict[str, float]:
     """
     Evaluates a model for a single epoch
 
@@ -264,7 +264,7 @@ def _test_one_epoch(
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
 
     Returns:
-        Tuple[float, float, float]: Average loss, IoU, IoU for edges, DICE, DICE for edges values
+        Dict[str, float]: Dictionary containing average loss, DICE, DICE for edges
     """
     model.eval()
 
@@ -311,8 +311,11 @@ def _test_one_epoch(
                 }
             )
 
-    avg_test_loss = total_loss / num_batches
-    avg_test_dice = total_dice / num_batches
-    avg_test_dice_edge = total_dice_edge / num_batches
+    # Compute average metrics
+    metrics = {
+        "loss": total_loss / num_batches,
+        "dice": total_dice / num_batches,
+        "dice_edge": total_dice_edge / num_batches
+    }
 
-    return avg_test_loss, avg_test_dice, avg_test_dice_edge
+    return metrics
