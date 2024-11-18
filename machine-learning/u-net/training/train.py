@@ -90,7 +90,7 @@ def main() -> None:
         set_seeds(seed=config.seed)
 
         # Clear the CUDA cache
-        if device.type == "cuda":
+        if torch.cuda.is_available():
             torch.cuda.empty_cache()
 
         # Instantiate Model
@@ -99,7 +99,7 @@ def main() -> None:
         # Loss, Optimizer, Scheduler, AMP
         criterion = custom_criterions.EdgeWeightedBCEDiceLoss(edge_weight=5, edge_loss_weight=1)
         optimizer = optim.Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.learning_rate_decay)
-        scaler = torch.amp.GradScaler() if device.type == "cuda" else None
+        scaler = torch.amp.GradScaler() if torch.cuda.is_available() else None
         scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=5)
 
         # Load Checkpoint

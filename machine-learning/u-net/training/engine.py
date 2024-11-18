@@ -7,7 +7,7 @@ import time
 
 from configuration.weights_and_biases import WeightAndBiasesConfig
 from metrics.DICE import calculate_DICE, calculate_DICE_edge
-from utils.checkpoints import save_checkpoint
+from utils.checkpoints import save_checkpoint, save_checkpoint_to_wandb
 
 
 def train(
@@ -118,7 +118,9 @@ def train(
         # Checkpointing - Save the best model
         if test_dice > best_val_dice:
             best_val_dice = test_dice
-            save_checkpoint(
+
+            # Save the model checkpoint
+            checkpoint_path = save_checkpoint(
                 model=model,
                 model_name=configuration.name_of_model,
                 optimizer=optimizer,
@@ -126,6 +128,20 @@ def train(
                 epoch=epoch,
                 loss=test_loss,
             )
+
+            # Save the model to Weights & Biases
+            try:
+                save_checkpoint_to_wandb(
+                    run=run,
+                    model_name=configuration.name_of_model,
+                    checkpoint_path=checkpoint_path,
+                    epoch=epoch,
+                    dice_score=test_dice,
+                    loss=test_loss
+                )
+            except Exception as e:
+                print(f"Failed to log artifact: {e}")
+
             early_stop_counter = 0
         else:
             early_stop_counter += 1
@@ -188,7 +204,7 @@ def _train_one_epoch(
         X, y = X.to(device), y.to(device)
 
         # Mixed Precision Training
-        with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=(device.type == "cuda")):
+        with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=torch.cuda.is_available()):
             # Forward pass
             y_pred = model(X)
 
@@ -282,7 +298,7 @@ def _test_one_epoch(
 
             X, y = X.to(device), y.to(device)
 
-            with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=(device.type == "cuda")):
+            with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=torch.cuda.is_available()):
                 # Forward pass
                 y_pred = model(X)
 
