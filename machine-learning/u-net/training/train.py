@@ -7,10 +7,9 @@ from torch.optim import lr_scheduler
 import argparse
 import sys
 import os
-from pathlib import Path
 
 from configuration.weights_and_biases import WeightAndBiasesConfig
-from constants.directories import DATA_TRAIN_DIRECTORY, DATA_TEST_DIRECTORY
+from constants.directories import DATA_TRAIN_DIRECTORY, DATA_TEST_DIRECTORY, CHECKPOINTS_DIRECTORY
 from constants.hyperparameters import BATCH_SIZE, SEED, LEARNING_RATE, NUM_EPOCHS, LEARNING_RATE_DECAY
 from constants.outputs import MODEL_OUTPUT_NAME, TRAINED_MODEL_CHECKPOINT_NAME
 from dataset.data_loaders import create_data_loaders
@@ -18,8 +17,9 @@ from dataset.transforms import get_train_transforms, get_test_transforms
 from model.unet import UNetV0
 from training import engine
 from training import custom_criterions
+from training.early_stopping import EarlyStopping
 from utils.checkpoints import load_checkpoint
-from utils.device import get_device
+from utils.device import get_device, get_torch_compile_backend
 from utils.seeds import set_seeds
 from utils.training import setup_AMP
 
@@ -41,7 +41,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--batch_size", type=int, default=BATCH_SIZE, help="Batch size for training")
     parser.add_argument("--epochs", type=int, default=NUM_EPOCHS, help="Number of epochs for training")
     parser.add_argument("--seed", type=int, default=SEED, help="Random seed for reproducibility")
-    parser.add_argument("--checkpoint_path", type=str, default=None, help="Path to the checkpoint for fine-tuning")
+    parser.add_argument("--use_checkpoint", type=bool, default=False, help="Use checkpoint for training")
 
     args = parser.parse_args()
 
@@ -101,23 +101,29 @@ def main() -> None:
         scaler = torch.amp.GradScaler() if torch.cuda.is_available() else None
         scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=5)
 
+        early_stopping = EarlyStopping(
+            patience=10,
+            min_delta=0.0,
+            verbose=True,
+            mode='max'
+        )
+
         # Load Checkpoint
         start_epoch = 0
-        best_val_dice = 0.0
-        if args.checkpoint_path:
-            model, optimizer, scheduler, checkpoint_info = load_checkpoint(
+        if args.use_checkpoint:
+            model, optimizer, scheduler, early_stopping, checkpoint_info = load_checkpoint(
                 model=model,
                 model_name=TRAINED_MODEL_CHECKPOINT_NAME,
                 device=device,
-                directory=Path(args.checkpoint_path),
+                directory=CHECKPOINTS_DIRECTORY,
                 optimizer=optimizer,
                 scheduler=scheduler,
-                is_eval=False
+                early_stopping=early_stopping,
             )
-            start_epoch = checkpoint_info["epoch"] + 1
-            best_val_dice = checkpoint_info["dice_edge"]
+            start_epoch = checkpoint_info.get("epoch", 0)
 
-            print(f"[INFO] Loaded checkpoint from epoch {start_epoch} with val_loss: {best_val_dice:.4f}")
+        # Compile model for faster training
+        model = torch.compile(model, backend=get_torch_compile_backend())
 
         # Prepare data loaders
         transform = get_train_transforms()
@@ -132,12 +138,14 @@ def main() -> None:
             pin_memory=True
         )
 
+        # Start Weights & Biases run
+        run.watch(model, optimizer, log="all", log_freq=10)
+
         try:
             # Train the model
             engine.train(
                 run=run,
                 configuration=config,
-                metric_to_track=best_val_dice,
                 model=model,
                 criterion=criterion,
                 optimizer=optimizer,
@@ -146,7 +154,8 @@ def main() -> None:
                 train_data_loader=train_data_loader,
                 test_data_loader=test_data_loader,
                 device=device,
-                start_epoch=start_epoch
+                early_stopping=early_stopping,
+                start_epoch=start_epoch,
             )
         except Exception as e:
             print(f"An error occurred during training: {e}")

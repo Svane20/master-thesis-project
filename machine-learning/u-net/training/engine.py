@@ -7,13 +7,13 @@ import time
 
 from configuration.weights_and_biases import WeightAndBiasesConfig
 from metrics.DICE import calculate_DICE, calculate_DICE_edge
+from training.early_stopping import EarlyStopping
 from utils.checkpoints import save_checkpoint
 
 
 def train(
         run: wandb.sdk.wandb_run.Run,
         configuration: WeightAndBiasesConfig,
-        metric_to_track: float,
         model: torch.nn.Module,
         train_data_loader: torch.utils.data.DataLoader,
         test_data_loader: torch.utils.data.DataLoader,
@@ -22,8 +22,8 @@ def train(
         scaler: Optional[torch.amp.GradScaler],
         device: torch.device,
         scheduler: torch.optim.lr_scheduler,
+        early_stopping: EarlyStopping,
         disable_progress_bar: bool = False,
-        early_stop_patience: int = 10,
         start_epoch: int = 0,
 ) -> None:
     """
@@ -36,7 +36,6 @@ def train(
     Args:
         run (wandb.sdk.wandb_run.Run): Weights & Biases run object
         configuration (WeightAndBiasesConfig): Configuration for Weights & Biases
-        metric_to_track (float): Metric to track for checkpointing
         model (torch.nn.Module): Model to train and evaluate
         train_data_loader (torch.utils.data.DataLoader): Data loader for training
         test_data_loader (torch.utils.data.DataLoader): Data loader for testing
@@ -45,15 +44,10 @@ def train(
         scaler (Optional[torch.amp.GradScaler]): Gradient scaler
         device (torch.device): Device to run the training on
         scheduler (torch.optim.lr_scheduler): Learning rate scheduler.
+        early_stopping (EarlyStopping): Early stopping object
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
-        early_stop_patience (int): Number of epochs to wait for improvement before stopping. Default is 10
         start_epoch (int): Epoch to start from. Default is 0
     """
-    # Start Weights & Biases run
-    run.watch(model, optimizer, log="all", log_freq=10)
-
-    best_val_dice = metric_to_track
-    early_stop_counter = 0
     num_epochs = start_epoch + configuration.epochs
     training_start_time = time.time()
 
@@ -86,9 +80,14 @@ def train(
             disable_progress_bar=disable_progress_bar
         )
 
+        validation_metric = test_metrics.get("dice_edge", None)
+
         # Update learning rate - Ensure correct scheduler usage
         if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            scheduler.step(test_metrics["dice_edge"])
+            if validation_metric is not None:
+                scheduler.step(validation_metric)
+            else:
+                print("[WARNING] Missing metric for ReduceLROnPlateau. Skipping scheduler step.")
         else:
             scheduler.step()
 
@@ -114,29 +113,25 @@ def train(
             f"LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s"
         )
 
-        # Checkpointing - Save the best model
-        test_dice_edge = test_metrics["dice_edge"]
-        if test_dice_edge > best_val_dice:
-            best_val_dice = test_dice_edge
+        # Update early stopping
+        early_stopping.step(validation_metric)
 
+        if early_stopping.has_improved:
             try:
                 save_checkpoint(
                     model=model,
                     optimizer=optimizer,
                     scheduler=scheduler,
+                    early_stopping=early_stopping,
                     metrics={"epoch": current_epoch, **test_metrics},
                     model_name=configuration.name_of_model,
                 )
             except Exception as e:
                 print(f"An error occurred during checkpointing: {e}")
 
-            early_stop_counter = 0
-        else:
-            early_stop_counter += 1
-
-        # Early stopping
-        if early_stop_counter >= early_stop_patience:
-            print(f"Early stopping triggered at epoch {current_epoch}")
+        # Check for early stopping
+        if early_stopping.should_stop:
+            print(f"[INFO] Early stopping activated. Best score: {early_stopping.best_score:.4f}")
             break
 
     # Total Training Time
