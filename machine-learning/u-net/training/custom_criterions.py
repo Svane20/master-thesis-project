@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-EPSILON = 1e-6
+from utils.edge_detection import compute_edge_map
 
 
 class DiceLoss(nn.Module):
@@ -77,31 +77,6 @@ class EdgeWeightedBCEDiceLoss(nn.Module):
         # Weight applied to the edge loss term
         self.edge_loss_weight = edge_loss_weight
 
-    def compute_edge_map(self, tensor: torch.Tensor) -> torch.Tensor:
-        """
-        Compute the edge map of a binary mask using the Sobel filter.
-
-        Args:
-            tensor (torch.Tensor): Binary mask tensor.
-
-        Returns:
-            torch.Tensor: Edge map tensor.
-        """
-        # Define Sobel kernels for edge detection
-        sobel_kernel_x = (torch.tensor([[-1., 0., 1.], [-2., 0., 2.], [-1., 0., 1.]], device=tensor.device)
-                          .view(1, 1, 3, 3))
-        sobel_kernel_y = (torch.tensor([[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]], device=tensor.device)
-                          .view(1, 1, 3, 3))
-
-        # Compute the gradient in the x and y directions
-        grad_x = torch.nn.functional.conv2d(tensor, sobel_kernel_x, padding=1)
-        grad_y = torch.nn.functional.conv2d(tensor, sobel_kernel_y, padding=1)
-
-        # Compute the magnitude of the gradient
-        grad_magnitude = torch.sqrt(grad_x ** 2 + grad_y ** 2 + EPSILON)
-
-        return grad_magnitude
-
     def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
         Calculate the combined BCE and Dice Loss with edge weights.
@@ -126,7 +101,7 @@ class EdgeWeightedBCEDiceLoss(nn.Module):
         targets = targets.float()
 
         # Compute edge map from ground truth mask
-        edges_gt = self.compute_edge_map(targets)
+        edges_gt = compute_edge_map(targets)
 
         # Create edge weight mask for BCE loss
         edge_weight_mask = 1 + self.edge_weight * edges_gt
@@ -144,7 +119,7 @@ class EdgeWeightedBCEDiceLoss(nn.Module):
         inputs_prob = torch.sigmoid(inputs)
 
         # Compute edge map from predicted mask
-        edges_pred = self.compute_edge_map(inputs_prob)
+        edges_pred = compute_edge_map(inputs_prob)
 
         # Calculate edge loss using L1 loss
         edge_loss = torch.nn.functional.l1_loss(edges_pred, edges_gt)

@@ -184,7 +184,7 @@ def _train_one_epoch(
     for batch_idx, (X, y) in progress_bar:
         num_batches += 1
 
-        X, y = X.to(device), y.to(device)
+        X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
 
         # Mixed Precision Training
         with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=torch.cuda.is_available()):
@@ -281,7 +281,7 @@ def _test_one_epoch(
         for batch_idx, (X, y) in progress_bar:
             num_batches += 1
 
-            X, y = X.to(device), y.to(device)
+            X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
 
             with torch.autocast(device_type=device.type, dtype=torch.float16, enabled=torch.cuda.is_available()):
                 # Forward pass

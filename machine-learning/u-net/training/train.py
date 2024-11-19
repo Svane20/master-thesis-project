@@ -7,6 +7,7 @@ from torch.optim import lr_scheduler
 import argparse
 import sys
 import os
+import traceback
 
 from configuration.weights_and_biases import WeightAndBiasesConfig
 from constants.directories import DATA_TRAIN_DIRECTORY, DATA_TEST_DIRECTORY, CHECKPOINTS_DIRECTORY
@@ -159,6 +160,7 @@ def main() -> None:
             )
         except Exception as e:
             print(f"An error occurred during training: {e}")
+            traceback.print_exc()
         finally:
             run.finish()
 

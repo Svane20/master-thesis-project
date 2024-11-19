@@ -44,7 +44,7 @@ def save_predictions(
 
     with torch.inference_mode():
         for batch_idx, (X, y) in tqdm(enumerate(batches_to_process), desc="Saving predictions"):
-            X, y = X.to(device), y.to(device)
+            X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
 
             y_logits = model(X)
             y_preds = torch.sigmoid(y_logits)

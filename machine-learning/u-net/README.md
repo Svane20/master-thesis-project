@@ -1,11 +1,9 @@
 # ML for Semantic Segmentation
 
-### Download data (Windows)
+## Tests
 
-1. Open a terminal with Git Bash.
+1. Run tests from root directory with this command:
 
-2. Run the following command:
-
-```text
-bash scripts/download_data.sh
-```
+````bash
+pytest tests/
+````

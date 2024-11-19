@@ -30,7 +30,7 @@ def evaluate_model(
         for X, y in tqdm(data_loader, desc="Evaluating"):
             num_batches += 1
 
-            X, y = X.to(device), y.to(device)
+            X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
 
             y_logits = model(X)
             y_preds = torch.sigmoid(y_logits)
