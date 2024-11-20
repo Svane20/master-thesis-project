@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 
 from PIL import Image
@@ -151,6 +153,7 @@ def remove_background(
         image: Image.Image,
         predicted_mask: np.ndarray,
         directory: Path = OUTPUT_DIRECTORY,
+        output_size: Tuple[int, int] = (224, 224),
 ) -> None:
     """
     Save the input image and predicted mask with background removed.
@@ -159,24 +162,34 @@ def remove_background(
         image (Image.Image): Input image
         predicted_mask (np.ndarray): Predicted mask
         directory (Path): Directory to save the image to. Default is "output".
+        output_size (tuple[int, int]): Desired output size for the saved image (width, height). Default is (224, 224).
     """
-    # Resize the image to 224x224
-    image = image.resize((224, 224), Image.Resampling.LANCZOS)
-
     # Create the directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
 
-    # Ensure the predicted mask has the correct shape
+    assert len(output_size) == 2, "Output size must be a tuple of two integers (width, height)."
+    assert output_size[0] >= 224 and output_size[1] >= 224, "Output size must be at least 224x224."
+
+    # Resize the input image
+    image = image.resize(output_size, Image.Resampling.LANCZOS)
+
+    # Ensure predicted_mask is in a format that can be processed by PIL
     if predicted_mask.ndim == 3 and predicted_mask.shape[0] == 1:
         predicted_mask = predicted_mask.squeeze(0)
 
-    # Convert predicted mask to binary
-    binary_mask = (predicted_mask > 0.5).astype(np.uint8)
+    # Convert predicted_mask to uint8 format
+    predicted_mask = (predicted_mask * 255).astype(np.uint8)
 
-    # Add alpha channel (transparency)
+    # Create a PIL image for the mask and resize it
+    mask_image = Image.fromarray(predicted_mask).resize(output_size, Image.Resampling.NEAREST)
+
+    # Convert the resized mask back to a NumPy array and ensure it is binary
+    binary_mask = (np.array(mask_image) > 127).astype(np.uint8)
+
+    # Add an alpha channel based on the binary mask
     image_array = np.array(image)
-    alpha_channel = (binary_mask * 255).astype(np.uint8)  # Scale binary mask to 0-255
-    image_with_alpha = np.dstack((image_array, alpha_channel))  # Add alpha channel
+    alpha_channel = (binary_mask * 255).astype(np.uint8)
+    image_with_alpha = np.dstack((image_array, alpha_channel))
 
     # Save the background removed image with transparency
     background_removed_path = directory / "background_removed.png"
