@@ -10,7 +10,7 @@ from dataset.data_loaders import create_test_data_loader
 from dataset.transforms import get_test_transforms
 from model.unet import UNetV0
 from testing.inference import evaluate_model, predict_image
-from testing.visualization import save_predictions, save_prediction
+from testing.visualization import save_predictions, save_prediction, remove_background
 from utils.checkpoints import load_model_checkpoint
 from utils.device import get_device, get_torch_compile_backend
 
@@ -46,6 +46,7 @@ def main():
 
     predicted_mask = predict_image(image, model, transform, device)
     save_prediction(image, predicted_mask)
+    remove_background(image, predicted_mask)
 
 
 if __name__ == "__main__":

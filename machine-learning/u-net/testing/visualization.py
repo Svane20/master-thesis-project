@@ -145,3 +145,67 @@ def save_prediction(
     plt.close(fig)
 
     print(f"Prediction saved to {prediction_path}")
+
+
+def remove_background(
+        image: Image.Image,
+        predicted_mask: np.ndarray,
+        directory: Path = OUTPUT_DIRECTORY,
+) -> None:
+    """
+    Save the input image and predicted mask with background removed.
+
+    Args:
+        image (Image.Image): Input image
+        predicted_mask (np.ndarray): Predicted mask
+        directory (Path): Directory to save the image to. Default is "output".
+    """
+    # Resize the image to 224x224
+    image = image.resize((224, 224), Image.Resampling.LANCZOS)
+
+    # Create the directory if it does not exist
+    directory.mkdir(parents=True, exist_ok=True)
+
+    # Ensure the predicted mask has the correct shape
+    if predicted_mask.ndim == 3 and predicted_mask.shape[0] == 1:
+        predicted_mask = predicted_mask.squeeze(0)
+
+    # Convert predicted mask to binary
+    binary_mask = (predicted_mask > 0.5).astype(np.uint8)
+
+    # Add alpha channel (transparency)
+    image_array = np.array(image)
+    alpha_channel = (binary_mask * 255).astype(np.uint8)  # Scale binary mask to 0-255
+    image_with_alpha = np.dstack((image_array, alpha_channel))  # Add alpha channel
+
+    # Save the background removed image with transparency
+    background_removed_path = directory / "background_removed.png"
+    Image.fromarray(image_with_alpha, mode="RGBA").save(background_removed_path)
+
+    # Create figure
+    fig, ax = plt.subplots(1, 3, figsize=(18, 6))
+
+    # Display input image
+    ax[0].imshow(image)
+    ax[0].set_title('Input')
+    ax[0].axis('off')
+
+    # Display prediction overlay
+    ax[1].imshow(predicted_mask, cmap='gray')
+    ax[1].set_title(f'Predicted Mask')
+    ax[1].axis('off')
+
+    # Display background removed
+    ax[2].imshow(Image.fromarray(image_with_alpha, mode="RGBA"))
+    ax[2].set_title('Background Removed')
+    ax[2].axis('off')
+
+    prediction_path = directory / "background.png"
+
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.85)
+    plt.savefig(prediction_path)
+    plt.show()
+    plt.close(fig)
+
+    print(f"Background saved to {prediction_path}")
