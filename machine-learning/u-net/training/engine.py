@@ -1,6 +1,7 @@
 import torch
 
 import wandb
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm.auto import tqdm
 from typing import Optional, Dict
 import time
@@ -23,6 +24,7 @@ def train(
         device: torch.device,
         scheduler: torch.optim.lr_scheduler,
         early_stopping: EarlyStopping,
+        warmup_scheduler: Optional[torch.optim.lr_scheduler] = None,
         disable_progress_bar: bool = False,
         start_epoch: int = 0,
 ) -> None:
@@ -45,10 +47,12 @@ def train(
         device (torch.device): Device to run the training on
         scheduler (torch.optim.lr_scheduler): Learning rate scheduler.
         early_stopping (EarlyStopping): Early stopping object
+        warmup_scheduler (Optional[torch.optim.lr_scheduler]): Warmup scheduler. Default is None
         disable_progress_bar (bool): Disable tqdm progress bar. Default is False
         start_epoch (int): Epoch to start from. Default is 0
     """
     num_epochs = start_epoch + configuration.epochs
+    warmup_epochs = configuration.warmup_epochs
     training_start_time = time.time()
 
     for epoch in tqdm(range(start_epoch, num_epochs), disable=disable_progress_bar):
@@ -82,14 +86,13 @@ def train(
 
         validation_metric = test_metrics.get("dice_edge", None)
 
-        # Update learning rate - Ensure correct scheduler usage
-        if isinstance(scheduler, torch.optim.lr_scheduler.ReduceLROnPlateau):
-            if validation_metric is not None:
-                scheduler.step(validation_metric)
-            else:
-                print("[WARNING] Missing metric for ReduceLROnPlateau. Skipping scheduler step.")
+        # Step the scheduler
+        if warmup_scheduler is not None and epoch < warmup_epochs:
+            print("[INFO] Warmup scheduler is active.")
+            _scheduler_step(warmup_scheduler, epoch)
         else:
-            scheduler.step()
+            print("[INFO] Main scheduler is active.")
+            _scheduler_step(scheduler, validation_metric)
 
         # Get current learning rate
         current_lr = optimizer.param_groups[0]["lr"]
@@ -317,3 +320,20 @@ def _test_one_epoch(
     }
 
     return metrics
+
+
+def _scheduler_step(scheduler: torch.optim.lr_scheduler, validation_metric: Optional[float] = None) -> None:
+    """
+    Steps the scheduler based on its type and current training phase.
+
+    Args:
+        scheduler (torch.optim.lr_scheduler): The learning rate scheduler.
+        validation_metric (Optional[float]): Validation metric for ReduceLROnPlateau.
+    """
+    if isinstance(scheduler, ReduceLROnPlateau):
+        if validation_metric is not None:
+            scheduler.step(validation_metric)
+        else:
+            print("[WARNING] Missing metric for ReduceLROnPlateau. Skipping scheduler step.")
+    else:
+        scheduler.step()

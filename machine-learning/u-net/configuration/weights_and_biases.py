@@ -7,6 +7,7 @@ class WeightAndBiasesConfig(BaseModel):
 
     Attributes:
         epochs (int): Number of training epochs.
+        warmup_epochs (int): Number of warmup epochs.
         batch_size (int): Batch size for the data loader.
         learning_rate (float): Learning rate for the optimizer.
         learning_rate_decay (float): Learning rate decay for the optimizer.
@@ -17,6 +18,7 @@ class WeightAndBiasesConfig(BaseModel):
         device (str): Device type, e.g., 'cuda' or 'cpu'.
     """
     epochs: int = Field(description="Number of training epochs")
+    warmup_epochs: int = Field(description="Number of warmup epochs")
     batch_size: int = Field(description="Batch size for the data loader")
     learning_rate: float = Field(description="Learning rate for the optimizer")
     learning_rate_decay: float = Field(description="Learning rate decay for the optimizer")
