@@ -15,7 +15,7 @@ def export_to_onnx(
         device: torch.device,
         model_name: str = TRAINED_MODEL_CHECKPOINT_NAME,
         directory: Path = EXPORT_DIRECTORY,
-        input_shape: Tuple[int, int, int, int] = (1, 3, 256, 256),  # (batch_size, channels, height, width),
+        input_shape: Tuple[int, int, int, int] = (1, 3, 224, 224),  # (batch_size, channels, height, width),
         postfix: str = 'latest',
 ):
     # Create export directory if it does not exist

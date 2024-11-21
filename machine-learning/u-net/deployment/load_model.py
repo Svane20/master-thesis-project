@@ -15,7 +15,3 @@ def load_onnx_model(
 
     # Check if the model is valid
     onnx.checker.check_model(model)
-
-
-if __name__ == "__main__":
-    load_onnx_model(model_name=TRAINED_MODEL_CHECKPOINT_NAME)
