@@ -99,6 +99,7 @@ def render_image(write_still: bool = True) -> None:
 
 def save_as_blend_file(
         image_name: str,
+        iteration: int = 0,
         directory_path: Path = BLENDER_FILES_DIRECTORY,
         allow_overwrite: bool = True
 ) -> None:
@@ -107,6 +108,7 @@ def save_as_blend_file(
 
     Args:
         image_name (str): The name of the file to save.
+        iteration (int): The current iteration number. Defaults to 0.
         directory_path (Path): The directory path to save the .blend file.
         allow_overwrite (bool): Whether to allow overwriting an existing file. Defaults to True.
 
@@ -114,7 +116,7 @@ def save_as_blend_file(
         IOError: If the blend file fails to save.
     """
     try:
-        output_path = _prepare_output_path(image_name, directory_path, allow_overwrite)
+        output_path = _prepare_output_path(image_name, iteration, directory_path, allow_overwrite)
 
         # Save the blend file
         bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
@@ -142,12 +144,13 @@ def _build_append_paths(object_path: Path, collection_name: str) -> Tuple[str, s
     return file_path, collection_path
 
 
-def _prepare_output_path(image_name: str, directory_path: Path, allow_overwrite: bool) -> Path:
+def _prepare_output_path(image_name: str, iteration: int, directory_path: Path, allow_overwrite: bool) -> Path:
     """
     Prepares the output path for saving a .blend file.
 
     Args:
         image_name (str): The name of the file to save.
+        iteration (int): The current iteration number. Defaults to 0.
         directory_path (Path): The directory path to save the .blend file.
         allow_overwrite (bool): Whether to allow overwriting an existing file.
 
@@ -159,7 +162,7 @@ def _prepare_output_path(image_name: str, directory_path: Path, allow_overwrite:
     """
     output_dir = directory_path.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{image_name}.{FileExtension.BLEND.value}"
+    output_path = output_dir / f"{image_name}_{iteration}.{FileExtension.BLEND.value}"
 
     if allow_overwrite and output_path.exists():
         output_path.unlink()

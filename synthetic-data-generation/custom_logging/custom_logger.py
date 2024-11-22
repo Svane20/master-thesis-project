@@ -7,6 +7,10 @@ class CustomFormatter(logging.Formatter):
     This works for any extra fields passed, making it flexible for various log records and allowing richer context in logs.
     """
 
+    # ANSI escape codes for white text
+    WHITE = "\033[97m"
+    RESET = "\033[0m"
+
     def format(self, record):
         log_message = super().format(record)
 
@@ -25,6 +29,9 @@ class CustomFormatter(logging.Formatter):
         if extra_fields:
             extra_str = " | ".join([f"{key}: {value}" for key, value in extra_fields.items()])
             log_message = f"{log_message} | {extra_str}"
+
+        if record.levelno == logging.INFO:
+            return f"{self.WHITE}{log_message}{self.RESET}"
 
         return log_message
 

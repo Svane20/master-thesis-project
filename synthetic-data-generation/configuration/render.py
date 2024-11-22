@@ -46,7 +46,7 @@ class CyclesConfiguration(BaseModel):
     feature_set: str = "SUPPORTED"
     device: str = "GPU"
     tile_size: int = 4096
-    samples: int = 1  # Set to a lower value for development, increase for production
+    samples: int = 128  # Set to a lower value for development, increase for production
     use_denoising: bool = True
     denoising_use_gpu: bool = True
     use_adaptive_sampling: bool = True

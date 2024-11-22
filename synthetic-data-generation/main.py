@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Tuple
 import numpy as np
 from numpy.typing import NDArray
+import time
 
 from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alpha_threshold
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
@@ -187,10 +188,12 @@ def setup_scene() -> Tuple[Path, NDArray[np.float32], NDArray[np.float64]]:
 
 def main() -> None:
     """The main function to render the images from multiple camera angles."""
+    # Track the overall script execution time
+    script_start_time = time.perf_counter()
+    logger.info("Script execution started.")
+
     # Set up the scene
     playground_directory, height_map, iterations = setup_scene()
-
-    # Get the total number of iterations
     total_iterations = len(iterations)
     logger.info(f"Total iterations: {total_iterations}")
 
@@ -198,6 +201,7 @@ def main() -> None:
     for index, iteration in enumerate(iterations):
         current_iteration = index + 1
         logger.info(f"Rendering image {current_iteration}/{total_iterations}")
+        start_time = time.perf_counter()
 
         location = get_random_camera_location(
             iteration=iteration,
@@ -209,17 +213,31 @@ def main() -> None:
         update_camera_position(location=location)
 
         if index == 0:
-            save_as_blend_file(image_name=IMAGE_NAME)
+            save_as_blend_file(image_name=IMAGE_NAME, iteration=index)
 
         render_image(write_still=True)
 
         # Rename the rendered image and mask(s)
         move_rendered_images_to_playground(directory=playground_directory, iteration=index)
 
-        logger.info(f"Image {current_iteration}/{total_iterations} rendered successfully")
+        # Log the elapsed time for rendering the current image
+        end_time = time.perf_counter()
+        elapsed_time = end_time - start_time
+        minutes, seconds = divmod(elapsed_time, 60)
+        logger.info(
+            f"Image {current_iteration}/{total_iterations} rendered successfully "
+            f"(Execution time: {int(minutes)} minutes and {seconds:.2f} seconds)"
+        )
 
     # Cleanup temporary files generated during rendering
     cleanup_files()
+    logger.info("Temporary files cleaned up.")
+
+    # Log the total execution time of the script
+    script_end_time = time.perf_counter()
+    total_elapsed_time = script_end_time - script_start_time
+    total_minutes, total_seconds = divmod(total_elapsed_time, 60)
+    logger.info(f"Script finished in {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
 
 
 if __name__ == "__main__":
