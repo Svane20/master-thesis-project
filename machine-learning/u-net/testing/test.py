@@ -8,7 +8,7 @@ from constants.hyperparameters import BATCH_SIZE
 from constants.outputs import TRAINED_MODEL_CHECKPOINT_NAME
 from dataset.data_loaders import create_test_data_loader
 from dataset.transforms import get_test_transforms
-from model.unet import UNetV0
+from model.unet import UNetV1VGG
 from testing.inference import evaluate_model, predict_image
 from testing.visualization import save_predictions, save_prediction, remove_background
 from utils.checkpoints import load_model_checkpoint
@@ -25,7 +25,7 @@ def main():
     device = get_device()
 
     # Load trained model
-    model = UNetV0(in_channels=3, out_channels=1, dropout=0.5)
+    model = UNetV1VGG(out_channels=1, pretrained=True)
     model, _ = load_model_checkpoint(model=model, model_name=TRAINED_MODEL_CHECKPOINT_NAME, device=device)
     model = torch.compile(model, backend=get_torch_compile_backend())
 

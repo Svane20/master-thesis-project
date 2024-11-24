@@ -84,14 +84,13 @@ def train(
             disable_progress_bar=disable_progress_bar
         )
 
-        validation_metric = test_metrics.get("dice_edge", None)
+        validation_metric = test_metrics.get("dice", None)
 
         # Step the scheduler
         if warmup_scheduler is not None and epoch < warmup_epochs:
             print("[INFO] Warmup scheduler is active.")
             _scheduler_step(warmup_scheduler, epoch)
         else:
-            print("[INFO] Main scheduler is active.")
             _scheduler_step(scheduler, validation_metric)
 
         # Get current learning rate

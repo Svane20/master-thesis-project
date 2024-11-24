@@ -5,7 +5,7 @@ from typing import Tuple
 
 from constants.directories import EXPORT_DIRECTORY
 from constants.outputs import TRAINED_MODEL_CHECKPOINT_NAME
-from model.unet import UNetV0
+from model.unet import UNetV1VGG
 from utils.checkpoints import load_model_checkpoint
 from utils.device import get_device
 
@@ -53,7 +53,7 @@ if __name__ == "__main__":
     model_name = TRAINED_MODEL_CHECKPOINT_NAME
 
     # Load trained model
-    loaded_model = UNetV0(in_channels=3, out_channels=1, dropout=0.5)
+    loaded_model = UNetV1VGG(out_channels=1, pretrained=True)
     loaded_model, _ = load_model_checkpoint(model=loaded_model, model_name=model_name, device=target_device)
 
     # Export model to ONNX

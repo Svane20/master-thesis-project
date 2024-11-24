@@ -15,7 +15,7 @@ from constants.hyperparameters import BATCH_SIZE, SEED, LEARNING_RATE, NUM_EPOCH
 from constants.outputs import MODEL_OUTPUT_NAME, TRAINED_MODEL_CHECKPOINT_NAME
 from dataset.data_loaders import create_data_loaders
 from dataset.transforms import get_train_transforms, get_test_transforms
-from model.unet import UNetV0
+from model.unet import UNetV1VGG
 from training import engine
 from training import custom_criterions
 from training.early_stopping import EarlyStopping
@@ -126,13 +126,14 @@ def main() -> None:
             torch.cuda.empty_cache()
 
         # Instantiate Model
-        model = UNetV0(in_channels=3, out_channels=1, dropout=0.5).to(device)
+        model = UNetV1VGG(out_channels=1, pretrained=True).to(device)
 
         # Loss, Optimizer, Scheduler, AMP
-        criterion = custom_criterions.EdgeWeightedBCEDiceLoss(edge_weight=5, edge_loss_weight=1)
-        optimizer = optim.Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.learning_rate_decay)
+        criterion = custom_criterions.BCEDiceLoss(bce_weight=0.7, dice_weight=0.3)
+        optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.learning_rate_decay)
         scaler = torch.amp.GradScaler() if torch.cuda.is_available() else None
-        scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5, min_lr=1e-7)
+        # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5, min_lr=1e-7)
+        scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-6)
 
         if args.use_checkpoint:
             warmup_scheduler = None

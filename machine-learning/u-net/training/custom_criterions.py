@@ -54,9 +54,13 @@ class BCEDiceLoss(nn.Module):
 
     This loss function combines the strengths of both BCE and Dice Loss.
     BCE is effective for pixel-wise classification, while Dice Loss helps improve overlap between the predicted mask and ground truth.
+
+    Args:
+        bce_weight (float): Weight for the BCE loss term. Default is 0.5.
+        dice_weight (float): Weight for the Dice loss term. Default is 0.5.
     """
 
-    def __init__(self):
+    def __init__(self, bce_weight: float = 0.5, dice_weight: float = 0.5):
         super().__init__()
 
         # Initialize BCE with logits loss
@@ -64,6 +68,10 @@ class BCEDiceLoss(nn.Module):
 
         # Initialize Dice loss
         self.dice = DiceLoss()
+
+        # Weights for BCE and Dice Loss
+        self.bce_weight = bce_weight
+        self.dice_weight = dice_weight
 
     def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
         """
@@ -74,7 +82,7 @@ class BCEDiceLoss(nn.Module):
             targets (torch.Tensor): Ground truth binary masks.
 
         Returns:
-            torch.Tensor: The combined loss, with BCE and Dice Loss.
+            torch.Tensor: The combined loss, weighted by bce_weight and dice_weight.
         """
         # Calculate BCE loss
         bce_loss = self.bce(inputs, targets)
@@ -82,8 +90,10 @@ class BCEDiceLoss(nn.Module):
         # Calculate Dice loss
         dice_loss = self.dice(inputs, targets)
 
-        # Combine the BCE and Dice losses
-        return bce_loss + dice_loss
+        # Combine the BCE and Dice losses using their respective weights
+        total_loss = self.bce_weight * bce_loss + self.dice_weight * dice_loss
+
+        return total_loss
 
 
 class EdgeWeightedBCEDiceLoss(nn.Module):
