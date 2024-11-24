@@ -1,3 +1,11 @@
+## Local Development
+
+1. Run the following command
+
+````bash
+uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+````
+
 ## Docker Compose
 
 1. Go to the root of the project

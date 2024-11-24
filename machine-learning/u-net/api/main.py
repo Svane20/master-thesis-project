@@ -101,7 +101,7 @@ def postprocess_output(output: np.ndarray) -> np.ndarray:
     return (mask > 0.5).astype(np.uint8)
 
 
-def remove_background(image_bytes: bytes, mask: np.ndarray, output_size: Tuple[int, int] = (224, 224)) -> bytes:
+def remove_background(image_bytes: bytes, mask: np.ndarray) -> bytes:
     """
     Remove the background from the input image using the mask.
 

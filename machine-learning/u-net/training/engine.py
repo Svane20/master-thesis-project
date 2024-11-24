@@ -8,6 +8,7 @@ import time
 
 from configuration.weights_and_biases import WeightAndBiasesConfig
 from metrics.DICE import calculate_DICE, calculate_DICE_edge
+from metrics.IoU import calculate_IoU
 from training.early_stopping import EarlyStopping
 from utils.checkpoints import save_checkpoint
 
@@ -108,11 +109,12 @@ def train(
             **{f"test/{k}": v for k, v in test_metrics.items()}
         })
 
+        # Print metrics
+        train_metrics_str = " | ".join([f"Train {k.capitalize()}: {v:.4f}" for k, v in train_metrics.items()])
+        test_metrics_str = " | ".join([f"Test {k.capitalize()}: {v:.4f}" for k, v in test_metrics.items()])
         print(
-            f"Epoch: {current_epoch}/{num_epochs} | "
-            f"Train Loss: {train_metrics['loss']:.4f} | Train Dice: {train_metrics['dice']:.4f} | Train Dice Edge: {train_metrics['dice_edge']:.4f} | "
-            f"Test Loss: {test_metrics['loss']:.4f} | Test Dice: {test_metrics['dice']:.4f} | Test Dice Edge: {test_metrics['dice_edge']:.4f} | "
-            f"LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s"
+            f"Epoch: {current_epoch}/{num_epochs} | LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s\n"
+            f"{train_metrics_str} | {test_metrics_str}"
         )
 
         # Update early stopping
@@ -175,6 +177,7 @@ def _train_one_epoch(
     total_loss = 0.0
     num_batches = 0
     total_dice, total_dice_edge = 0.0, 0.0
+    total_iou = 0.0
 
     progress_bar = tqdm(
         enumerate(dataloader),
@@ -222,13 +225,15 @@ def _train_one_epoch(
         # Calculate metrics
         total_dice += calculate_DICE(preds, y)
         total_dice_edge += calculate_DICE_edge(preds, y)
+        total_iou += calculate_IoU(preds, y)
 
         # Update progress bar
         progress_bar.set_postfix(
             {
                 "train_loss": total_loss / num_batches,
                 "train_dice": total_dice / num_batches,
-                "train_dice_edge": total_dice_edge / num_batches
+                "train_dice_edge": total_dice_edge / num_batches,
+                "train_iou": total_iou / num_batches
             }
         )
 
@@ -236,7 +241,8 @@ def _train_one_epoch(
     metrics = {
         "loss": total_loss / num_batches,
         "dice": total_dice / num_batches,
-        "dice_edge": total_dice_edge / num_batches
+        "dice_edge": total_dice_edge / num_batches,
+        "iou": total_iou / num_batches
     }
 
     return metrics
@@ -271,6 +277,7 @@ def _test_one_epoch(
     total_loss = 0.0
     num_batches = 0
     total_dice, total_dice_edge = 0.0, 0.0
+    total_iou = 0.0
 
     progress_bar = tqdm(
         enumerate(dataloader),
@@ -301,13 +308,15 @@ def _test_one_epoch(
             # Calculate metrics
             total_dice += calculate_DICE(preds, y)
             total_dice_edge += calculate_DICE_edge(preds, y)
+            total_iou += calculate_IoU(preds, y)
 
             # Update progress bar
             progress_bar.set_postfix(
                 {
                     "test_loss": total_loss / num_batches,
                     "test_dice": total_dice / num_batches,
-                    "test_dice_edge": total_dice_edge / num_batches
+                    "test_dice_edge": total_dice_edge / num_batches,
+                    "test_iou": total_iou / num_batches
                 }
             )
 
@@ -315,7 +324,8 @@ def _test_one_epoch(
     metrics = {
         "loss": total_loss / num_batches,
         "dice": total_dice / num_batches,
-        "dice_edge": total_dice_edge / num_batches
+        "dice_edge": total_dice_edge / num_batches,
+        "iou": total_iou / num_batches
     }
 
     return metrics

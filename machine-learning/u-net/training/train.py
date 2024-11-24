@@ -133,7 +133,7 @@ def main() -> None:
         optimizer = optim.AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.learning_rate_decay)
         scaler = torch.amp.GradScaler() if torch.cuda.is_available() else None
         # scheduler = lr_scheduler.ReduceLROnPlateau(optimizer, mode='max', factor=0.5, patience=5, min_lr=1e-7)
-        scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=50, eta_min=1e-6)
+        scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=20, eta_min=1e-6)
 
         if args.use_checkpoint:
             warmup_scheduler = None
@@ -151,7 +151,7 @@ def main() -> None:
             print("[INFO] Warmup scheduler is disabled.")
 
         early_stopping = EarlyStopping(
-            patience=20,
+            patience=10,
             min_delta=0.0,
             verbose=True,
             mode='max'
