@@ -68,15 +68,16 @@ class UpSample(nn.Module):
 
     Args:
         in_channels (int): Number of input channels.
+        skip_channels (int): Number of input channels from the skip connection.
         out_channels (int): Number of output channels.
         dropout (float): Dropout probability. Default is 0.0.
     """
 
-    def __init__(self, in_channels: int, out_channels: int, dropout: float = 0.0):
+    def __init__(self, in_channels: int, skip_channels: int, out_channels: int, dropout: float = 0.0):
         super().__init__()
 
         self.up = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2, bias=False)
-        self.conv = DoubleConv(out_channels * 2, out_channels, dropout=dropout)
+        self.conv = DoubleConv(out_channels + skip_channels, out_channels, dropout=dropout)
 
     def forward(self, x1: torch.Tensor, x2: torch.Tensor) -> torch.Tensor:
         x1 = self.up(x1)
