@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision.models import vgg16_bn, VGG16_BN_Weights
+from torchvision.transforms import ToPILImage
 
 from model.model_builder import DoubleConv, UpSample, DownSample
 
@@ -60,7 +61,6 @@ class UNetV1VGG(nn.Module):
         up3 = self.up3(up2, down3)  # 256 + 256 -> 128
         up4 = self.up4(up3, down2)  # 128 + 128 -> 64
         up5 = self.up5(up4, down1)  # 64 + 64 -> 32
-
 
         # Classifier
         return self.classifier(up5)  # 32 -> out_channels
@@ -124,21 +124,24 @@ if __name__ == "__main__":
     vgg = UNetV1VGG(out_channels=1)
     vgg_total_params = sum(p.numel() for p in vgg.parameters())
     print(f"VGG Model Total Params: {vgg_total_params:,}".replace(',', '.'))
-    print('\n')
+    print("")
 
+    weights = VGG16_BN_Weights.DEFAULT
+    transforms = weights.transforms()
 
     for resolution in [(128, 128), (256, 256), (512, 512)]:  # Test different input sizes
         dummy_input = torch.randn(1, 3, *resolution)
 
+        # Preprocess the input
+        dummy_image = ToPILImage()(dummy_input[0])  # Convert tensor to PIL for transform
+        preprocessed_input = transforms(dummy_image).unsqueeze(0)  # Apply transforms and add batch dim
+
         # Test the baseline model
-        baseline = UNetV0(in_channels=3, out_channels=1)
         output = baseline(dummy_input)
         print(f"Baseline Input shape: {dummy_input.shape}")
         print(f"Baseline Output shape: {output.shape}")
 
         # Test the VGG model
-        vgg = UNetV1VGG(out_channels=1)
         output = vgg(dummy_input)
         print(f"VGG Input shape: {dummy_input.shape}")
         print(f"VGG Output shape: {output.shape}\n")
-

@@ -48,6 +48,44 @@ class DiceLoss(nn.Module):
         return 1 - dice
 
 
+class BCEDiceLoss(nn.Module):
+    """
+    Combined loss of Binary Cross Entropy (BCE) and Dice Loss.
+
+    This loss function combines the strengths of both BCE and Dice Loss.
+    BCE is effective for pixel-wise classification, while Dice Loss helps improve overlap between the predicted mask and ground truth.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        # Initialize BCE with logits loss
+        self.bce = nn.BCEWithLogitsLoss()
+
+        # Initialize Dice loss
+        self.dice = DiceLoss()
+
+    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+        """
+        Calculate the combined BCE and Dice Loss.
+
+        Args:
+            inputs (torch.Tensor): Model predictions (logits).
+            targets (torch.Tensor): Ground truth binary masks.
+
+        Returns:
+            torch.Tensor: The combined loss, with BCE and Dice Loss.
+        """
+        # Calculate BCE loss
+        bce_loss = self.bce(inputs, targets)
+
+        # Calculate Dice loss
+        dice_loss = self.dice(inputs, targets)
+
+        # Combine the BCE and Dice losses
+        return bce_loss + dice_loss
+
+
 class EdgeWeightedBCEDiceLoss(nn.Module):
     """
     Combined loss of Binary Cross Entropy (BCE) and Dice Loss with edge weights.
