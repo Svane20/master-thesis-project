@@ -13,3 +13,5 @@ scipy
 onnx
 onnxruntime
 einops
+transformers
+timm
