@@ -15,3 +15,6 @@ onnxruntime
 einops
 transformers
 timm
+scikit-image
+pydantic
+albumentations
