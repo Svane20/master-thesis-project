@@ -7,42 +7,48 @@ from transformers import AutoImageProcessor, SegformerModel
 
 class DecoderBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int, skip_channels: int = None):
-        """
-        Decoder block for the UNet architecture
-
-        Args:
-            in_channels (int): The number of input channels
-            out_channels (int): The number of output channels
-            skip_channels (int): The number of channels in the skip connection (optional)
-        """
         super().__init__()
-        self.upsample = nn.ConvTranspose2d(in_channels, out_channels, kernel_size=2, stride=2)
+        # Upsampling using interpolation
+        self.upsample = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
+        self.conv_upsample = nn.Conv2d(in_channels, out_channels, kernel_size=1)
 
-        # If skip_channels is provided, align its channels to out_channels
-        self.reduce_channels = nn.Conv2d(skip_channels, out_channels, kernel_size=1) if skip_channels else None
+        # If skip_channels is provided, no need to reduce channels if they already match
+        if skip_channels:
+            self.reduce_channels = nn.Conv2d(skip_channels, out_channels, kernel_size=1)
+            conv_in_channels = out_channels * 2
+        else:
+            self.reduce_channels = None
+            conv_in_channels = out_channels
 
-        self.conv1 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
+        self.conv1 = nn.Conv2d(conv_in_channels, out_channels, kernel_size=3, padding=1)
         self.conv2 = nn.Conv2d(out_channels, out_channels, kernel_size=3, padding=1)
-        self.norm = nn.BatchNorm2d(out_channels)
+        self.norm1 = nn.BatchNorm2d(out_channels)
+        self.norm2 = nn.BatchNorm2d(out_channels)
         self.activation = nn.ReLU(inplace=True)
 
     def forward(self, x: Tensor, skip: Tensor = None) -> Tensor:
         # Upsample the input tensor
         x = self.upsample(x)
+        x = self.conv_upsample(x)
 
         if skip is not None:
-            # Align channels of skip connection with x
+            # Reduce skip channels if necessary
             if self.reduce_channels:
                 skip = self.reduce_channels(skip)
 
-            # Align spatial dimensions with x
-            if x.shape[2:] != skip.shape[2:]:
-                skip = nn.functional.interpolate(skip, size=x.shape[2:], mode="bilinear", align_corners=False)
+            # Concatenate skip connection
+            x = torch.cat([x, skip], dim=1)  # Concatenate along channel dimension
 
-            x = x + skip  # Add skip connection
+        # Convolutional block
+        x = self.conv1(x)
+        x = self.norm1(x)
+        x = self.activation(x)
 
-        x = self.activation(self.norm(self.conv1(x)))
-        x = self.activation(self.norm(self.conv2(x)))
+        # Convolutional block
+        x = self.conv2(x)
+        x = self.norm2(x)
+        x = self.activation(x)
+
         return x
 
 
@@ -55,6 +61,10 @@ class UNETR(nn.Module):
             model_name, output_hidden_states=True, ignore_mismatched_sizes=True
         )
         hidden_sizes = self.encoder.config.hidden_sizes
+
+        # Freeze the encoder
+        for param in self.encoder.parameters():
+            param.requires_grad = False
 
         # Decoder blocks
         self.decoder4 = DecoderBlock(
@@ -83,19 +93,25 @@ class UNETR(nn.Module):
     def forward(self, pixel_values: Tensor) -> Tensor:
         # Pass through encoder
         outputs = self.encoder(pixel_values=pixel_values)
-        hidden_states = outputs.hidden_states  # A tuple of hidden states
+        encoder_hidden_states = outputs.hidden_states  # Tuple of hidden states
 
-        # Get the hidden states from the encoder
-        enc_features = hidden_states
+        # Extract the last four hidden states
+        enc_features = list(encoder_hidden_states[-4:])  # [32, 64, 160, 256]
+
+        # Ensure the skip connections match the expected order
+        # Reverse the list if necessary
+        enc_features = enc_features[::-1]  # Now order is [C3, C2, C1, C0]
 
         # Decoder with skip connections
-        x = self.decoder4(enc_features[-1], skip=enc_features[-2])
-        x = self.decoder3(x, skip=enc_features[-3])
-        x = self.decoder2(x, skip=enc_features[-4])
+        x = self.decoder4(enc_features[0], skip=enc_features[1])  # x4, skip x3
+        x = self.decoder3(x, skip=enc_features[2])  # x3, skip x2
+        x = self.decoder2(x, skip=enc_features[3])  # x2, skip x1
         x = self.decoder1(x)  # No skip connection
 
         # Upsample to original image size
-        x = F.interpolate(x, size=(pixel_values.shape[2], pixel_values.shape[3]), mode='bilinear', align_corners=False)
+        x = F.interpolate(
+            x, size=(pixel_values.shape[2], pixel_values.shape[3]), mode='bilinear', align_corners=False
+        )
 
         # Output head
         return self.output_head(x)
