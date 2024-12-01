@@ -8,7 +8,7 @@ def get_device() -> torch.device:
     Returns:
         torch.device: Device to run the training on.
     """
-    return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    return torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 def get_torch_compile_backend() -> str:
