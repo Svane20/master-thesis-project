@@ -38,10 +38,14 @@ def replace_background(
     if background_image is None:
         raise FileNotFoundError(f"Background image not found: {background_image_path}")
 
+    # Convert background image from BGR to RGB and normalize values to [0, 1]
+    background_image = cv2.cvtColor(background_image, cv2.COLOR_BGR2RGB)
+    background_image = background_image.astype(np.float64) / 255.0
+
     # Ensure the new background image matches the dimensions of the foreground
     background_image = cv2.resize(background_image, dsize=(foreground.shape[1], foreground.shape[0]))
 
-    # Perform alpha compositing
+    # Perform alpha compositing -> new_image = alpha * foreground + (1 - alpha) * background
     replaced_image = alpha_mask[:, :, None] * foreground + (1 - alpha_mask[:, :, None]) * background_image
 
     if save_image:

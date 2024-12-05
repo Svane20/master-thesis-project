@@ -7,7 +7,7 @@ if __name__ == "__main__":
     # Define the file paths
     image_path = DATA_IMAGES_DIRECTORY / "cf89c3220bc4_01.jpg"
     binary_mask_path = DATA_MASKS_DIRECTORY / "cf89c3220bc4_01_mask.png"
-    background_image_path = DATA_BACKGROUNDS_DIRECTORY / "background_02.jpg"
+    background_image_path = DATA_BACKGROUNDS_DIRECTORY / "background_01.jpg"
 
     # Define image title
     image_title = image_path.stem
