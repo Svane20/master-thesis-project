@@ -12,8 +12,8 @@ def get_foreground_estimation(
         image_path: Path,
         alpha_mask: np.ndarray,
         image_title: str,
-        save_foreground: bool = True,
-        save_background: bool = True,
+        save_foreground: bool = False,
+        save_background: bool = False,
         save_dir: Path = OUTPUT_DIRECTORY
 ) -> Tuple[np.ndarray, np.ndarray]:
     """

@@ -13,7 +13,7 @@ def generate_smooth_alpha_mask_from_binary_mask(
         image_title: str,
         blur_kernel_size: Tuple[int, int] = (5, 5),
         blur_sigma: Tuple[float, float] = (0, 0),
-        save_alpha: bool = True,
+        save_alpha: bool = False,
         save_dir: Path = OUTPUT_DIRECTORY
 ) -> np.ndarray:
     """
