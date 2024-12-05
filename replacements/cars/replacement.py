@@ -1,3 +1,5 @@
+from typing import Optional
+
 import pymatting
 
 from pathlib import Path
@@ -57,3 +59,53 @@ def replace_background(
         print(f"Replaced image saved to {replaced_image_path}")
 
     return replaced_image
+
+
+def remove_background(
+        image_path: Path,
+        alpha_mask: np.ndarray,
+        image_title: str,
+        save_image: bool = True,
+        save_dir: Path = OUTPUT_DIRECTORY
+) -> np.ndarray:
+    """
+    Remove the background from an image using the alpha mask.
+
+    Args:
+        image_path (Path): Path to the original image.
+        alpha_mask (numpy.ndarray): Alpha mask with values between 0 and 1.
+        image_title (str): Title of the image.
+        save_image (bool): Whether to save the image with transparent background. Default is True.
+        save_dir (Path): Directory to save the image. Default is "output".
+
+    Returns:
+        numpy.ndarray: Image with transparent background (RGBA).
+    """
+    # Ensure the image exists
+    if not image_path.exists():
+        raise FileNotFoundError(f"Image not found: {image_path}")
+
+    # Load the original image using pymatting
+    image = pymatting.load_image(str(image_path))
+
+    # Ensure alpha_mask is in the correct format
+    if alpha_mask.max() > 1.0:
+        alpha_mask = alpha_mask / 255.0
+
+    # Ensure the image is in float64 and has values between 0 and 1
+    if image.dtype != np.float64 or image.max() > 1.0:
+        image = image.astype(np.float64) / 255.0
+
+    image_with_alpha = np.dstack((image, alpha_mask))
+
+    if save_image:
+        save_dir.mkdir(parents=True, exist_ok=True)
+        output_path = save_dir / f"{image_title}_removed_background.png"
+
+        image_with_alpha_uint8 = (image_with_alpha * 255).astype(np.uint8)
+        image_with_alpha_uint8 = cv2.cvtColor(image_with_alpha_uint8, cv2.COLOR_RGBA2BGRA)
+        cv2.imwrite(str(output_path), image_with_alpha_uint8)
+
+        print(f"Removed background image saved to {output_path}")
+
+    return image_with_alpha

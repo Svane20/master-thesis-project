@@ -1,7 +1,7 @@
 from alpha_generation import generate_smooth_alpha_mask_from_binary_mask
 from constants import DATA_IMAGES_DIRECTORY, DATA_MASKS_DIRECTORY, DATA_BACKGROUNDS_DIRECTORY
 from foreground_estimation import get_foreground_estimation
-from replacement import replace_background
+from replacement import replace_background, remove_background
 
 if __name__ == "__main__":
     # Define the file paths
@@ -20,4 +20,7 @@ if __name__ == "__main__":
 
     # Replace background
     replaced_image = replace_background(background_image_path, foreground, alpha_mask, image_title)
+
+    # Remove background
+    removed_background = remove_background(image_path, alpha_mask, image_title)
 
