@@ -1,85 +1,61 @@
-from pymatting import *
+import pymatting
+
+from typing import Tuple
+from pathlib import Path
 import numpy as np
 import cv2
-import os
+
+from constants import OUTPUT_DIRECTORY
 
 
-def convert_binary_mask_to_alpha_mask(
-        binary_mask: np.ndarray,
-        blur_ksize: int = 7,
-        blur_sigma: int = 2,
-) -> np.ndarray:
+def get_foreground_estimation(
+        image_path: Path,
+        alpha_mask: np.ndarray,
+        image_title: str,
+        save_foreground: bool = True,
+        save_background: bool = True,
+        save_dir: Path = OUTPUT_DIRECTORY
+) -> Tuple[np.ndarray, np.ndarray]:
     """
-    Convert a binary mask to a smooth alpha mask.
+    Estimate the foreground and background of an image.
 
-    Parameters:
-        binary_mask (numpy.ndarray): Binary mask with values 0 or 255.
-        blur_ksize (int): Kernel size for Gaussian blur.
-        blur_sigma (int): Standard deviation for Gaussian blur.
+    Args:
+        image_path (Path): Path to the image.
+        alpha_mask (numpy.ndarray): Alpha mask with values between 0 and 1.
+        image_title (str): Title of the image.
+        save_foreground (bool): Whether to save the foreground image. Default is True.
+        save_background (bool): Whether to save the background image. Default is True.
+        save_dir (Path): Directory to save the foreground and background images. Default is "output".
 
     Returns:
-        numpy.ndarray: Smooth alpha mask with values between 0 and 1.
+        numpy.ndarray: Foreground image.
+        numpy.ndarray: Background image.
+
     """
-    # Ensure binary_mask is binary (values 0 or 255)
-    binary_mask = (binary_mask > 0).astype(np.uint8) * 255
-
-    # Apply Gaussian blur to create smooth transitions
-    blurred_mask = cv2.GaussianBlur(binary_mask, ksize=(blur_ksize, blur_ksize), sigmaX=blur_sigma, sigmaY=blur_sigma)
-
-    # Normalize to range [0, 1]
-    alpha = blurred_mask / 255.0
-
-    return alpha
-
-
-if __name__ == "__main__":
-    # Define the file path
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    image_path = os.path.join(current_dir, r".\data\images\cf89c3220bc4_01.jpg")
-    binary_path = os.path.join(current_dir, r".\data\masks\cf89c3220bc4_01_mask.png")
-    background_path = os.path.join(current_dir, r".\data\backgrounds\background_01.jpg")
-
-    # Check if files exist
-    if not os.path.exists(image_path):
-        raise ValueError(f"File not found: {image_path}")
-    if not os.path.exists(binary_path):
-        raise ValueError(f"File not found: {binary_path}")
-    if not os.path.exists(background_path):
-        raise ValueError(f"File not found: {background_path}")
+    # Check if the image exists
+    if not image_path.exists():
+        raise FileNotFoundError(f"Image not found: {image_path}")
 
     # Load the image
-    image = load_image(image_path, "RGB")
-    if image is None:
-        raise ValueError(f"Could not load the image file: {image_path}")
-
-    # Load the binary segmentation mask
-    binary_mask = load_image(binary_path, "GRAY")
-    if binary_mask is None:
-        raise ValueError(f"Could not load the binary mask: {binary_path}")
-
-    # Convert binary mask to alpha mask
-    alpha_mask = convert_binary_mask_to_alpha_mask(binary_mask)
-
-    # Load the new background image
-    background_image = load_image(background_path, "RGB")
-    if background_image is None:
-        raise ValueError(f"Could not load the new sky image: {background_path}")
+    image = pymatting.load_image(str(image_path))
 
     # Estimate the foreground and background
-    foreground = estimate_foreground_cf(image, alpha_mask)
+    foreground, background = pymatting.estimate_foreground_ml(image=image, alpha=alpha_mask, return_background=True)
 
-    # Ensure output directory exists
-    output_dir = os.path.join(current_dir, "./output/")
-    os.makedirs(output_dir, exist_ok=True)
+    if save_foreground:
+        save_dir.mkdir(parents=True, exist_ok=True)
 
-    # Ensure the new sky image matches the dimensions of the foreground
-    background_image = cv2.resize(background_image, dsize=(foreground.shape[1], foreground.shape[0]))
+        foreground_path = save_dir / f"{image_title}_foreground.png"
+        pymatting.save_image(str(foreground_path), image=foreground)
 
-    # Perform alpha compositing
-    blended_image = alpha_mask[:, :, None] * foreground + (1 - alpha_mask[:, :, None]) * background_image
+        print(f"Foreground saved to {foreground_path}")
 
-    # Save the blended image
-    blended_image_path = os.path.join(output_dir, "cf89c3220bc4_01_blended.png")
-    save_image(blended_image_path, blended_image)
+    if save_background:
+        save_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"Image saved at: {blended_image_path}")
+        background_path = save_dir / f"{image_title}_background.png"
+        pymatting.save_image(str(background_path), image=background)
+
+        print(f"Background saved to {background_path}")
+
+    return foreground, background

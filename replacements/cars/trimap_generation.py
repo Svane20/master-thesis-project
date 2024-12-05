@@ -1,54 +1,62 @@
+import pymatting
+
+from pathlib import Path
 import numpy as np
 import cv2
-import os
+
+from constants import OUTPUT_DIRECTORY
 
 
-def generate_trimap(binary_mask: np.ndarray, kernel_size: int = 5, iterations: int = 5) -> np.ndarray:
+def generate_trimap_from_binary_mask(
+        image_path: Path,
+        image_title: str,
+        kernel_size: int = 5,
+        erosion_iter: int = 5,
+        dilation_iter: int = 5,
+        save_trimap: bool = True,
+        save_dir: Path = OUTPUT_DIRECTORY
+) -> np.ndarray:
     """
-    Generate a trimap from a binary segmentation mask.
+    Generate a trimap from a binary mask.
 
     Args:
-        binary_mask (numpy.ndarray): Binary mask (0s and 1s or 0s and 255s).
+        image_path (Path): Path to the binary mask.
+        image_title (str): Title of the image.
         kernel_size (int): Size of the kernel used for dilation and erosion.
-        iterations (int): Number of iterations for morphological operations.
+        erosion_iter (int): Number of erosion iterations for definite foreground.
+        dilation_iter (int): Number of dilation iterations for unknown regions.
+        save_trimap (bool): Whether to save the trimap to disk. Default is True.
+        save_dir (Path): Directory to save the trimap. Default is "output".
 
     Returns:
-        numpy.ndarray: Trimap with values 0 (background), 128 (unknown), and 255 (foreground).
+        numpy.ndarray: Trimap with values normalized to 0 (background), 0.5 (unknown), and 1 (foreground).
     """
-    # Ensure binary_mask is binary (0 or 1)
-    binary_mask = (binary_mask > 0).astype(np.uint8)
+    if not image_path.exists():
+        raise FileNotFoundError(f"Image not found: {image_path}")
 
-    # Define a kernel
-    kernel = np.ones(shape=(kernel_size, kernel_size), dtype=np.uint8)
+    binary_mask = cv2.imread(str(image_path), cv2.IMREAD_GRAYSCALE)
+    if binary_mask is None:
+        raise FileNotFoundError(f"Binary mask not found: {image_path}")
 
-    # Perform dilation and erosion
-    dilated_mask = cv2.dilate(src=binary_mask, kernel=kernel, iterations=iterations)
-    eroded_mask = cv2.erode(src=binary_mask, kernel=kernel, iterations=iterations)
+    kernel = np.ones((kernel_size, kernel_size), dtype=np.uint8)
 
-    # Initialize the trimap
-    trimap = np.zeros_like(a=binary_mask, dtype=np.uint8)
+    # Erode the binary mask to define definite foreground
+    foreground = cv2.erode(binary_mask, kernel, iterations=erosion_iter)
+    background = cv2.dilate(binary_mask, kernel, iterations=dilation_iter)
+    unknown = cv2.subtract(background, foreground)
 
-    # Assign values to the trimap
-    trimap[dilated_mask == 1] = 255
-    trimap[eroded_mask == 0] = 0
-    trimap[(dilated_mask == 1) & (eroded_mask == 0)] = 128
+    # Create trimap
+    trimap = np.zeros_like(binary_mask, dtype=np.float32)
+    trimap[unknown > 0] = 0.5  # Unknown region
+    trimap[foreground > 0] = 1.0  # Foreground
+    trimap[binary_mask == 0] = 0.0  # Background
+
+    if save_trimap:
+        save_dir.mkdir(parents=True, exist_ok=True)
+
+        trimap_path = save_dir / f"{image_title}_trimap.png"
+        pymatting.save_image(str(trimap_path), trimap)
+
+        print(f"Trimap saved to {trimap_path}")
 
     return trimap
-
-
-if __name__ == "__main__":
-    # Define the file path
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    file_path = os.path.join(current_dir, r".\data\masks\cf89c3220bc4_01_mask.png")
-    image_title = os.path.basename(file_path).split("_mask")[0]
-    if not os.path.exists(file_path):
-        raise ValueError(f"File not found: {file_path}")
-
-    # Load the mask
-    mask = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-    if mask is None:
-        raise ValueError(f"cv2.imread could not read the file: {file_path}")
-
-    # Generate the trimap and save the result
-    trimap = generate_trimap(mask)
-    cv2.imwrite(filename=f"./output/{image_title}_trimap.png", img=trimap)
