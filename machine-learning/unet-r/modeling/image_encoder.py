@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from typing import Tuple, Type
-from functools import partial
 
 from .common import LayerNorm2d, MLPBlock
 

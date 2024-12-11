@@ -5,6 +5,7 @@ from functools import partial
 from typing import Tuple
 
 from modeling.image_encoder import ImageEncoderViT
+from modeling.mask_decoder import MaskDecoder
 
 
 class ImageMattingModel(nn.Module):
@@ -50,17 +51,29 @@ class ImageMattingModel(nn.Module):
             global_attention_indexes=global_attention_indexes
         )
 
+        self.decoder = MaskDecoder(
+            in_channels=encoder_out_channels,
+            num_intermediate_channels=256,
+            final_size=image_size,
+            patch_size=patch_size
+        )
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         features = self.encoder(x)
 
-        return features
+        alpha_matte = self.decoder(features)
+
+        return alpha_matte
 
 
 if __name__ == "__main__":
     image_size = 1024
 
+    # Get the device
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
     # Generate random image tensor
-    image = torch.randn(1, 3, image_size, image_size)
+    image = torch.randn(1, 3, image_size, image_size).to(device)
 
     # Initialize the image encoder
     model = ImageMattingModel(
@@ -73,14 +86,15 @@ if __name__ == "__main__":
         encoder_qkv_bias=True,
         encoder_window_size=14,
         global_attention_indexes=[2, 5, 8, 11],
-    )
+    ).to(device)
 
     # Count number of parameters with commas
     num_params = sum(p.numel() for p in model.parameters())
     print(f"Number of parameters: {num_params:,}")
 
-    # Pass the image tensor through the image encoder
-    output = model(image)
+    # Inference
+    with torch.inference_mode():
+        output = model(image)
 
     # Print the output shape
-    print(f"Output shape: {output.shape}")  # Output shape: torch.Size([1, 256, 64, 64])
+    print(f"Output shape: {output.shape}")  # Output shape: torch.Size([1, 1, 1024, 1024])
