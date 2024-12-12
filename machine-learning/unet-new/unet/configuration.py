@@ -25,15 +25,12 @@ class Config:
     model: ModelConfig
 
 
-def load_configuration(configuration_path: Path) -> Config:
+def load_configuration(configuration_path: Path):
     """
     Load the configuration from the given path.
 
     Args:
         configuration_path (pathlib.Path): Path to the configuration.
-
-    Returns:
-        Config: Configuration.
     """
     if not configuration_path.exists():
         raise FileNotFoundError(f"Configuration file not found: {configuration_path}")

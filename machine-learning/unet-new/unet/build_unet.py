@@ -5,18 +5,18 @@ from pathlib import Path
 import logging
 from typing import Literal
 
-from unet.configuration.model_configuration import Config
+from unet.configuration import ModelConfig
 from unet.modeling.image_encoder import ImageEncoder
 from unet.modeling.mask_decoder import MaskDecoder
 from unet.modeling.unet import UNet
 
 
 def build_model(
-        configuration: Config,
+        configuration: ModelConfig,
         checkpoint_path: Path = None,
         compile_model: bool = True,
         device: Literal["cuda", "cpu"] = "cuda",
-        mode: Literal["train", "train_only", "eval"] = "eval"
+        mode: str = "eval"
 ) -> nn.Module:
     """
     Build the UNet model.
@@ -32,17 +32,17 @@ def build_model(
         nn.Module: UNet model.
     """
     assert device in ["cuda", "cpu"], f"Invalid device: {device}"
-    assert mode in ["train", "train_only", "eval"], f"Invalid mode: {mode}"
+    assert mode in ["train", "eval"], f"Invalid mode: {mode}"
 
     logging.info(f"Building UNet model in {mode} mode on {device}")
 
     model = UNet(
         image_encoder=ImageEncoder(
-            pretrained=configuration.model.image_encoder.pretrained
+            pretrained=configuration.image_encoder.pretrained
         ),
         mask_decoder=MaskDecoder(
-            out_channels=configuration.model.mask_decoder.out_channels,
-            dropout=configuration.model.mask_decoder.dropout
+            out_channels=configuration.mask_decoder.out_channels,
+            dropout=configuration.mask_decoder.dropout
         )
     )
 
@@ -59,8 +59,6 @@ def build_model(
 
     if mode == "eval":
         model.eval()
-    else:
-        model.train()
 
     return model
 
