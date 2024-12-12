@@ -11,6 +11,19 @@ from unet.modeling.mask_decoder import MaskDecoder
 from unet.modeling.unet import UNet
 
 
+def build_model_for_train(configuration: ModelConfig) -> nn.Module:
+    """
+    Build the UNet model for training.
+
+    Args:
+        configuration (Config): Configuration for the model.
+
+    Returns:
+        nn.Module: UNet model.
+    """
+    return _build(configuration)
+
+
 def build_model(
         configuration: ModelConfig,
         checkpoint_path: Path = None,
@@ -36,16 +49,7 @@ def build_model(
 
     logging.info(f"Building UNet model in {mode} mode on {device}")
 
-    model = UNet(
-        image_encoder=ImageEncoder(
-            pretrained=configuration.image_encoder.pretrained
-        ),
-        mask_decoder=MaskDecoder(
-            out_channels=configuration.mask_decoder.out_channels,
-            dropout=configuration.mask_decoder.dropout
-        )
-    )
-
+    model = _build(configuration)
     if checkpoint_path is not None:
         _load_checkpoint(model, checkpoint_path)
 
@@ -61,6 +65,27 @@ def build_model(
         model.eval()
 
     return model
+
+
+def _build(configuration: ModelConfig) -> nn.Module:
+    """
+    Build the UNet model.
+
+    Args:
+        configuration (ModelConfig): Configuration for the model.
+
+    Returns:
+        nn.Module: UNet model.
+    """
+    return UNet(
+        image_encoder=ImageEncoder(
+            pretrained=configuration.image_encoder.pretrained
+        ),
+        mask_decoder=MaskDecoder(
+            out_channels=configuration.mask_decoder.out_channels,
+            dropout=configuration.mask_decoder.dropout
+        )
+    )
 
 
 def _load_checkpoint(model: nn.Module, checkpoint_path: Path) -> None:

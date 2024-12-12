@@ -9,10 +9,8 @@ import yaml
 
 from training.trainer import Trainer
 from training.utils.train_utils import set_seeds
-from unet.configuration import ModelConfig, ImageEncoderConfig, MaskDecoderConfig
-from unet.modeling.image_encoder import ImageEncoder
-from unet.modeling.mask_decoder import MaskDecoder
-from unet.modeling.unet import UNet
+from unet.build_unet import build_model_for_train
+from unet.configuration import ModelConfig
 
 
 def _load_configuration(configuration_path: Path):
@@ -41,22 +39,9 @@ def _build_model(configuration: Dict[str, Any]) -> nn.Module:
     Returns:
         nn.Module: The constructed model.
     """
-    image_encoder_config = ImageEncoderConfig(**configuration["image_encoder"])
-    mask_decoder_config = MaskDecoderConfig(**configuration["mask_decoder"])
-    config = ModelConfig(
-        image_encoder=image_encoder_config,
-        mask_decoder=mask_decoder_config
-    )
+    model_config = ModelConfig(**configuration)
 
-    return UNet(
-        image_encoder=ImageEncoder(
-            pretrained=config.image_encoder.pretrained
-        ),
-        mask_decoder=MaskDecoder(
-            out_channels=config.mask_decoder.out_channels,
-            dropout=config.mask_decoder.dropout
-        )
-    )
+    return build_model_for_train(model_config)
 
 
 def _setup_run(
