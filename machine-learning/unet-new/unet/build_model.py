@@ -5,7 +5,7 @@ from pathlib import Path
 import logging
 from typing import Literal
 
-from unet.configuration import ModelConfig
+from unet.configuration.configuration import ModelConfig
 from unet.modeling.image_encoder import ImageEncoder
 from unet.modeling.mask_decoder import MaskDecoder
 from unet.modeling.unet import UNet
@@ -13,13 +13,13 @@ from unet.modeling.unet import UNet
 
 def build_model_for_train(configuration: ModelConfig) -> nn.Module:
     """
-    Build the UNet model for training.
+    Builds the model for training.
 
     Args:
         configuration (Config): Configuration for the model.
 
     Returns:
-        nn.Module: UNet model.
+        nn.Module: Model.
     """
     return _build(configuration)
 
@@ -32,7 +32,7 @@ def build_model(
         mode: str = "eval"
 ) -> nn.Module:
     """
-    Build the UNet model.
+    Builds the model.
 
     Args:
         configuration (Config): Configuration for the model.
@@ -42,7 +42,7 @@ def build_model(
         mode (str): Mode to run the model. Default is "eval".
 
     Returns:
-        nn.Module: UNet model.
+        nn.Module: Model.
     """
     assert device in ["cuda", "cpu"], f"Invalid device: {device}"
     assert mode in ["train", "eval"], f"Invalid mode: {mode}"
@@ -69,13 +69,13 @@ def build_model(
 
 def _build(configuration: ModelConfig) -> nn.Module:
     """
-    Build the UNet model.
+    Builds the model.
 
     Args:
         configuration (ModelConfig): Configuration for the model.
 
     Returns:
-        nn.Module: UNet model.
+        nn.Module: Model.
     """
     return UNet(
         image_encoder=ImageEncoder(
@@ -93,7 +93,7 @@ def _load_checkpoint(model: nn.Module, checkpoint_path: Path) -> None:
     Load checkpoint for the model.
 
     Args:
-        model (UNet): Model to load the checkpoint.
+        model (Module): Model to load the checkpoint.
         checkpoint_path (Path): Path to the checkpoint.
 
     Exceptions:

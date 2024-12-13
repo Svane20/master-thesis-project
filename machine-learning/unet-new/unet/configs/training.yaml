@@ -1,0 +1,63 @@
+# @package _global_
+
+# Global configuration
+scratch:
+  resolution: 224
+
+# Dataset configuration
+dataset:
+  name: "carvana"
+  root: "./data"
+  train:
+    batch_size: 16
+    num_workers: 4
+    pin_memory: true
+    shuffle: true
+    drop_last: true
+  test:
+    batch_size: 16
+    num_workers: 4
+    pin_memory: true
+    shuffle: false
+    drop_last: false
+
+# Training configuration
+training:
+  num_epochs: 1
+  accelerator: cuda
+  seed: 42
+
+  # Optimizer configuration
+  optimizer:
+    name: "AdamW"
+    lr: 1.0e-4
+    weight_decay: 1.0e-6
+    amp:
+      enabled: true
+      amp_dtype: float16
+
+  # Scheduler configuration
+  scheduler:
+    t_max: 10
+    eta_min: 1.0e-6
+
+  # Logging configuration
+  logging:
+    wandb:
+      enabled: true
+      project: "unet"
+    log: 'all'
+    log_freq: 10
+
+  # Checkpoint configuration
+  checkpoint:
+    save_directory: "./checkpoints"
+
+
+# Model configuration
+model:
+  image_encoder:
+    pretrained: true
+  mask_decoder:
+    out_channels: 1
+    dropout: 0.5

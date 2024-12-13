@@ -11,6 +11,48 @@ class Phase:
     VAL = "val"
 
 
+class DurationMeter:
+    """
+    Duration meter to measure the time taken for each phase.
+    """
+
+    def __init__(self, name: str, device: torch.device, fmt: str = ":f"):
+        """
+        Args:
+            name (str): Name of the meter.
+            device (str): Device to run the meter on.
+            fmt (str): Format of the meter. Default is ":f".
+        """
+        self.name = name
+        self.device = device
+        self.fmt = fmt
+        self.val = 0
+
+    def reset(self) -> None:
+        """
+        Reset the meter.
+        """
+        self.val = 0
+
+    def update(self, val: float) -> None:
+        """
+        Update the meter.
+        """
+        self.val = val
+
+    def add(self, val: float) -> None:
+        """
+        Add the value to the meter.
+
+        Args:
+            val (float): Value to add.
+        """
+        self.val += val
+
+    def __str__(self):
+        return f"{self.name}: {human_readable_time(self.val)}"
+
+
 def human_readable_time(time_seconds: float) -> str:
     """
     Convert seconds to human-readable time.
