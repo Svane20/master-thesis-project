@@ -61,8 +61,8 @@ training:
   # Checkpoint configuration
   checkpoint:
     save_directory: "./checkpoints"
-    checkpoint_path: "unet_latest.pth"
-    resume_from: "./checkpoints/unet_latest.pth"
+    checkpoint_path: "unet_demo.pth"
+    resume_from: null
 
 # Model configuration
 model:
