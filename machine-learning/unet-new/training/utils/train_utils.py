@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import torch
 
 import logging
@@ -105,3 +107,24 @@ def set_seeds(seed: int) -> None:
 
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
+
+
+def get_resume_checkpoint(checkpoint_path: str) -> Optional[Path]:
+    """
+    Get the resume checkpoint path.
+
+    Args:
+        checkpoint_path (str): Checkpoint path.
+
+    Returns:
+        Optional[str]: Resume checkpoint path.
+    """
+    if checkpoint_path is None:
+        return None
+
+    current_directory = Path(__file__).resolve().parent.parent.parent
+    checkpoint_path = current_directory / checkpoint_path
+    if not checkpoint_path.is_file():
+        return None
+
+    return checkpoint_path

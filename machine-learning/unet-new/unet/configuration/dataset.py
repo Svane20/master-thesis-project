@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass
 class DatasetLoaderConfig:
     batch_size: int

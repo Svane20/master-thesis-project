@@ -23,7 +23,7 @@ dataset:
 
 # Training configuration
 training:
-  num_epochs: 1
+  num_epochs: 10
   accelerator: cuda
   seed: 42
 
@@ -62,6 +62,7 @@ training:
   checkpoint:
     save_directory: "./checkpoints"
     checkpoint_path: "unet_latest.pth"
+    resume_from: "./checkpoints/unet_latest.pth"
 
 # Model configuration
 model:

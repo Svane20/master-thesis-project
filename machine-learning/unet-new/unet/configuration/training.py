@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -26,6 +27,7 @@ class WandbConfig:
     enabled: bool
     project: str
 
+
 @dataclass
 class EarlyStoppingConfig:
     enabled: bool
@@ -47,6 +49,7 @@ class LoggingConfig:
 class CheckpointConfig:
     save_directory: str
     checkpoint_path: str
+    resume_from: Optional[str]
 
 
 @dataclass

@@ -11,8 +11,9 @@ from tqdm import tqdm
 
 from training.early_stopping import EarlyStopping
 from training.metrics import calculate_dice_score
+from training.utils.checkpoint_utils import load_state_dict_into_model
 from training.utils.logger import setup_logging
-from training.utils.train_utils import get_amp_type
+from training.utils.train_utils import get_amp_type, get_resume_checkpoint
 from unet.configuration.training import TrainConfig
 
 
@@ -49,7 +50,7 @@ class Trainer:
 
         # Iterations
         self.epoch = 0
-        self.num_epochs = self.epoch + self.train_config.num_epochs
+        self.num_epochs = self.train_config.num_epochs
 
         # Logger
         self.logger = setup_logging(
@@ -75,6 +76,9 @@ class Trainer:
         # Data loaders
         self.train_data_loader = train_data_loader
         self.test_data_loader = test_data_loader
+
+        # Load checkpoint
+        self.load_checkpoint()
 
     def run(self, run=None) -> None:
         # Clear the CUDA cache
@@ -140,6 +144,28 @@ class Trainer:
         total_training_time = time.time() - training_start_time
         self.logger.info(f"[INFO] Total training time: {total_training_time / 60:.2f} minutes")
 
+    def load_checkpoint(self) -> None:
+        checkpoint_path = get_resume_checkpoint(self.checkpoint_config.resume_from)
+        if checkpoint_path is not None:
+            self._load_resuming_checkpoint(checkpoint_path)
+
+    def _load_resuming_checkpoint(self, checkpoint_path: Path) -> None:
+        self.logger.info(f"Resuming training from checkpoint: {checkpoint_path}")
+
+        with open(checkpoint_path, "rb") as f:
+            checkpoint = torch.load(f, map_location="cpu", weights_only=True)
+
+        load_state_dict_into_model(model=self.model, state_dict=checkpoint["model"])
+
+        self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.epoch = checkpoint["epoch"]
+
+        if self.optimizer_config.amp.enabled and torch.cuda.is_available() and "scaler" in checkpoint:
+            self.scaler.load_state_dict(checkpoint["scaler"])
+
+        if self.early_stopping is not None and "early_stopping" in checkpoint:
+            self.early_stopping.load_state_dict(checkpoint["early_stopping"])
+
     def _save_checkpoint(self, epoch: int, metric: float) -> None:
         # Ensure the directory exists
         current_directory = Path(__file__).resolve().parent.parent
@@ -152,7 +178,6 @@ class Trainer:
         state_dict = {
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
-            "scheduler": self.scheduler.state_dict(),
             "epoch": epoch,
             "metric": metric
         }

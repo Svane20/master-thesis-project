@@ -44,7 +44,6 @@ def _setup_run(config: Config):
         eta_min=training_config.scheduler.eta_min
     )
 
-
     # Set up the data loaders
     train_data_loader, test_data_loader = setup_data_loaders(scratch_config, dataset_config)
 
@@ -66,7 +65,6 @@ def _setup_run(config: Config):
         print("Training interrupted by user.")
     except Exception as e:
         print(f"Error during training: {e}")
-
 
 
 def main(args: Namespace) -> None:
