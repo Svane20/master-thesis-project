@@ -87,6 +87,7 @@ class Trainer:
             current_epoch = epoch + 1
 
             train_metrics = self._train_one_epoch(train_data_loader, current_epoch, disable_progress_bar)
+            test_metrics = self._test_one_epoch(test_data_loader, current_epoch, disable_progress_bar)
 
             # Step the scheduler
             self._scheduler_step(self.scheduler)
@@ -99,9 +100,10 @@ class Trainer:
 
             # Print metrics
             train_metrics_str = " | ".join([f"Train {k.capitalize()}: {v:.4f}" for k, v in train_metrics.items()])
+            test_metrics_str = " | ".join([f"Test {k.capitalize()}: {v:.4f}" for k, v in test_metrics.items()])
             self.logger.info(
                 f"Epoch: {current_epoch}/{self.num_epochs} | LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s\n"
-                f"{train_metrics_str}"
+                f"{train_metrics_str} | {test_metrics_str}"
             )
 
         # Total Training Time
@@ -114,6 +116,18 @@ class Trainer:
             epoch: int,
             disable_progress_bar: bool
     ) -> Dict[str, float]:
+        """
+        Train the model for one epoch.
+
+        Args:
+            data_loader (torch.utils.data.DataLoader): Data loader for training.
+            epoch (int): Current epoch.
+            disable_progress_bar (bool): Disable the progress bar
+
+        Returns:
+            Dict[str, float]: Metrics for training.
+        """
+        # Set the model to train mode
         self.model.train()
 
         total_loss = 0.0
@@ -171,6 +185,73 @@ class Trainer:
                     "train_loss": total_loss / num_batches,
                 }
             )
+
+        # Compute average metrics
+        metrics = {
+            "loss": total_loss / num_batches,
+        }
+
+        return metrics
+
+    def _test_one_epoch(
+            self,
+            data_loader: torch.utils.data.DataLoader,
+            epoch: int,
+            disable_progress_bar: bool
+    ) -> Dict[str, float]:
+        """
+        Test the model for one epoch.
+
+        Args:
+            data_loader (torch.utils.data.DataLoader): Data loader for testing.
+            epoch (int): Current epoch.
+            disable_progress_bar (bool): Disable the progress bar
+
+        Returns:
+            Dict[str, float]: Metrics for testing.
+        """
+        # Set the model to validation mode
+        self.model.eval()
+
+        total_loss = 0.0
+        num_batches = 0
+
+        progress_bar = tqdm(
+            enumerate(data_loader),
+            desc=f"Testing Epoch {epoch}/{self.num_epochs}",
+            total=len(data_loader),
+            disable=disable_progress_bar
+        )
+
+        with torch.inference_mode():
+            for batch_idx, (X, y) in progress_bar:
+                num_batches += 1
+
+                X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
+
+                with torch.amp.autocast(
+                        device_type=self.device.type,
+                        enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
+                        dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
+                ):
+                    # Forward pass
+                    y_pred = self.model(X)
+
+                    # Calculate loss
+                    loss = self.criterion(y_pred, y)
+
+                total_loss += loss.item()
+
+                # Calculate predictions
+                preds = torch.sigmoid(y_pred)
+                preds = (preds > 0.5).float()
+
+                # Update progress bar
+                progress_bar.set_postfix(
+                    {
+                        "test_loss": total_loss / num_batches,
+                    }
+                )
 
         # Compute average metrics
         metrics = {
