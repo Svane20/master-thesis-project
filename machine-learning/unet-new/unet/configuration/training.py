@@ -26,6 +26,15 @@ class WandbConfig:
     enabled: bool
     project: str
 
+@dataclass
+class EarlyStoppingConfig:
+    enabled: bool
+    verbose: bool
+    patience: int
+    min_delta: float
+    monitor: str
+    mode: str
+
 
 @dataclass
 class LoggingConfig:
@@ -37,6 +46,7 @@ class LoggingConfig:
 @dataclass
 class CheckpointConfig:
     save_directory: str
+    checkpoint_path: str
 
 
 @dataclass
@@ -46,5 +56,6 @@ class TrainConfig:
     seed: int
     optimizer: OptimizerConfig
     scheduler: SchedulerConfig
+    early_stopping: EarlyStoppingConfig
     logging: LoggingConfig
     checkpoint: CheckpointConfig

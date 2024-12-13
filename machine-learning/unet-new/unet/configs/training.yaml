@@ -41,6 +41,15 @@ training:
     t_max: 10
     eta_min: 1.0e-6
 
+  # Early stopping configuration
+  early_stopping:
+    enabled: true
+    verbose: true
+    patience: 5
+    min_delta: 0.0
+    monitor: "loss"
+    mode: "min"
+
   # Logging configuration
   logging:
     wandb:
@@ -52,7 +61,7 @@ training:
   # Checkpoint configuration
   checkpoint:
     save_directory: "./checkpoints"
-
+    checkpoint_path: "unet_latest.pth"
 
 # Model configuration
 model:

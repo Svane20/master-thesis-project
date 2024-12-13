@@ -5,6 +5,7 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 from training.dataset.data_loaders import setup_data_loaders
+from training.early_stopping import EarlyStopping
 from training.optimizer import construct_optimizer
 from training.trainer import Trainer
 from training.utils.train_utils import set_seeds
@@ -43,6 +44,7 @@ def _setup_run(config: Config):
         eta_min=training_config.scheduler.eta_min
     )
 
+
     # Set up the data loaders
     train_data_loader, test_data_loader = setup_data_loaders(scratch_config, dataset_config)
 
@@ -57,8 +59,14 @@ def _setup_run(config: Config):
         training_config=training_config,
     )
 
-    # Run the training
-    trainer.run()
+    try:
+        # Run the training
+        trainer.run()
+    except KeyboardInterrupt:
+        print("Training interrupted by user.")
+    except Exception as e:
+        print(f"Error during training: {e}")
+
 
 
 def main(args: Namespace) -> None:

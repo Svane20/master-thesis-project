@@ -1,12 +1,16 @@
+from pathlib import Path
+
 import torch
 import torch.nn as nn
 
 import time
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 
+from training.early_stopping import EarlyStopping
+from training.metrics import calculate_dice_score
 from training.utils.logger import setup_logging
 from training.utils.train_utils import get_amp_type
 from unet.configuration.training import TrainConfig
@@ -40,6 +44,8 @@ class Trainer:
         # Configuration
         self.train_config = training_config
         self.optimizer_config = training_config.optimizer
+        self.early_stopping_config = training_config.early_stopping
+        self.checkpoint_config = training_config.checkpoint
 
         # Iterations
         self.epoch = 0
@@ -58,6 +64,7 @@ class Trainer:
 
         # Components
         self._setup_scaler()
+        self._setup_early_stopping()
         self.model = model
         self.criterion = criterion
         self.optimizer = optimizer
@@ -86,11 +93,16 @@ class Trainer:
 
             current_epoch = epoch + 1
 
+            # Train and test for one epoch
             train_metrics = self._train_one_epoch(train_data_loader, current_epoch, disable_progress_bar)
             test_metrics = self._test_one_epoch(test_data_loader, current_epoch, disable_progress_bar)
+            validation_metric = test_metrics.get(
+                self.early_stopping_config.monitor if self.early_stopping_config.enabled else "loss",
+                None
+            )
 
             # Step the scheduler
-            self._scheduler_step(self.scheduler)
+            self._scheduler_step(self.scheduler, validation_metric)
 
             # Get current learning rate
             current_lr = self.optimizer.param_groups[0]["lr"]
@@ -106,9 +118,53 @@ class Trainer:
                 f"{train_metrics_str} | {test_metrics_str}"
             )
 
+            # Early stopping
+            if self.early_stopping is not None:
+                # Update early stopping
+                self.early_stopping.step(validation_metric)
+
+                # Check for improvement
+                if self.early_stopping.has_improved:
+                    self._save_checkpoint(current_epoch, validation_metric)
+
+                # Check for early stopping
+                if self.early_stopping.should_stop:
+                    self.logger.info(
+                        f"[INFO] Early stopping activated. Best score: {self.early_stopping.best_score:.4f}")
+                    break
+            else:
+                # Save the model at the end of each epoch
+                self._save_checkpoint(current_epoch, validation_metric)
+
         # Total Training Time
         total_training_time = time.time() - training_start_time
         self.logger.info(f"[INFO] Total training time: {total_training_time / 60:.2f} minutes")
+
+    def _save_checkpoint(self, epoch: int, metric: float) -> None:
+        # Ensure the directory exists
+        current_directory = Path(__file__).resolve().parent.parent
+        save_directory = current_directory / self.checkpoint_config.save_directory
+        save_directory.mkdir(parents=True, exist_ok=True)
+
+        # Save the checkpoint
+        checkpoint_path = save_directory / self.checkpoint_config.checkpoint_path
+
+        state_dict = {
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "scheduler": self.scheduler.state_dict(),
+            "epoch": epoch,
+            "metric": metric
+        }
+
+        if self.scaler is not None:
+            state_dict["scaler"] = self.scaler.state_dict()
+        if self.early_stopping is not None:
+            state_dict["early_stopping"] = self.early_stopping.state_dict()
+
+        torch.save(obj=state_dict, f=checkpoint_path)
+
+        self.logger.info(f"Checkpoint saved at epoch {epoch} with metric {metric:.4f}.")
 
     def _train_one_epoch(
             self,
@@ -130,7 +186,7 @@ class Trainer:
         # Set the model to train mode
         self.model.train()
 
-        total_loss = 0.0
+        total_metrics = {}
         num_batches = 0
 
         progress_bar = tqdm(
@@ -145,53 +201,23 @@ class Trainer:
 
             X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
 
-            with torch.amp.autocast(
-                    device_type=self.device.type,
-                    enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
-                    dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
-            ):
-                # Forward pass
-                y_pred = self.model(X)
-
-                # Calculate loss
-                loss = self.criterion(y_pred, y)
-
             # Zero the gradients
             self.optimizer.zero_grad()
 
-            if self.scaler is not None:
-                # Backward pass
-                self.scaler.scale(loss).backward()
+            # Run a single step (forward + backward)
+            loss_dict = self._run_step(X, y, is_train_step=True)
 
-                # Update weights
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
-            else:
-                # Backward pass
-                loss.backward()
+            # Update total metrics
+            self._update_metrics(total_metrics, loss_dict)
 
-                # Update weights
-                self.optimizer.step()
-
-            total_loss += loss.item()
-
-            # Calculate predictions
-            preds = torch.sigmoid(y_pred)
-            preds = (preds > 0.5).float()
-
-            # Update progress bar
-            progress_bar.set_postfix(
-                {
-                    "train_loss": total_loss / num_batches,
-                }
-            )
+            # Update the progress bar
+            current_metrics = {f"train_{k}": (total_metrics[k] / num_batches) for k in total_metrics}
+            progress_bar.set_postfix(current_metrics)
 
         # Compute average metrics
-        metrics = {
-            "loss": total_loss / num_batches,
-        }
+        avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
 
-        return metrics
+        return avg_metrics
 
     def _test_one_epoch(
             self,
@@ -213,7 +239,7 @@ class Trainer:
         # Set the model to validation mode
         self.model.eval()
 
-        total_loss = 0.0
+        total_metrics = {}
         num_batches = 0
 
         progress_bar = tqdm(
@@ -229,36 +255,118 @@ class Trainer:
 
                 X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
 
-                with torch.amp.autocast(
-                        device_type=self.device.type,
-                        enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
-                        dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
-                ):
-                    # Forward pass
-                    y_pred = self.model(X)
+                # Run a single step (forward + backward)
+                loss_dict = self._run_step(X, y, is_train_step=False)
 
-                    # Calculate loss
-                    loss = self.criterion(y_pred, y)
+                # Update total metrics
+                self._update_metrics(total_metrics, loss_dict)
 
-                total_loss += loss.item()
-
-                # Calculate predictions
-                preds = torch.sigmoid(y_pred)
-                preds = (preds > 0.5).float()
-
-                # Update progress bar
-                progress_bar.set_postfix(
-                    {
-                        "test_loss": total_loss / num_batches,
-                    }
-                )
+                # Update the progress bar
+                current_metrics = {f"test_{k}": (total_metrics[k] / num_batches) for k in total_metrics}
+                progress_bar.set_postfix(current_metrics)
 
         # Compute average metrics
-        metrics = {
-            "loss": total_loss / num_batches,
-        }
+        avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
 
-        return metrics
+        return avg_metrics
+
+    def _run_step(
+            self,
+            X: torch.Tensor,
+            y: torch.Tensor,
+            is_train_step: bool
+    ) -> Dict[str, Any]:
+        """
+        Run a single step of training.
+
+        Args:
+            X (torch.Tensor): Input data.
+            is_train_step (bool): Whether the step is for training.
+
+        Returns:
+            Dict[str, Any]: Loss dictionary.
+        """
+        """
+        Orchestrates forward and if training, backward steps.
+        """
+        # Forward step only: returns a dictionary of {loss, metrics...}
+        loss_dict = self._forward_step(X, y)
+
+        if is_train_step:
+            loss = loss_dict["loss"]
+            if self.scaler is not None:
+                self.scaler.scale(loss).backward()
+                self.scaler.step(self.optimizer)
+                self.scaler.update()
+            else:
+                loss.backward()
+                self.optimizer.step()
+
+        return loss_dict
+
+    def _forward_step(
+            self,
+            X: torch.Tensor,
+            y: torch.Tensor
+    ) -> Dict[str, Any]:
+        """
+        Performs a forward pass and computes loss and metrics.
+        """
+        with torch.amp.autocast(
+                device_type=self.device.type,
+                enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
+                dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
+        ):
+            # Forward pass
+            outputs = self.model(X)
+
+            # Calculate loss
+            loss = self.criterion(outputs, y)
+
+            # Calculate predictions
+            predictions = torch.sigmoid(outputs)
+            predictions = (predictions > 0.5).float()
+
+            # Calculate metrics
+            metrics = self._calculate_metrics(predictions, y)
+
+            # Loss dictionary
+            loss_dict = {"loss": loss, **metrics}
+
+            return loss_dict
+
+    def _calculate_metrics(self, predictions: torch.Tensor, targets: torch.Tensor) -> Dict[str, float]:
+        """
+        Calculate the metrics for the predictions.
+
+        Args:
+            predictions (torch.Tensor): Predictions from the model.
+            targets (torch.Tensor): Targets for the predictions.
+
+        Returns:
+            Dict[str, float]: Metrics for the predictions.
+        """
+        dice_score = calculate_dice_score(predictions, targets)
+
+        return {"dice": dice_score}
+
+    def _update_metrics(self, total_metrics: Dict[str, float], new_metrics: Dict[str, Any]) -> None:
+        """
+        Accumulate metrics from the current batch into total_metrics.
+
+        Args:
+            total_metrics (Dict[str, float]): Total metrics.
+            new_metrics (Dict[str, Any]): New metrics.
+        """
+        for metric_name, metric_value in new_metrics.items():
+            # Ensure metric_value is a float or a scalar
+            if hasattr(metric_value, "item"):
+                metric_value = metric_value.item()
+
+            if metric_name not in total_metrics:
+                total_metrics[metric_name] = metric_value
+            else:
+                total_metrics[metric_name] += metric_value
 
     def _setup_device(self, accelerator: str) -> None:
         """
@@ -302,7 +410,7 @@ class Trainer:
 
         self.logger.info(f"Done moving components to device {self.device}.")
 
-    def _setup_scaler(self):
+    def _setup_scaler(self) -> None:
         """
         Set up the gradient scaler for training.
         """
@@ -310,6 +418,18 @@ class Trainer:
             device=str(self.device),
             enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available()
         )
+
+    def _setup_early_stopping(self) -> None:
+        """
+        Set up the early stopping for training.
+        """
+        if self.early_stopping_config.enabled:
+            self.early_stopping = EarlyStopping(
+                patience=self.early_stopping_config.patience,
+                min_delta=self.early_stopping_config.min_delta,
+                verbose=self.early_stopping_config.verbose,
+                mode=self.early_stopping_config.mode
+            )
 
     def _scheduler_step(self, scheduler: torch.optim.lr_scheduler, validation_metric: Optional[float] = None) -> None:
         """
