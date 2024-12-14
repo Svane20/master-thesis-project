@@ -194,7 +194,7 @@ class Trainer:
 
             # Total Training Time
             total_training_time = time.time() - training_start_time
-            self.wandb_run.log({"total_training_time": total_training_time})
+            self.wandb_run.log({"training_time": total_training_time / 60})
             self.logger.info(f"[INFO] Total training time: {total_training_time / 60:.2f} minutes")
         except Exception as e:
             self.logger.error(f"Error during training: {e}")
