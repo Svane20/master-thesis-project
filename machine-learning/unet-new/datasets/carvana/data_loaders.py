@@ -40,18 +40,18 @@ def setup_data_loaders(
     train_data_loader = create_data_loader(
         directory=train_directory,
         transforms=transforms,
-        batch_size=dataset_config.train.batch_size,
-        num_workers=dataset_config.train.num_workers,
-        pin_memory=dataset_config.train.pin_memory,
+        batch_size=dataset_config.batch_size,
+        num_workers=dataset_config.num_workers,
+        pin_memory=dataset_config.pin_memory,
         shuffle=dataset_config.train.shuffle,
         drop_last=dataset_config.train.drop_last,
     )
     test_data_loader = create_data_loader(
         directory=test_directory,
         transforms=target_transforms,
-        batch_size=dataset_config.test.batch_size,
-        num_workers=dataset_config.test.num_workers,
-        pin_memory=dataset_config.test.pin_memory,
+        batch_size=dataset_config.batch_size,
+        num_workers=dataset_config.num_workers,
+        pin_memory=dataset_config.pin_memory,
         shuffle=dataset_config.test.shuffle,
         drop_last=dataset_config.test.drop_last,
     )

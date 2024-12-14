@@ -9,6 +9,12 @@ class AMPConfig:
 
 
 @dataclass
+class CriterionConfig:
+    bce_weight: float
+    dice_weight: float
+
+
+@dataclass
 class OptimizerConfig:
     name: str
     lr: float
@@ -64,6 +70,7 @@ class TrainConfig:
     seed: int
     compile_model: bool
 
+    criterion: CriterionConfig
     optimizer: OptimizerConfig
     scheduler: SchedulerConfig
     early_stopping: EarlyStoppingConfig

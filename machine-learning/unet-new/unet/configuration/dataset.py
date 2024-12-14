@@ -3,9 +3,6 @@ from dataclasses import dataclass
 
 @dataclass
 class DatasetLoaderConfig:
-    batch_size: int
-    num_workers: int
-    pin_memory: bool
     shuffle: bool
     drop_last: bool
 
@@ -14,5 +11,8 @@ class DatasetLoaderConfig:
 class DatasetConfig:
     name: str
     root: str
+    batch_size: int
+    num_workers: int
+    pin_memory: bool
     train: DatasetLoaderConfig
     test: DatasetLoaderConfig

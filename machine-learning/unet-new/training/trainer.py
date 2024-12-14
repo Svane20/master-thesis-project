@@ -110,8 +110,12 @@ class Trainer:
                 current_epoch = epoch + 1
 
                 # Train and test for one epoch
-                train_metrics = self._train_one_epoch(train_data_loader, current_epoch, disable_progress_bar)
-                test_metrics = self._test_one_epoch(test_data_loader, current_epoch, disable_progress_bar)
+                train_metrics, train_times = self._train_one_epoch(
+                    train_data_loader,
+                    current_epoch,
+                    disable_progress_bar
+                )
+                test_metrics, test_times = self._test_one_epoch(test_data_loader, current_epoch, disable_progress_bar)
                 validation_metric = test_metrics.get(
                     self.early_stopping_config.monitor if self.early_stopping_config.enabled else "loss",
                     None
@@ -123,16 +127,18 @@ class Trainer:
                 # Get current learning rate
                 current_lr = self.optimizer.param_groups[0]["lr"]
 
-                # Calculate epoch duration
+                # Epoch duration
                 epoch_duration = time.time() - start_epoch_time
 
                 # Log metrics to Weights & Biases
                 if self.wandb_run is not None:
                     self.wandb_run.log({
                         "epoch": current_epoch,
-                        "learning_rate": current_lr,
                         "epoch_duration": epoch_duration,
+                        "learning_rate": current_lr,
+                        **{f"train/{k}": v for k, v in train_times.items()},
                         **{f"train/{k}": v for k, v in train_metrics.items()},
+                        **{f"test/{k}": v for k, v in test_times.items()},
                         **{f"test/{k}": v for k, v in test_metrics.items()}
                     })
 
@@ -184,7 +190,7 @@ class Trainer:
             data_loader: torch.utils.data.DataLoader,
             epoch: int,
             disable_progress_bar: bool
-    ) -> Dict[str, float]:
+    ) -> (Dict[str, float], Dict[str, float]):
         """
         Train the model for one epoch.
 
@@ -195,12 +201,16 @@ class Trainer:
 
         Returns:
             Dict[str, float]: Metrics for training.
+            Dict[str, float]: Timing metrics for the epoch.
         """
-        # Set the model to train mode
         self.model.train()
-
         total_metrics = {}
         num_batches = 0
+
+        # Timing
+        epoch_start_time = time.time()
+        data_loading_time = 0.0
+        step_time = 0.0
 
         progress_bar = tqdm(
             enumerate(data_loader),
@@ -210,16 +220,24 @@ class Trainer:
         )
 
         for batch_idx, (X, y) in progress_bar:
+            batch_start_time = time.time()
             num_batches += 1
 
-            # Move data to device
+            # Measure data loading time and move data to device
             X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
+            data_loading_time += time.time() - batch_start_time
+
+            # Measure step time
+            step_start_time = time.time()
 
             # Zero the gradients
             self.optimizer.zero_grad()
 
             # Run a single step (forward + backward)
             loss_dict = self._run_step(X, y)
+
+            # Step time
+            step_time += time.time() - step_start_time
 
             # Update total metrics
             self._update_metrics(total_metrics, loss_dict)
@@ -231,30 +249,46 @@ class Trainer:
         # Compute average metrics
         avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
 
-        return avg_metrics
+        # Epoch duration
+        epoch_duration = time.time() - epoch_start_time
+
+        # Log timing metrics
+        self.logger.info(
+            f"Data Loading Time: {data_loading_time:.2f}s | Step Time: {step_time:.2f}s | Epoch Duration: {epoch_duration:.2f}s"
+        )
+
+        return avg_metrics, {
+            "data_loading_time": data_loading_time,
+            "step_time": step_time,
+            "epoch_duration": epoch_duration,
+        }
 
     def _test_one_epoch(
             self,
             data_loader: torch.utils.data.DataLoader,
             epoch: int,
             disable_progress_bar: bool
-    ) -> Dict[str, float]:
+    ) -> (Dict[str, float], Dict[str, float]):
         """
         Test the model for one epoch.
 
         Args:
-            data_loader (torch.utils.data.DataLoader): Data loader for testing.
+            data_loader (torch.utils.data.DataLoader): Data loader for training.
             epoch (int): Current epoch.
             disable_progress_bar (bool): Disable the progress bar
 
         Returns:
-            Dict[str, float]: Metrics for testing.
+            Dict[str, float]: Metrics for training.
+            Dict[str, float]: Timing metrics for the epoch.
         """
-        # Set the model to validation mode
         self.model.eval()
-
         total_metrics = {}
         num_batches = 0
+
+        # Timing
+        epoch_start_time = time.time()
+        data_loading_time = 0.0
+        step_time = 0.0
 
         progress_bar = tqdm(
             enumerate(data_loader),
@@ -265,10 +299,12 @@ class Trainer:
 
         with torch.inference_mode():
             for batch_idx, (X, y) in progress_bar:
+                batch_start_time = time.time()
                 num_batches += 1
 
-                # Move data to device
+                # Measure data loading time and move data to device
                 X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
+                data_loading_time += time.time() - batch_start_time
 
                 # Use autocast for mixed precision if enabled
                 with torch.amp.autocast(
@@ -276,11 +312,17 @@ class Trainer:
                         enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                         dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
                 ):
+                    # Measure step time
+                    step_start_time = time.time()
+
                     # Run a single step (forward only)
                     loss_dict = self._step(X, y)
 
                     # Update total metrics
                     self._update_metrics(total_metrics, loss_dict)
+
+                    # Step time
+                    step_time += time.time() - step_start_time
 
                 # Update the progress bar
                 current_metrics = {f"test_{k}": (total_metrics[k] / num_batches) for k in total_metrics}
@@ -289,7 +331,19 @@ class Trainer:
         # Compute average metrics
         avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
 
-        return avg_metrics
+        # Epoch duration
+        epoch_duration = time.time() - epoch_start_time
+
+        # Log timing metrics
+        self.logger.info(
+            f"Data Loading Time: {data_loading_time:.2f}s | Step Time: {step_time:.2f}s | Epoch Duration: {epoch_duration:.2f}s"
+        )
+
+        return avg_metrics, {
+            "data_loading_time": data_loading_time,
+            "step_time": step_time,
+            "epoch_duration": epoch_duration,
+        }
 
     def _run_step(self, X: torch.Tensor, y: torch.Tensor) -> Dict[str, Any]:
         """
@@ -526,20 +580,17 @@ class Trainer:
                 mode=self.early_stopping_config.mode
             )
 
-    def _scheduler_step(self, scheduler: torch.optim.lr_scheduler, validation_metric: Optional[float] = None) -> None:
+    def _scheduler_step(self, scheduler: torch.optim.lr_scheduler, metric: Optional[float] = None) -> None:
         """
         Steps the scheduler based on its type and current training phase.
 
         Args:
             scheduler (torch.optim.lr_scheduler): The learning rate scheduler.
-            validation_metric (Optional[float]): Validation metric for ReduceLROnPlateau.
+            metric (Optional[float]): Validation metric for ReduceLROnPlateau.
         """
-        if isinstance(scheduler, ReduceLROnPlateau):
-            if validation_metric is not None:
-                scheduler.step(validation_metric)
-            else:
-                self.logger.warn("[WARNING] Missing metric for ReduceLROnPlateau. Skipping scheduler step.")
-        else:
+        if isinstance(scheduler, ReduceLROnPlateau) and metric is not None:
+            scheduler.step(metric)
+        elif not isinstance(scheduler, ReduceLROnPlateau):
             scheduler.step()
 
     def _update_metrics(self, total_metrics: Dict[str, float], new_metrics: Dict[str, Any]) -> None:

@@ -8,16 +8,13 @@ scratch:
 dataset:
   name: "carvana"
   root: "./data"
+  batch_size: 16
+  num_workers: 4
+  pin_memory: true
   train:
-    batch_size: 16
-    num_workers: 4
-    pin_memory: true
     shuffle: true
     drop_last: true
   test:
-    batch_size: 16
-    num_workers: 4
-    pin_memory: true
     shuffle: false
     drop_last: false
 
@@ -27,6 +24,11 @@ training:
   accelerator: cuda
   seed: 42
   compile_model: true
+
+  # Criterion configuration
+  criterion:
+    bce_weight: 0.7
+    dice_weight: 0.3
 
   # Optimizer configuration
   optimizer:
@@ -57,7 +59,7 @@ training:
       enabled: true
       project: "U-NET"
       entity: "svane20-keyshot"
-      tags: ["unet", "carvana", "segmentation", "experiment"]
+      tags: [ "unet", "carvana", "segmentation", "experiment" ]
       notes: "Training U-Net on Carvana dataset with mixed precision"
       group: "carvana-segmentation-experiments"
       job_type: "training"
