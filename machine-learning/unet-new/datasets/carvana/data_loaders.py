@@ -5,8 +5,8 @@ from pathlib import Path
 import os
 from typing import Tuple
 
-from training.dataset.carvana_dataset import CarvanaDataset
-from training.dataset.transforms import get_train_transforms, get_test_transforms
+from datasets.carvana.carvana_dataset import CarvanaDataset
+from datasets.transforms import get_train_transforms, get_test_transforms
 from unet.configuration.dataset import DatasetConfig
 from unet.configuration.scratch import ScratchConfig
 

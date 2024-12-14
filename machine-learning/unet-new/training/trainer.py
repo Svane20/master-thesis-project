@@ -1,21 +1,20 @@
-from pathlib import Path
-
 import torch
 import torch.nn as nn
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import time
 from typing import Dict, Optional, Any
-
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from pathlib import Path
 from tqdm import tqdm
 import wandb
 from pydantic import BaseModel, Field
 
 from training.early_stopping import EarlyStopping
-from training.metrics import calculate_dice_score
+from training.metrics import calculate_dice_score, calculate_dice_edge_score, calculate_iou_score
 from training.utils.checkpoint_utils import load_state_dict_into_model
 from training.utils.logger import setup_logging
 from training.utils.train_utils import get_amp_type, get_resume_checkpoint
+
 from unet.configuration.training import TrainConfig
 
 
@@ -84,7 +83,7 @@ class Trainer:
         self.optimizer = optimizer
         self.scheduler = scheduler
 
-        self._move_to_device(compile_model=True)
+        self._move_to_device(compile_model=self.train_config.compile_model)
 
         # Data loaders
         self.train_data_loader = train_data_loader
@@ -95,35 +94,6 @@ class Trainer:
 
         # W&B initialization
         self._init_wandb()
-
-    def _init_wandb(self):
-        if self.train_config.logging.wandb.enabled:
-            wandb_config = WeightAndBiasesConfig(
-                epochs=self.train_config.num_epochs,
-                learning_rate=self.train_config.optimizer.lr,
-                learning_rate_decay=self.train_config.optimizer.weight_decay,
-                seed=self.train_config.seed,
-                device=self.train_config.accelerator,
-            )
-
-            # Initialize W&B
-            self.wandb_run = wandb.init(
-                project=self.train_config.logging.wandb.project,
-                entity=self.train_config.logging.wandb.entity,
-                tags=self.train_config.logging.wandb.tags,
-                notes=self.train_config.logging.wandb.notes,
-                group=self.train_config.logging.wandb.group,
-                job_type=self.train_config.logging.wandb.job_type,
-                config=wandb_config.model_dump()
-            )
-
-            # Watch the model
-            self.wandb_run.watch(
-                self.model,
-                self.optimizer,
-                log=self.train_config.logging.log,
-                log_freq=self.train_config.logging.log_freq
-            )
 
     def run(self) -> None:
         disable_progress_bar = False
@@ -209,48 +179,6 @@ class Trainer:
         if checkpoint_path is not None:
             self._load_resuming_checkpoint(checkpoint_path)
 
-    def _load_resuming_checkpoint(self, checkpoint_path: Path) -> None:
-        self.logger.info(f"Resuming training from checkpoint: {checkpoint_path}")
-
-        with open(checkpoint_path, "rb") as f:
-            checkpoint = torch.load(f, map_location="cpu", weights_only=True)
-
-        load_state_dict_into_model(model=self.model, state_dict=checkpoint["model"])
-
-        self.optimizer.load_state_dict(checkpoint["optimizer"])
-        self.epoch = checkpoint["epoch"]
-
-        if self.optimizer_config.amp.enabled and torch.cuda.is_available() and "scaler" in checkpoint:
-            self.scaler.load_state_dict(checkpoint["scaler"])
-
-        if self.early_stopping is not None and "early_stopping" in checkpoint:
-            self.early_stopping.load_state_dict(checkpoint["early_stopping"])
-
-    def _save_checkpoint(self, epoch: int, metric: float) -> None:
-        # Ensure the directory exists
-        current_directory = Path(__file__).resolve().parent.parent
-        save_directory = current_directory / self.checkpoint_config.save_directory
-        save_directory.mkdir(parents=True, exist_ok=True)
-
-        # Save the checkpoint
-        checkpoint_path = save_directory / self.checkpoint_config.checkpoint_path
-
-        state_dict = {
-            "model": self.model.state_dict(),
-            "optimizer": self.optimizer.state_dict(),
-            "epoch": epoch,
-            "metric": metric
-        }
-
-        if self.scaler is not None:
-            state_dict["scaler"] = self.scaler.state_dict()
-        if self.early_stopping is not None:
-            state_dict["early_stopping"] = self.early_stopping.state_dict()
-
-        torch.save(obj=state_dict, f=checkpoint_path)
-
-        self.logger.info(f"Checkpoint saved at epoch {epoch} with metric {metric:.4f}.")
-
     def _train_one_epoch(
             self,
             data_loader: torch.utils.data.DataLoader,
@@ -284,13 +212,14 @@ class Trainer:
         for batch_idx, (X, y) in progress_bar:
             num_batches += 1
 
+            # Move data to device
             X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
 
             # Zero the gradients
             self.optimizer.zero_grad()
 
             # Run a single step (forward + backward)
-            loss_dict = self._run_step(X, y, is_train_step=True)
+            loss_dict = self._run_step(X, y)
 
             # Update total metrics
             self._update_metrics(total_metrics, loss_dict)
@@ -338,13 +267,20 @@ class Trainer:
             for batch_idx, (X, y) in progress_bar:
                 num_batches += 1
 
+                # Move data to device
                 X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
 
-                # Run a single step (forward + backward)
-                loss_dict = self._run_step(X, y, is_train_step=False)
+                # Use autocast for mixed precision if enabled
+                with torch.amp.autocast(
+                        device_type=self.device.type,
+                        enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
+                        dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
+                ):
+                    # Run a single step (forward only)
+                    loss_dict = self._step(X, y)
 
-                # Update total metrics
-                self._update_metrics(total_metrics, loss_dict)
+                    # Update total metrics
+                    self._update_metrics(total_metrics, loss_dict)
 
                 # Update the progress bar
                 current_metrics = {f"test_{k}": (total_metrics[k] / num_batches) for k in total_metrics}
@@ -355,18 +291,13 @@ class Trainer:
 
         return avg_metrics
 
-    def _run_step(
-            self,
-            X: torch.Tensor,
-            y: torch.Tensor,
-            is_train_step: bool
-    ) -> Dict[str, Any]:
+    def _run_step(self, X: torch.Tensor, y: torch.Tensor) -> Dict[str, Any]:
         """
         Run a single step of training.
 
         Args:
             X (torch.Tensor): Input data.
-            is_train_step (bool): Whether the step is for training.
+            y (torch.Tensor): Target data.
 
         Returns:
             Dict[str, Any]: Loss dictionary.
@@ -374,51 +305,65 @@ class Trainer:
         """
         Orchestrates forward and if training, backward steps.
         """
-        # Forward step only: returns a dictionary of {loss, metrics...}
         loss_dict = self._forward_step(X, y)
+        loss = loss_dict["loss"]
 
-        if is_train_step:
-            loss = loss_dict["loss"]
-            if self.scaler is not None:
-                self.scaler.scale(loss).backward()
-                self.scaler.step(self.optimizer)
-                self.scaler.update()
-            else:
-                loss.backward()
-                self.optimizer.step()
+        if self.scaler is not None:
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+        else:
+            loss.backward()
+            self.optimizer.step()
 
         return loss_dict
 
-    def _forward_step(
-            self,
-            X: torch.Tensor,
-            y: torch.Tensor
-    ) -> Dict[str, Any]:
+    def _forward_step(self, X: torch.Tensor, y: torch.Tensor) -> Dict[str, Any]:
         """
         Performs a forward pass and computes loss and metrics.
+
+        Args:
+            X (torch.Tensor): Input data.
+            y (torch.Tensor): Target data.
+
+        Returns:
+            Dict[str, Any]: Loss dictionary.
         """
         with torch.amp.autocast(
                 device_type=self.device.type,
                 enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                 dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
         ):
-            # Forward pass
-            outputs = self.model(X)
+            return self._step(X, y)
 
-            # Calculate loss
-            loss = self.criterion(outputs, y)
+    def _step(self, X: torch.Tensor, y: torch.Tensor) -> Dict[str, Any]:
+        """
+        Calculate the loss and metrics for the current batch.
 
-            # Calculate predictions
-            predictions = torch.sigmoid(outputs)
-            predictions = (predictions > 0.5).float()
+        Args:
+            X (torch.Tensor): Input data.
+            y (torch.Tensor): Target data.
 
-            # Calculate metrics
-            metrics = self._calculate_metrics(predictions, y)
+        Returns:
+            Dict[str, Any]: Loss dictionary.
+        """
+        # Forward pass
+        outputs = self.model(X)
 
-            # Loss dictionary
-            loss_dict = {"loss": loss, **metrics}
+        # Calculate loss
+        loss = self.criterion(outputs, y)
 
-            return loss_dict
+        # Calculate predictions
+        predictions = torch.sigmoid(outputs)
+        predictions = (predictions > 0.5).float()
+
+        # Calculate metrics
+        metrics = self._calculate_metrics(predictions, y)
+
+        # Loss dictionary
+        loss_dict = {"loss": loss, **metrics}
+
+        return loss_dict
 
     def _calculate_metrics(self, predictions: torch.Tensor, targets: torch.Tensor) -> Dict[str, float]:
         """
@@ -432,26 +377,85 @@ class Trainer:
             Dict[str, float]: Metrics for the predictions.
         """
         dice_score = calculate_dice_score(predictions, targets)
+        dice_edge_score = calculate_dice_edge_score(predictions, targets)
+        iou_score = calculate_iou_score(predictions, targets)
 
-        return {"dice": dice_score}
+        return {
+            "dice": dice_score,
+            "dice_edge": dice_edge_score,
+            "iou": iou_score
+        }
 
-    def _update_metrics(self, total_metrics: Dict[str, float], new_metrics: Dict[str, Any]) -> None:
-        """
-        Accumulate metrics from the current batch into total_metrics.
+    def _load_resuming_checkpoint(self, checkpoint_path: Path) -> None:
+        self.logger.info(f"Resuming training from checkpoint: {checkpoint_path}")
 
-        Args:
-            total_metrics (Dict[str, float]): Total metrics.
-            new_metrics (Dict[str, Any]): New metrics.
-        """
-        for metric_name, metric_value in new_metrics.items():
-            # Ensure metric_value is a float or a scalar
-            if hasattr(metric_value, "item"):
-                metric_value = metric_value.item()
+        with open(checkpoint_path, "rb") as f:
+            checkpoint = torch.load(f, map_location="cpu", weights_only=True)
 
-            if metric_name not in total_metrics:
-                total_metrics[metric_name] = metric_value
-            else:
-                total_metrics[metric_name] += metric_value
+        load_state_dict_into_model(model=self.model, state_dict=checkpoint["model"])
+
+        self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.epoch = checkpoint["epoch"]
+
+        if self.optimizer_config.amp.enabled and torch.cuda.is_available() and "scaler" in checkpoint:
+            self.scaler.load_state_dict(checkpoint["scaler"])
+
+        if self.early_stopping is not None and "early_stopping" in checkpoint:
+            self.early_stopping.load_state_dict(checkpoint["early_stopping"])
+
+    def _save_checkpoint(self, epoch: int, metric: float) -> None:
+        # Ensure the directory exists
+        current_directory = Path(__file__).resolve().parent.parent
+        save_directory = current_directory / self.checkpoint_config.save_directory
+        save_directory.mkdir(parents=True, exist_ok=True)
+
+        # Save the checkpoint
+        checkpoint_path = save_directory / self.checkpoint_config.checkpoint_path
+
+        state_dict = {
+            "model": self.model.state_dict(),
+            "optimizer": self.optimizer.state_dict(),
+            "epoch": epoch,
+            "metric": metric
+        }
+
+        if self.scaler is not None:
+            state_dict["scaler"] = self.scaler.state_dict()
+        if self.early_stopping is not None:
+            state_dict["early_stopping"] = self.early_stopping.state_dict()
+
+        torch.save(obj=state_dict, f=checkpoint_path)
+
+        self.logger.info(f"Checkpoint saved at epoch {epoch} with metric {metric:.4f}.")
+
+    def _init_wandb(self):
+        if self.train_config.logging.wandb.enabled:
+            wandb_config = WeightAndBiasesConfig(
+                epochs=self.train_config.num_epochs,
+                learning_rate=self.train_config.optimizer.lr,
+                learning_rate_decay=self.train_config.optimizer.weight_decay,
+                seed=self.train_config.seed,
+                device=self.train_config.accelerator,
+            )
+
+            # Initialize W&B
+            self.wandb_run = wandb.init(
+                project=self.train_config.logging.wandb.project,
+                entity=self.train_config.logging.wandb.entity,
+                tags=self.train_config.logging.wandb.tags,
+                notes=self.train_config.logging.wandb.notes,
+                group=self.train_config.logging.wandb.group,
+                job_type=self.train_config.logging.wandb.job_type,
+                config=wandb_config.model_dump()
+            )
+
+            # Watch the model
+            self.wandb_run.watch(
+                self.model,
+                self.optimizer,
+                log=self.train_config.logging.log,
+                log_freq=self.train_config.logging.log_freq
+            )
 
     def _setup_device(self, accelerator: str) -> None:
         """
@@ -467,18 +471,6 @@ class Trainer:
         else:
             raise ValueError(f"Unsupported accelerator: {accelerator}")
 
-    def _setup_torch_backend(self) -> None:
-        """
-        Set up the torch backend for training.
-        """
-        if torch.cuda.is_available():
-            torch.backends.cudnn.benchmark = True  # Enable if input sizes are constant
-            torch.backends.cudnn.deterministic = False  # Set False for better performance
-
-            # Automatic Mixed Precision
-            torch.backends.cuda.matmul.allow_tf32 = True  # Allow TF32 on Ampere GPUs
-            torch.backends.cudnn.allow_tf32 = True  # Allow TF32 on Ampere GPUs
-
     def _move_to_device(self, compile_model: bool = True) -> None:
         """
         Move the components to the device.
@@ -489,11 +481,29 @@ class Trainer:
         self.logger.info(f"Moving components to device {self.device}.")
 
         if compile_model:
+            self.logger.info("Compiling the model with backend 'aot_eager'.")
+
             self.model = torch.compile(self.model, backend="aot_eager")
+
+            self.logger.info("Done compiling model with backend 'aot_eager'.")
 
         self.model.to(self.device)
 
         self.logger.info(f"Done moving components to device {self.device}.")
+
+    def _setup_torch_backend(self) -> None:
+        """
+        Set up the torch backend for training.
+        """
+        if torch.cuda.is_available():
+            torch.backends.cudnn.benchmark = True  # Enable if input sizes are constant
+            torch.backends.cudnn.deterministic = False  # Set False for better performance
+
+            # Mixed precision optimizations
+            torch.backends.cuda.matmul.allow_tf32 = True  # Enable TF32 for Ampere GPUs
+            torch.backends.cudnn.allow_tf32 = True  # Enable TF32 in CuDNN
+            torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = True  # Enable FP16 reductions
+            torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = True  # Enable BF16 reductions
 
     def _setup_scaler(self) -> None:
         """
@@ -531,3 +541,21 @@ class Trainer:
                 self.logger.warn("[WARNING] Missing metric for ReduceLROnPlateau. Skipping scheduler step.")
         else:
             scheduler.step()
+
+    def _update_metrics(self, total_metrics: Dict[str, float], new_metrics: Dict[str, Any]) -> None:
+        """
+        Accumulate metrics from the current batch into total_metrics.
+
+        Args:
+            total_metrics (Dict[str, float]): Total metrics.
+            new_metrics (Dict[str, Any]): New metrics.
+        """
+        for metric_name, metric_value in new_metrics.items():
+            # Ensure metric_value is a float or a scalar
+            if hasattr(metric_value, "item"):
+                metric_value = metric_value.item()
+
+            if metric_name not in total_metrics:
+                total_metrics[metric_name] = metric_value
+            else:
+                total_metrics[metric_name] += metric_value

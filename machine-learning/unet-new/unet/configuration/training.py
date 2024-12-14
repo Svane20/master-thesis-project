@@ -62,6 +62,8 @@ class TrainConfig:
     num_epochs: int
     accelerator: str
     seed: int
+    compile_model: bool
+
     optimizer: OptimizerConfig
     scheduler: SchedulerConfig
     early_stopping: EarlyStoppingConfig

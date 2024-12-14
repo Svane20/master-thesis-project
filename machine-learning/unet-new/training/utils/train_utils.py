@@ -1,11 +1,10 @@
-from pathlib import Path
-
 import torch
 
 import logging
 from typing import Optional
 import random
 import numpy as np
+from pathlib import Path
 
 
 class Phase:
@@ -86,7 +85,7 @@ def get_amp_type(amp_type: Optional[str] = None) -> Optional[torch.dtype]:
     if amp_type is None:
         return None
 
-    assert amp_type in ["bfloat16", "float16"], "Invalid Amp type."
+    assert amp_type in ["bfloat16", "float16"], f"Invalid AMP type: {amp_type}. Choose 'bfloat16' or 'float16'."
 
     return torch.bfloat16 if amp_type == "bfloat16" else torch.float16
 

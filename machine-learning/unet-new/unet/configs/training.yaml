@@ -26,6 +26,7 @@ training:
   num_epochs: 10
   accelerator: cuda
   seed: 42
+  compile_model: true
 
   # Optimizer configuration
   optimizer:
@@ -66,7 +67,7 @@ training:
   # Checkpoint configuration
   checkpoint:
     save_directory: "./checkpoints"
-    checkpoint_path: "unet_demo.pth"
+    checkpoint_path: "unet.pth"
     resume_from: null
 
 # Model configuration
