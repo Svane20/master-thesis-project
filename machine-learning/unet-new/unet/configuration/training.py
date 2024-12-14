@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, List
 
 
 @dataclass
@@ -26,6 +26,11 @@ class SchedulerConfig:
 class WandbConfig:
     enabled: bool
     project: str
+    entity: str
+    tags: List[str]
+    notes: str
+    group: str
+    job_type: str
 
 
 @dataclass

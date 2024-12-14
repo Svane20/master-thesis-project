@@ -23,7 +23,7 @@ dataset:
 
 # Training configuration
 training:
-  num_epochs: 10
+  num_epochs: 1
   accelerator: cuda
   seed: 42
 
@@ -54,7 +54,12 @@ training:
   logging:
     wandb:
       enabled: true
-      project: "unet"
+      project: "U-NET"
+      entity: "svane20-keyshot"
+      tags: ["unet", "carvana", "segmentation", "experiment"]
+      notes: "Training U-Net on Carvana dataset with mixed precision"
+      group: "carvana-segmentation-experiments"
+      job_type: "training"
     log: 'all'
     log_freq: 10
 

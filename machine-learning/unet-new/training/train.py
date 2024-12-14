@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.optim as optim
 
@@ -5,7 +6,6 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 from training.dataset.data_loaders import setup_data_loaders
-from training.early_stopping import EarlyStopping
 from training.optimizer import construct_optimizer
 from training.trainer import Trainer
 from training.utils.train_utils import set_seeds
@@ -30,6 +30,10 @@ def _setup_run(config: Config):
     dataset_config: DatasetConfig = config.dataset
     training_config: TrainConfig = config.training
     model_config: ModelConfig = config.model
+
+    # Clear the CUDA cache
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
 
     # Set seed for reproducibility
     set_seeds(training_config.seed)

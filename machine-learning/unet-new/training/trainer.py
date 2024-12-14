@@ -8,6 +8,8 @@ from typing import Dict, Optional, Any
 
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
+import wandb
+from pydantic import BaseModel, Field
 
 from training.early_stopping import EarlyStopping
 from training.metrics import calculate_dice_score
@@ -15,6 +17,17 @@ from training.utils.checkpoint_utils import load_state_dict_into_model
 from training.utils.logger import setup_logging
 from training.utils.train_utils import get_amp_type, get_resume_checkpoint
 from unet.configuration.training import TrainConfig
+
+
+class WeightAndBiasesConfig(BaseModel):
+    """
+    Configuration class for Weights & Biases initialization.
+    """
+    epochs: int = Field(description="Number of training epochs")
+    learning_rate: float = Field(description="Learning rate for the optimizer")
+    learning_rate_decay: float = Field(description="Learning rate decay for the optimizer")
+    seed: int = Field(description="Random seed for reproducibility")
+    device: str = Field(description="Device type, e.g., 'cuda' or 'cpu'")
 
 
 class Trainer:
@@ -80,11 +93,39 @@ class Trainer:
         # Load checkpoint
         self.load_checkpoint()
 
-    def run(self, run=None) -> None:
-        # Clear the CUDA cache
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
+        # W&B initialization
+        self._init_wandb()
 
+    def _init_wandb(self):
+        if self.train_config.logging.wandb.enabled:
+            wandb_config = WeightAndBiasesConfig(
+                epochs=self.train_config.num_epochs,
+                learning_rate=self.train_config.optimizer.lr,
+                learning_rate_decay=self.train_config.optimizer.weight_decay,
+                seed=self.train_config.seed,
+                device=self.train_config.accelerator,
+            )
+
+            # Initialize W&B
+            self.wandb_run = wandb.init(
+                project=self.train_config.logging.wandb.project,
+                entity=self.train_config.logging.wandb.entity,
+                tags=self.train_config.logging.wandb.tags,
+                notes=self.train_config.logging.wandb.notes,
+                group=self.train_config.logging.wandb.group,
+                job_type=self.train_config.logging.wandb.job_type,
+                config=wandb_config.model_dump()
+            )
+
+            # Watch the model
+            self.wandb_run.watch(
+                self.model,
+                self.optimizer,
+                log=self.train_config.logging.log,
+                log_freq=self.train_config.logging.log_freq
+            )
+
+    def run(self) -> None:
         disable_progress_bar = False
         training_start_time = time.time()
 
@@ -92,57 +133,76 @@ class Trainer:
         train_data_loader = self.train_data_loader
         test_data_loader = self.test_data_loader
 
-        for epoch in tqdm(range(self.epoch, self.num_epochs), disable=disable_progress_bar):
-            start_epoch_time = time.time()
+        try:
+            for epoch in tqdm(range(self.epoch, self.num_epochs), disable=disable_progress_bar):
+                start_epoch_time = time.time()
 
-            current_epoch = epoch + 1
+                current_epoch = epoch + 1
 
-            # Train and test for one epoch
-            train_metrics = self._train_one_epoch(train_data_loader, current_epoch, disable_progress_bar)
-            test_metrics = self._test_one_epoch(test_data_loader, current_epoch, disable_progress_bar)
-            validation_metric = test_metrics.get(
-                self.early_stopping_config.monitor if self.early_stopping_config.enabled else "loss",
-                None
-            )
+                # Train and test for one epoch
+                train_metrics = self._train_one_epoch(train_data_loader, current_epoch, disable_progress_bar)
+                test_metrics = self._test_one_epoch(test_data_loader, current_epoch, disable_progress_bar)
+                validation_metric = test_metrics.get(
+                    self.early_stopping_config.monitor if self.early_stopping_config.enabled else "loss",
+                    None
+                )
 
-            # Step the scheduler
-            self._scheduler_step(self.scheduler, validation_metric)
+                # Step the scheduler
+                self._scheduler_step(self.scheduler, validation_metric)
 
-            # Get current learning rate
-            current_lr = self.optimizer.param_groups[0]["lr"]
+                # Get current learning rate
+                current_lr = self.optimizer.param_groups[0]["lr"]
 
-            # Calculate epoch duration
-            epoch_duration = time.time() - start_epoch_time
+                # Calculate epoch duration
+                epoch_duration = time.time() - start_epoch_time
 
-            # Print metrics
-            train_metrics_str = " | ".join([f"Train {k.capitalize()}: {v:.4f}" for k, v in train_metrics.items()])
-            test_metrics_str = " | ".join([f"Test {k.capitalize()}: {v:.4f}" for k, v in test_metrics.items()])
-            self.logger.info(
-                f"Epoch: {current_epoch}/{self.num_epochs} | LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s\n"
-                f"{train_metrics_str} | {test_metrics_str}"
-            )
+                # Log metrics to Weights & Biases
+                if self.wandb_run is not None:
+                    self.wandb_run.log({
+                        "epoch": current_epoch,
+                        "learning_rate": current_lr,
+                        "epoch_duration": epoch_duration,
+                        **{f"train/{k}": v for k, v in train_metrics.items()},
+                        **{f"test/{k}": v for k, v in test_metrics.items()}
+                    })
 
-            # Early stopping
-            if self.early_stopping is not None:
-                # Update early stopping
-                self.early_stopping.step(validation_metric)
+                # Print metrics
+                train_metrics_str = " | ".join([f"Train {k.capitalize()}: {v:.4f}" for k, v in train_metrics.items()])
+                test_metrics_str = " | ".join([f"Test {k.capitalize()}: {v:.4f}" for k, v in test_metrics.items()])
+                self.logger.info(
+                    f"Epoch: {current_epoch}/{self.num_epochs} | LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s\n"
+                    f"{train_metrics_str} | {test_metrics_str}"
+                )
 
-                # Check for improvement
-                if self.early_stopping.has_improved:
+                # Early stopping
+                if self.early_stopping is not None:
+                    # Update early stopping
+                    self.early_stopping.step(validation_metric)
+
+                    # Check for improvement
+                    if self.early_stopping.has_improved:
+                        self._save_checkpoint(current_epoch, validation_metric)
+
+                    # Check for early stopping
+                    if self.early_stopping.should_stop:
+                        self.logger.info(
+                            f"[INFO] Early stopping activated. Best score: {self.early_stopping.best_score:.4f}")
+                        break
+                else:
+                    # Save the model at the end of each epoch
                     self._save_checkpoint(current_epoch, validation_metric)
 
-                # Check for early stopping
-                if self.early_stopping.should_stop:
-                    self.logger.info(
-                        f"[INFO] Early stopping activated. Best score: {self.early_stopping.best_score:.4f}")
-                    break
-            else:
-                # Save the model at the end of each epoch
-                self._save_checkpoint(current_epoch, validation_metric)
-
-        # Total Training Time
-        total_training_time = time.time() - training_start_time
-        self.logger.info(f"[INFO] Total training time: {total_training_time / 60:.2f} minutes")
+            # Total Training Time
+            total_training_time = time.time() - training_start_time
+            self.wandb_run.log({"total_training_time": total_training_time})
+            self.logger.info(f"[INFO] Total training time: {total_training_time / 60:.2f} minutes")
+        except Exception as e:
+            self.logger.error(f"Error during training: {e}")
+            if self.wandb_run is not None:
+                self.wandb_run.finish()
+        finally:
+            if self.wandb_run is not None:
+                self.wandb_run.finish()
 
     def load_checkpoint(self) -> None:
         checkpoint_path = get_resume_checkpoint(self.checkpoint_config.resume_from)
