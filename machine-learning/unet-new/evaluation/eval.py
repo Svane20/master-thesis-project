@@ -1,37 +1,16 @@
 import torch
 
 from pathlib import Path
-from typing import Tuple
 from PIL import Image
-from onnxruntime.transformers.benchmark_helper import output_summary
 
 from datasets.carvana.data_loaders import create_data_loader
 from datasets.transforms import get_test_transforms
+
 from evaluation.inference import evaluate_model, predict_image
+from evaluation.utils.configuration import load_config
 from evaluation.visualization import save_predictions, save_prediction, remove_background
+
 from unet.build_model import build_model
-from unet.configuration.configuration import load_configuration, Config
-
-
-def _load_configuration(current_directory: Path, configuration_path: str) -> Tuple[Config, Path]:
-    # Get configuration path
-    configuration_path = current_directory / configuration_path
-
-    # Check if the configuration file exists
-    if not configuration_path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {configuration_path}")
-
-    # Load the configuration
-    configuration = load_configuration(configuration_path)
-
-    # Checkpoint path
-    checkpoint_path = current_directory / "checkpoints/unet.pth"
-
-    # Check if the checkpoint file exists
-    if not checkpoint_path.exists():
-        raise FileNotFoundError(f"Checkpoint file not found: {checkpoint_path}")
-
-    return configuration, checkpoint_path
 
 
 def main() -> None:
@@ -42,7 +21,7 @@ def main() -> None:
     predictions_directory = current_directory / "predictions"
 
     # Load configuration and checkpoint
-    configuration, checkpoint_path = _load_configuration(
+    configuration, checkpoint_path = load_config(
         current_directory=root_directory,
         configuration_path="unet/configs/inference.yaml"
     )

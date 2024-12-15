@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+onnxruntime
+prometheus_fastapi_instrumentator
+opencv-python-headless
+pillow
+python-multipart
+gunicorn
