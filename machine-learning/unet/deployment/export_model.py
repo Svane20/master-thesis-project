@@ -2,25 +2,30 @@ import torch
 
 from pathlib import Path
 from typing import Tuple
-
-from constants.directories import EXPORT_DIRECTORY
-from constants.outputs import TRAINED_MODEL_CHECKPOINT_NAME
-from model.unet import UNetV1VGG
-from utils.checkpoints import load_model_checkpoint
-from utils.device import get_device
+import onnx
+from onnx import ModelProto
 
 
 def export_to_onnx(
         model: torch.nn.Module,
         device: torch.device,
-        model_name: str = TRAINED_MODEL_CHECKPOINT_NAME,
-        directory: Path = EXPORT_DIRECTORY,
+        model_name: str,
+        directory: Path,
         input_shape: Tuple[int, int, int, int] = (1, 3, 224, 224),  # (batch_size, channels, height, width),
-        postfix: str = 'latest',
-):
+) -> None:
+    """
+    Export the model to ONNX format.
+
+    Args:
+        model (torch.nn.Module): Model to export.
+        device (torch.device): Device to use for export.
+        model_name (str): Name of the model.
+        directory (Path): Directory to save the ONNX model to.
+        input_shape (Tuple[int, int, int, int]): Input shape for the model. Default is (1, 3, 224, 224).
+    """
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
-    save_path = directory / f"{model_name}_{postfix}.onnx"
+    save_path = directory / f"{model_name}.onnx"
 
     # Set model to inference mode
     model.eval()
@@ -46,15 +51,40 @@ def export_to_onnx(
 
     print(f"Model exported to ONNX at {save_path}")
 
+    # Validate the exported model
+    onnx_model = load_onnx_model(save_path)
+    validate_onnx_model(onnx_model)
 
-if __name__ == "__main__":
-    target_device = get_device()
 
-    model_name = TRAINED_MODEL_CHECKPOINT_NAME
+def load_onnx_model(onnx_model_path: Path) -> ModelProto:
+    """
+    Load an ONNX model.
 
-    # Load trained model
-    loaded_model = UNetV1VGG(out_channels=1, pretrained=True)
-    loaded_model, _ = load_model_checkpoint(model=loaded_model, model_name=model_name, device=target_device)
+    Args:
+        onnx_model_path (Path): Path to the ONNX model.
 
-    # Export model to ONNX
-    export_to_onnx(loaded_model, model_name=model_name, device=target_device)
+    Returns:
+        ModelProto: Loaded ONNX model.
+    """
+    if not onnx_model_path.exists():
+        raise FileNotFoundError(f"ONNX model not found at {onnx_model_path}")
+
+    try:
+        onnx_model = onnx.load(onnx_model_path)
+        return onnx_model
+    except Exception as e:
+        raise Exception(f"Failed to load the ONNX model: {e}")
+
+
+def validate_onnx_model(onnx_model: ModelProto) -> None:
+    """
+    Validate an ONNX model.
+
+    Args:
+        onnx_model (ModelProto): ONNX model to validate.
+    """
+    try:
+        onnx.checker.check_model(onnx_model)
+        print("Model is valid.")
+    except Exception as e:
+        print(f"Failed to validate the model: {e}")

@@ -1,8 +1,0 @@
-checkpoints/
-data/
-exports/
-
-training/wandb/
-
-evaluation/outputs/
-evaluation/predictions/

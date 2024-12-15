@@ -2,7 +2,7 @@ import torch
 
 from pathlib import Path
 
-from evaluation.deployment.export_model import export_to_onnx
+from deployment.export_model import export_to_onnx
 from evaluation.utils.configuration import load_config
 
 from unet.build_model import build_model
@@ -10,7 +10,7 @@ from unet.build_model import build_model
 
 def main() -> None:
     # Directories
-    root_directory = Path(__file__).resolve().parent.parent.parent
+    root_directory = Path(__file__).resolve().parent.parent
     exports_directory = root_directory / "exports"
 
     # Load configuration and checkpoint
