@@ -4,8 +4,14 @@ from torchvision.models import vgg16_bn, VGG16_BN_Weights
 
 from typing import Tuple, List
 
+from unet.modeling.utils import DoubleConv, DownSample
+
 
 class ImageEncoder(nn.Module):
+    """
+    Image Encoder with pretrained VGG16 for semantic segmentation.
+    """
+
     def __init__(self, pretrained: bool = True):
         """
         Args:
@@ -45,3 +51,45 @@ class ImageEncoder(nn.Module):
         bottleneck = self.bottle_neck(down5)  # 512 -> 1024
 
         return bottleneck, [down5, down4, down3, down2, down1]
+
+
+class ImageEncoderV0(nn.Module):
+    """
+    Image Encoder for semantic segmentation.
+    """
+
+    def __init__(self, in_channels: int = 3, dropout: float = 0.0) -> None:
+        """
+        Args:
+            in_channels (int): Number of input channels. Default is 3.
+            dropout (float): Dropout probability. Default is 0.5.
+        """
+        super().__init__()
+
+        # Define the encoder (contracting path)
+        self.inc = DoubleConv(in_channels, 64, dropout=dropout)
+        self.down1 = DownSample(64, 128, dropout=dropout)
+        self.down2 = DownSample(128, 256, dropout=dropout)
+        self.down3 = DownSample(256, 512, dropout=dropout)
+
+        # Define the bottleneck
+        self.bottle_neck = DownSample(512, 1024, dropout=dropout)
+
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        """
+        Forward pass of the Image Encoder.
+
+        Args:
+            x (torch.Tensor): Input tensor.
+
+        Returns:
+            Tuple[torch.Tensor, List[torch.Tensor]]: Tuple of bottleneck tensor and list of skip connections.
+        """
+        down1 = self.inc(x)
+        down2 = self.down1(down1)
+        down3 = self.down2(down2)
+        down4 = self.down3(down3)
+
+        bottleneck = self.bottle_neck(down4)
+
+        return bottleneck, [down4, down3, down2, down1]

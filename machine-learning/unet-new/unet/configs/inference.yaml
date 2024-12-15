@@ -1,3 +1,22 @@
+# Global configuration
+scratch:
+  resolution: 224
+
+# Dataset configuration
+dataset:
+  name: "carvana"
+  root: "./data"
+  batch_size: 16
+  num_workers: 4
+  pin_memory: true
+  train:
+    shuffle: true
+    drop_last: true
+  test:
+    shuffle: false
+    drop_last: false
+
+# Model configuration
 model:
   image_encoder:
     pretrained: true

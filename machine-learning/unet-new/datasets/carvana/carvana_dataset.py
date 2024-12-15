@@ -9,8 +9,6 @@ from PIL import Image
 from pathlib import Path
 from typing import Tuple, Optional
 
-os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
-
 
 class CarvanaDataset(Dataset):
     """

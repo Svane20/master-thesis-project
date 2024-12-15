@@ -3,7 +3,6 @@ import torch.nn as nn
 
 from pathlib import Path
 import logging
-from typing import Literal
 
 from unet.configuration.configuration import ModelConfig
 from unet.modeling.image_encoder import ImageEncoder
@@ -28,7 +27,7 @@ def build_model(
         configuration: ModelConfig,
         checkpoint_path: Path = None,
         compile_model: bool = True,
-        device: Literal["cuda", "cpu"] = "cuda",
+        device: str = "cuda",
         mode: str = "eval"
 ) -> nn.Module:
     """
@@ -50,16 +49,13 @@ def build_model(
     logging.info(f"Building UNet model in {mode} mode on {device}")
 
     model = _build(configuration)
-    if checkpoint_path is not None:
-        _load_checkpoint(model, checkpoint_path)
-
     model = model.to(device)
 
     if compile_model:
-        try:
-            model = torch.compile(model, backend="aot_eager")
-        except AttributeError:
-            logging.warning("torch.compile is not available; running without compilation.")
+        model = torch.compile(model, backend="aot_eager")
+
+    if checkpoint_path is not None:
+        _load_checkpoint(model, checkpoint_path)
 
     if mode == "eval":
         model.eval()

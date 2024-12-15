@@ -1,8 +1,5 @@
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
-import os
-
-os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
 
 
 def get_train_transforms(resolution: int) -> A.Compose:

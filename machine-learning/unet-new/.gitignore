@@ -1,3 +1,7 @@
-data/
-training/wandb/
 checkpoints/
+data/
+
+training/wandb/
+
+evaluation/outputs/
+evaluation/predictions/

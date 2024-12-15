@@ -41,6 +41,29 @@ class DoubleConv(nn.Module):
         return self.double_conv(x)
 
 
+class DownSample(nn.Module):
+    """
+    Down Sampling Layer with Max Pooling and Double Convolution
+    """
+
+    def __init__(self, in_channels: int, out_channels: int, dropout: float = 0.0):
+        """
+        Args:
+            in_channels (int): Number of input channels.
+            out_channels (int): Number of output channels.
+            dropout (float): Dropout probability. Default is 0.0.
+        """
+        super().__init__()
+
+        self.max_pool_conv = nn.Sequential(
+            nn.MaxPool2d(kernel_size=2, ceil_mode=True),  # Handle arbitrary input sizes
+            DoubleConv(in_channels, out_channels, dropout=dropout),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.max_pool_conv(x)
+
+
 class UpSample(nn.Module):
     """
     Up Sampling Layer with Double Convolution and Transposed Convolution
