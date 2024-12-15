@@ -1,0 +1,17 @@
+torch
+torchvision
+matplotlib
+tqdm
+wandb
+torchmetrics
+mlxtend
+torchinfo
+pillow
+numpy
+albumentations
+scipy
+pydantic
+onnx
+onnxscript
+onnxruntime
+omegaconf
