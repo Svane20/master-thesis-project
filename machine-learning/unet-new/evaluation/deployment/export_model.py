@@ -2,6 +2,7 @@ import torch
 
 from pathlib import Path
 from typing import Tuple
+import onnx
 
 
 def export_to_onnx(
@@ -48,3 +49,11 @@ def export_to_onnx(
     )
 
     print(f"Model exported to ONNX at {save_path}")
+
+    # Validate the exported model
+    try:
+        onnx_model = onnx.load(save_path)
+        onnx.checker.check_model(onnx_model)
+        print("Exported model has been validated.")
+    except Exception as e:
+        print(f"Failed to validate the exported model: {e}")
