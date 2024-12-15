@@ -12,7 +12,6 @@ import numpy as np
 from functools import lru_cache
 import cv2
 import logging
-from typing import Tuple
 
 # Configure the logger
 logging.basicConfig(
@@ -33,7 +32,7 @@ async def lifespan(_app: FastAPI):
     global session
 
     try:
-        session = ort.InferenceSession("UNetV1_latest.onnx")
+        session = ort.InferenceSession("unet.onnx")
         logger.info("ONNX model loaded successfully")
     except Exception as e:
         logger.error(f"Failed to load ONNX model: {e}")
