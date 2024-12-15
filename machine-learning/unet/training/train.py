@@ -5,8 +5,8 @@ from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 from datasets.carvana.data_loaders import setup_data_loaders
-from training.criterions import BCEDiceLoss
 
+from training.criterions import BCEDiceLoss
 from training.optimizer import construct_optimizer
 from training.trainer import Trainer
 from training.utils.train_utils import set_seeds

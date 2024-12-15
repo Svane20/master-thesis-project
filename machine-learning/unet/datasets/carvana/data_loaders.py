@@ -6,6 +6,7 @@ from typing import Tuple
 
 from datasets.carvana.carvana_dataset import CarvanaDataset
 from datasets.transforms import get_train_transforms, get_test_transforms
+
 from unet.configuration.dataset import DatasetConfig
 from unet.configuration.scratch import ScratchConfig
 

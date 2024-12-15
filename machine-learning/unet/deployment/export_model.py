@@ -3,7 +3,6 @@ import torch
 from pathlib import Path
 from typing import Tuple
 import onnx
-from onnx import ModelProto
 
 
 def export_to_onnx(
@@ -56,7 +55,7 @@ def export_to_onnx(
     validate_onnx_model(onnx_model)
 
 
-def load_onnx_model(onnx_model_path: Path) -> ModelProto:
+def load_onnx_model(onnx_model_path: Path) -> onnx.ModelProto:
     """
     Load an ONNX model.
 
@@ -76,7 +75,7 @@ def load_onnx_model(onnx_model_path: Path) -> ModelProto:
         raise Exception(f"Failed to load the ONNX model: {e}")
 
 
-def validate_onnx_model(onnx_model: ModelProto) -> None:
+def validate_onnx_model(onnx_model: onnx.ModelProto) -> None:
     """
     Validate an ONNX model.
 

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from deployment.export_model import export_to_onnx
 from evaluation.utils.configuration import load_config
-
 from unet.build_model import build_model
 
 
