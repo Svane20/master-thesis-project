@@ -16,7 +16,7 @@ def load_config(current_directory: Path, configuration_path: str) -> Tuple[Confi
     configuration = load_configuration(configuration_path)
 
     # Checkpoint path
-    checkpoint_path = current_directory / "checkpoints/unet.pth"
+    checkpoint_path = current_directory / "checkpoints/unet.pt"
 
     # Check if the checkpoint file exists
     if not checkpoint_path.exists():
