@@ -45,24 +45,29 @@ def evaluate_model(
     total_metrics = {"dice": 0.0, "dice_edge": 0.0, "iou": 0.0}
     num_batches = 0
 
-    with torch.inference_mode():
-        for X, y in tqdm(data_loader, desc="Evaluating"):
-            num_batches += 1
+    if len(data_loader) == 0:
+        print("Warning: DataLoader is empty. No evaluation performed.")
+        return
 
-            # Move data to device
-            X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
+    for X, y in tqdm(data_loader, desc="Evaluating", leave=True):
+        num_batches += 1
 
-            # Get predictions
-            y_logits = model(X)
-            y_preds = torch.sigmoid(y_logits)
-            preds = (y_preds > 0.5).float()
+        # Move data to device
+        X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
 
-            # Calculate metrics
-            metrics = _calculate_metrics(preds, y)
+        with torch.inference_mode():
+            with torch.amp.autocast(device_type=device.type, enabled=device.type == "cuda", dtype=torch.float16):
+                # Get predictions
+                y_logits = model(X)
+                y_preds = torch.sigmoid(y_logits)
+                preds = (y_preds > 0.5).float()
 
-            # Accumulate metrics
-            for key in metrics:
-                total_metrics[key] += metrics[key] if metrics[key] is not None else 0.0
+                # Calculate metrics
+                metrics = _calculate_metrics(preds, y)
+
+        # Accumulate metrics
+        for key in metrics:
+            total_metrics[key] += metrics[key] if metrics[key] is not None else 0.0
 
     # Compute averages
     avg_metrics = {key: total / num_batches for key, total in total_metrics.items()}
@@ -96,9 +101,10 @@ def predict_image(
     image_tensor = transformed["image"].unsqueeze(0).to(device)  # Add batch dimension
 
     with torch.inference_mode():
-        # Get predictions
-        y_logits = model(image_tensor)
-        y_preds = torch.sigmoid(y_logits)
-        preds = (y_preds > 0.5).float()  # Binary mask
+        with torch.amp.autocast(device_type=device.type, enabled=device.type == "cuda", dtype=torch.float16):
+            # Get predictions
+            y_logits = model(image_tensor)
+            y_preds = torch.sigmoid(y_logits)
+            preds = (y_preds > 0.5).float()  # Binary mask
 
     return preds.squeeze(0).cpu().numpy()  # Remove batch and convert to NumPy

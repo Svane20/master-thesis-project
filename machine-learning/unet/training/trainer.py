@@ -231,7 +231,7 @@ class Trainer:
             step_start_time = time.time()
 
             # Zero the gradients
-            self.optimizer.zero_grad()
+            self.optimizer.zero_grad(set_to_none=True)
 
             # Run a single step (forward + backward)
             loss_dict = self._run_step(X, y)
@@ -297,15 +297,15 @@ class Trainer:
             disable=disable_progress_bar
         )
 
-        with torch.inference_mode():
-            for batch_idx, (X, y) in progress_bar:
-                batch_start_time = time.time()
-                num_batches += 1
+        for batch_idx, (X, y) in progress_bar:
+            batch_start_time = time.time()
+            num_batches += 1
 
-                # Measure data loading time and move data to device
-                X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
-                data_loading_time += time.time() - batch_start_time
+            # Measure data loading time and move data to device
+            X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
+            data_loading_time += time.time() - batch_start_time
 
+            with torch.inference_mode():
                 # Use autocast for mixed precision if enabled
                 with torch.amp.autocast(
                         device_type=self.device.type,
@@ -324,9 +324,9 @@ class Trainer:
                     # Step time
                     step_time += time.time() - step_start_time
 
-                # Update the progress bar
-                current_metrics = {f"test_{k}": (total_metrics[k] / num_batches) for k in total_metrics}
-                progress_bar.set_postfix(current_metrics)
+            # Update the progress bar
+            current_metrics = {f"test_{k}": (total_metrics[k] / num_batches) for k in total_metrics}
+            progress_bar.set_postfix(current_metrics)
 
         # Compute average metrics
         avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}

@@ -43,10 +43,10 @@ def save_predictions(
             break
     print(f"Processing the first {len(batches_to_process)} batch(es).")
 
-    with torch.inference_mode():
-        for batch_idx, (X, y) in tqdm(enumerate(batches_to_process), desc="Saving predictions"):
-            X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
+    for batch_idx, (X, y) in tqdm(enumerate(batches_to_process), desc="Saving predictions"):
+        X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
 
+        with torch.inference_mode():
             y_logits = model(X)
             y_preds = torch.sigmoid(y_logits)
             preds = (y_preds > 0.5).float()
