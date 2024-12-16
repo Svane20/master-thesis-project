@@ -3,6 +3,7 @@ import torch
 from pathlib import Path
 from typing import Tuple
 import onnx
+import logging
 
 
 def export_to_onnx(
@@ -33,20 +34,22 @@ def export_to_onnx(
     dummy_input = torch.randn(input_shape).to(device)
 
     # Export model to ONNX
-    torch.onnx.export(
-        model,
-        dummy_input,
-        save_path,
-        export_params=True,
-        opset_version=11,
-        do_constant_folding=True,
-        input_names=["input"],
-        output_names=["output"],
-        dynamic_axes={
-            "input": {0: "batch_size"},
-            "output": {0: "batch_size"}
-        },
-    )
+    try:
+        torch.onnx.export(
+            model,
+            dummy_input,
+            save_path,
+            export_params=True,
+            opset_version=11,
+            do_constant_folding=True,
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+        )
+        logging.info(f"Model exported to ONNX at {save_path}")
+    except Exception as e:
+        logging.error(f"ONNX export failed: {e}")
+        raise
 
     print(f"Model exported to ONNX at {save_path}")
 

@@ -4,7 +4,7 @@ from torchvision.models import vgg16_bn, VGG16_BN_Weights
 
 from typing import Tuple, List
 
-from unet.modeling.utils import DoubleConv, DownSample
+from utils import DoubleConv, DownSample
 
 
 class ImageEncoder(nn.Module):

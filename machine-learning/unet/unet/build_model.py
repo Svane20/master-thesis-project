@@ -75,7 +75,8 @@ def _build(configuration: ModelConfig) -> nn.Module:
     """
     return UNet(
         image_encoder=ImageEncoder(
-            pretrained=configuration.image_encoder.pretrained
+            pretrained=configuration.image_encoder.pretrained,
+            freeze_pretrained=configuration.image_encoder.freeze_pretrained,
         ),
         mask_decoder=MaskDecoder(
             out_channels=configuration.mask_decoder.out_channels,
@@ -103,7 +104,7 @@ def _load_checkpoint(model: nn.Module, checkpoint_path: Path, is_compiled: bool)
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     model_state_dict = checkpoint["model"]
 
-    # If model has not been compiled, remove the "_orig_mod." prefix from the keys
+    # If model has not been compiled, adjust key names
     if not is_compiled:
         model_state_dict = {k.replace("_orig_mod.", ""): v for k, v in model_state_dict.items()}
 

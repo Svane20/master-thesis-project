@@ -4,6 +4,7 @@ from dataclasses import dataclass
 @dataclass
 class ImageEncoderConfig:
     pretrained: bool
+    freeze_pretrained: bool
 
 
 @dataclass

@@ -2,7 +2,9 @@ checkpoints/
 data/
 exports/
 
-training/wandb/
+demo/unet_production.pt
 
 evaluation/outputs/
 evaluation/predictions/
+
+training/wandb/

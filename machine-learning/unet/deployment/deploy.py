@@ -3,6 +3,7 @@ import torch
 from pathlib import Path
 
 from deployment.export_model import export_to_onnx
+from deployment.trim_checkpoint import save_model_checkpoint
 from evaluation.utils.configuration import load_config
 from unet.build_model import build_model
 
@@ -15,7 +16,7 @@ def main() -> None:
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_config(
         current_directory=root_directory,
-        configuration_path="unet/configs/inference.yaml"
+        configuration_path="unet/configs/deployment.yaml"
     )
 
     # Load the model
@@ -28,8 +29,16 @@ def main() -> None:
         mode="eval"
     )
 
-    # Export the model
+    # Export the minimal model checkpoint
     model_name = checkpoint_path.stem
+    save_model_checkpoint(
+        model=model,
+        device=device,
+        directory=exports_directory,
+        model_name=f"{model_name}_production",
+    )
+
+    # Export the model to ONNX
     export_to_onnx(
         model=model,
         device=device,
@@ -37,6 +46,8 @@ def main() -> None:
         model_name=model_name,
         input_shape=(1, 3, configuration.scratch.resolution, configuration.scratch.resolution)
     )
+
+    print("Production build completed successfully.")
 
 
 if __name__ == "__main__":
