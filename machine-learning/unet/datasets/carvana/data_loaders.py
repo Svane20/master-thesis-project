@@ -39,8 +39,8 @@ def setup_data_loaders(
         directory=train_directory,
         transforms=transforms,
         batch_size=dataset_config.batch_size,
-        num_workers=dataset_config.num_workers,
         pin_memory=dataset_config.pin_memory,
+        num_workers=dataset_config.train.num_workers,
         shuffle=dataset_config.train.shuffle,
         drop_last=dataset_config.train.drop_last,
     )
@@ -48,8 +48,8 @@ def setup_data_loaders(
         directory=test_directory,
         transforms=target_transforms,
         batch_size=dataset_config.batch_size,
-        num_workers=dataset_config.num_workers,
         pin_memory=dataset_config.pin_memory,
+        num_workers=dataset_config.test.num_workers,
         shuffle=dataset_config.test.shuffle,
         drop_last=dataset_config.test.drop_last,
     )

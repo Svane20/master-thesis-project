@@ -31,7 +31,7 @@ def main() -> None:
     model = build_model(
         configuration=configuration.model,
         checkpoint_path=checkpoint_path,
-        compile_model=True,
+        compile_model=False,
         device=str(device),
         mode="eval"
     )
@@ -43,8 +43,8 @@ def main() -> None:
         directory=test_directory,
         transforms=transforms,
         batch_size=configuration.dataset.batch_size,
-        num_workers=configuration.dataset.num_workers,
         pin_memory=configuration.dataset.pin_memory,
+        num_workers=configuration.dataset.test.num_workers,
         shuffle=configuration.dataset.test.shuffle,
         drop_last=configuration.dataset.test.drop_last,
     )

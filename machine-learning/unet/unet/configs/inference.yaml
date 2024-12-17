@@ -6,13 +6,14 @@ scratch:
 dataset:
   name: "carvana"
   root: "./data"
-  batch_size: 16
-  num_workers: 4
+  batch_size: 32
   pin_memory: true
   train:
+    num_workers: 8
     shuffle: true
     drop_last: true
   test:
+    num_workers: 8
     shuffle: false
     drop_last: false
 
