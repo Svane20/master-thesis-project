@@ -64,6 +64,7 @@ training:
       notes: "Training U-Net on Carvana dataset with mixed precision"
       group: "carvana-segmentation-experiments"
       job_type: "training"
+    log_directory: "./logs"
     log: 'all'
     log_freq: 10
 

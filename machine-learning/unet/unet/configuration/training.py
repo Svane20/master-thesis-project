@@ -52,6 +52,7 @@ class EarlyStoppingConfig:
 @dataclass
 class LoggingConfig:
     wandb: WandbConfig
+    log_directory: str
     log: str
     log_freq: int
 

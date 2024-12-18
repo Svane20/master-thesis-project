@@ -8,3 +8,4 @@ evaluation/outputs/
 evaluation/predictions/
 
 training/wandb/
+training/logs/

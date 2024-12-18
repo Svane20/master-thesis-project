@@ -8,6 +8,7 @@ from pathlib import Path
 from tqdm import tqdm
 import wandb
 from pydantic import BaseModel, Field
+import json
 
 from training.early_stopping import EarlyStopping
 from training.metrics import calculate_dice_score, calculate_dice_edge_score, calculate_iou_score
@@ -223,38 +224,34 @@ class Trainer:
             batch_start_time = time.time()
             num_batches += 1
 
-            # Measure data loading time and move data to device
+            # Data loading time
             X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
             data_loading_time += time.time() - batch_start_time
 
-            # Measure step time
-            step_start_time = time.time()
-
-            # Zero the gradients
-            self.optimizer.zero_grad(set_to_none=True)
-
-            # Run a single step (forward + backward)
-            loss_dict = self._run_step(X, y)
-
             # Step time
+            step_start_time = time.time()
+            self.optimizer.zero_grad(set_to_none=True)
+            loss_dict = self._run_step(X, y)
             step_time += time.time() - step_start_time
 
-            # Update total metrics
+            # Update metrics
             self._update_metrics(total_metrics, loss_dict)
 
-            # Update the progress bar
+            # Update progress bar
             current_metrics = {f"train_{k}": (total_metrics[k] / num_batches) for k in total_metrics}
             progress_bar.set_postfix(current_metrics)
 
         # Compute average metrics
         avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
+        avg_metrics["epoch"] = epoch
+
+        # Save metrics
+        self._save_metrics(avg_metrics, epoch=epoch, is_train=True)
 
         # Epoch duration
         epoch_duration = time.time() - epoch_start_time
-
-        # Log timing metrics
         self.logger.info(
-            f"Data Loading Time: {data_loading_time:.2f}s | Step Time: {step_time:.2f}s | Epoch Duration: {epoch_duration:.2f}s"
+            f"Data Loading: {data_loading_time:.2f}s | Step: {step_time:.2f}s | Duration: {epoch_duration:.2f}s"
         )
 
         return avg_metrics, {
@@ -301,7 +298,7 @@ class Trainer:
             batch_start_time = time.time()
             num_batches += 1
 
-            # Measure data loading time and move data to device
+            # Data loading time
             X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
             data_loading_time += time.time() - batch_start_time
 
@@ -312,17 +309,13 @@ class Trainer:
                         enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                         dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
                 ):
-                    # Measure step time
-                    step_start_time = time.time()
-
-                    # Run a single step (forward only)
-                    loss_dict = self._step(X, y)
-
-                    # Update total metrics
-                    self._update_metrics(total_metrics, loss_dict)
-
                     # Step time
+                    step_start_time = time.time()
+                    loss_dict = self._step(X, y)
                     step_time += time.time() - step_start_time
+
+                    # Update metrics
+                    self._update_metrics(total_metrics, loss_dict)
 
             # Update the progress bar
             current_metrics = {f"test_{k}": (total_metrics[k] / num_batches) for k in total_metrics}
@@ -330,13 +323,15 @@ class Trainer:
 
         # Compute average metrics
         avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
+        avg_metrics["epoch"] = epoch
+
+        # Save metrics
+        self._save_metrics(avg_metrics, epoch=epoch, is_train=False)
 
         # Epoch duration
         epoch_duration = time.time() - epoch_start_time
-
-        # Log timing metrics
         self.logger.info(
-            f"Data Loading Time: {data_loading_time:.2f}s | Step Time: {step_time:.2f}s | Epoch Duration: {epoch_duration:.2f}s"
+            f"Data Loading: {data_loading_time:.2f}s | Step: {step_time:.2f}s | Duration: {epoch_duration:.2f}s"
         )
 
         return avg_metrics, {
@@ -481,6 +476,34 @@ class Trainer:
         torch.save(obj=state_dict, f=checkpoint_path)
 
         self.logger.info(f"Checkpoint saved at epoch {epoch} with metric {metric:.4f}.")
+
+    def _save_metrics(self, metrics: Dict[str, float], epoch: int, is_train: bool) -> None:
+        """
+        Save metrics to a JSON file.
+
+        Args:
+            metrics (Dict[str, float]): Dictionary of metrics to save.
+            epoch (int): Epoch index for context.
+            is_train (bool): If True, metrics are for training; otherwise, testing.
+        """
+        if not metrics:
+            self.logger.warning("No metrics to save.")
+            return
+
+        # Set file paths
+        current_directory = Path(__file__).resolve().parent
+        filename = "train_metrics.json" if is_train else "test_metrics.json"
+        logs_directory = current_directory / self.train_config.logging.log_directory
+        logs_directory.mkdir(parents=True, exist_ok=True)
+
+        log_entry = {"epoch": epoch, **metrics}
+
+        try:
+            with open(logs_directory / filename, "a") as f:
+                f.write(json.dumps(log_entry) + "\n")
+            self.logger.info(f"Metrics saved to {filename}.")
+        except Exception as e:
+            self.logger.error(f"Failed to save metrics to {filename}: {e}")
 
     def _init_wandb(self):
         if self.train_config.logging.wandb.enabled:
