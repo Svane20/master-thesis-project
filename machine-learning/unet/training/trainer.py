@@ -243,7 +243,6 @@ class Trainer:
 
         # Compute average metrics
         avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
-        avg_metrics["epoch"] = epoch
 
         # Save metrics
         self._save_metrics(avg_metrics, epoch=epoch, is_train=True)
@@ -323,7 +322,6 @@ class Trainer:
 
         # Compute average metrics
         avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
-        avg_metrics["epoch"] = epoch
 
         # Save metrics
         self._save_metrics(avg_metrics, epoch=epoch, is_train=False)
