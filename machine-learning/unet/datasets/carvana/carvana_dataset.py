@@ -58,7 +58,7 @@ class CarvanaDataset(Dataset):
 
         image = np.array(Image.open(image_path).convert("RGB"))
         mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
-        mask = np.where(mask > 0, 1.0, 0.0)  # Ensure binary masks
+        mask = mask / 255.0  # Scale to [0, 1] range
 
         if self.transforms:
             augmented = self.transforms(image=image, mask=mask)

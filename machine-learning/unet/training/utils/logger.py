@@ -75,7 +75,7 @@ class WandbLogger:
         """
         Finish the wandb run.
         """
-        if self.run:
+        if not self.run:
             return
 
         self.run.finish()

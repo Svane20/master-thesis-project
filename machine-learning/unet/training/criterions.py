@@ -1,7 +1,212 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
+
+from typing import Dict
 
 from utils.edge_detection import compute_edge_map
+
+
+def dice_loss(inputs: torch.Tensor, targets: torch.Tensor, laplace_smooth: int = 1) -> torch.Tensor:
+    """
+    Compute the DICE loss between predicted and ground truth masks.
+
+    Args:
+        inputs (torch.Tensor): Predicted masks.
+        targets (torch.Tensor): Ground truth masks.
+        laplace_smooth (int): Smoothing factor to avoid division by zero, defaults to 1.
+
+    Returns:
+        torch.Tensor: DICE loss tensor.
+    """
+    assert inputs.dim() == 4 and targets.dim() == 4, "Expected 4D tensors"
+
+    # Apply sigmoid to predictions to get probabilities in the range [0, 1]
+    inputs = torch.sigmoid(inputs)
+
+    # Flatten tensors to 1D for easy calculation of overlap
+    inputs = inputs.view(-1)
+    targets = targets.view(-1)
+
+    # Calculate the intersection (common positive pixels) between inputs and targets
+    intersection = (inputs * targets).sum()
+
+    # Calculate Dice coefficient
+    # Dice = (2 * |X ∩ Y|) / (|X| + |Y|), using smooth to prevent division by zero
+    dice = (2.0 * intersection + laplace_smooth) / (inputs.sum() + targets.sum() + laplace_smooth)
+
+    # Dice Loss (1 - Dice coefficient)
+    # A lower Dice Loss indicates better overlap with the ground truth
+    return 1 - dice
+
+
+def sigmoid_focal_loss(
+        inputs: torch.Tensor,
+        targets: torch.Tensor,
+        gamma: float = 2.0,
+        alpha: float = 0.25
+) -> torch.Tensor:
+    """
+    Compute the Sigmoid Focal Loss between predicted and ground truth masks.
+
+    Args:
+        inputs (torch.Tensor): Predicted masks.
+        targets (torch.Tensor): Ground truth masks.
+        gamma (float): Focusing parameter for modulating loss, defaults to 2.0.
+        alpha (float): Weighting factor for positive samples, defaults to 0.25.
+
+    Returns:
+        torch.Tensor: Sigmoid Focal Loss tensor.
+    """
+    assert inputs.dim() == 4 and targets.dim() == 4, "Expected 4D tensors"
+
+    # Flatten tensors to 1D for easy calculation of overlap
+    inputs_flat = inputs.view(-1)
+    targets_flat = targets.view(-1)
+
+    # Calculate BCE loss
+    bce_loss = nn.functional.binary_cross_entropy_with_logits(inputs_flat, targets_flat, reduction='none')
+
+    # Compute probabilities for the focal modulation factor
+    probabilities = torch.sigmoid(inputs_flat)
+    p_t = probabilities * targets_flat + (1 - probabilities) * (1 - targets_flat)
+
+    # Apply the focal factor
+    loss = bce_loss * ((1 - p_t) ** gamma)
+
+    # Apply alpha weighting
+    if alpha >= 0:
+        alpha_t = alpha * targets_flat + (1 - alpha) * (1 - targets_flat)
+        loss = alpha_t * loss
+
+    return loss.mean()
+
+
+def l1_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+    """
+    Compute the L1 loss (mean absolute error) between predicted and ground truth alpha mattes.
+
+    Args:
+        pred (torch.Tensor): Predicted alpha matte.
+        gt (torch.Tensor): Ground truth alpha matte.
+    """
+    return torch.mean(torch.abs(pred - gt))
+
+
+def gradient_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+    """
+    Compute a gradient loss to encourage matching edges between predicted and ground truth alpha.
+
+    We approximate image gradients using a Sobel filter or simple finite differences.
+    Here, simple finite differences to compute horizontal and vertical gradients.
+    """
+    # Horizontal and vertical gradient kernels for finite differences
+    kernel_x = torch.tensor(
+        data=[[-1, 1], [0, 0]],
+        dtype=pred.dtype,
+        device=pred.device
+    ).unsqueeze(0).unsqueeze(0)
+    kernel_y = torch.tensor(
+        data=[[-1, 0], [1, 0]],
+        dtype=pred.dtype,
+        device=pred.device
+    ).unsqueeze(0).unsqueeze(0)
+
+    # Ensure shape: [B, 1, H, W]
+    if pred.dim() == 3:
+        pred = pred.unsqueeze(1)
+    if gt.dim() == 3:
+        gt = gt.unsqueeze(1)
+
+    # Compute gradients via convolution
+    pred_gx = F.conv2d(pred, kernel_x, padding=0)
+    pred_gy = F.conv2d(pred, kernel_y, padding=0)
+    gt_gx = F.conv2d(gt, kernel_x, padding=0)
+    gt_gy = F.conv2d(gt, kernel_y, padding=0)
+
+    # Calculate L1 difference in gradients
+    loss_x = torch.mean(torch.abs(pred_gx - gt_gx))
+    loss_y = torch.mean(torch.abs(pred_gy - gt_gy))
+
+    return (loss_x + loss_y) / 2.0
+
+
+def laplacian_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+    """
+    Compute a loss that emphasizes fine details using a Laplacian filter.
+    This encourages sharper edges and better fine-grained detail alignment.
+    """
+    # Laplacian kernel
+    lap_kernel = torch.tensor(
+        data=[[0, 1, 0], [1, -4, 1], [0, 1, 0]],
+        dtype=pred.dtype,
+        device=pred.device
+    ).unsqueeze(0).unsqueeze(0)
+
+    # Ensure shape: [B, 1, H, W]
+    if pred.dim() == 3:
+        pred = pred.unsqueeze(1)
+    if gt.dim() == 3:
+        gt = gt.unsqueeze(1)
+
+    pred_lap = F.conv2d(pred, lap_kernel, padding=1)
+    gt_lap = F.conv2d(gt, lap_kernel, padding=1)
+
+    return torch.mean(torch.abs(pred_lap - gt_lap))
+
+
+def matting_loss(pred: torch.Tensor, gt: torch.Tensor, lambda_factor: float = 1.0):
+    # Compute L1 loss
+    loss_l1 = l1_loss(pred, gt)
+
+    # Compute gradient loss
+    loss_grad = gradient_loss(pred, gt)
+
+    # Combine losses
+    loss = loss_l1 + lambda_factor * loss_grad
+
+    return loss
+
+
+class CombinedMattingLoss(nn.Module):
+    """
+    Combined loss function for alpha matting tasks.
+    """
+
+    def __init__(self, lambda_factor: float = 1.0):
+        """
+        Args:
+            lambda_factor (float): Weight factor for the gradient loss term. Default is 1.0.
+        """
+        super().__init__()
+
+        self.lambda_factor = lambda_factor
+
+    def forward(self, pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, torch.Tensor]:
+        """
+        Compute the combined loss for alpha matting tasks.
+
+        Args:
+            pred (torch.Tensor): Predicted alpha matte.
+            gt (torch.Tensor): Ground truth alpha matte.
+
+        Returns:
+            Dict[str, torch.Tensor]: Dictionary containing the total loss, L1 loss, and gradient loss.
+        """
+        # Compute L1 loss
+        loss_l1 = l1_loss(pred, gt)
+
+        # Compute gradient loss
+        loss_grad = gradient_loss(pred, gt)
+
+        # Combine losses
+        loss = loss_l1 + self.lambda_factor * loss_grad
+
+        return {
+            'core_loss': loss,
+            'l1_loss': loss_l1,
+            'gradient_loss': loss_grad
+        }
 
 
 class DiceLoss(nn.Module):

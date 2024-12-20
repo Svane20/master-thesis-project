@@ -6,7 +6,7 @@ from pathlib import Path
 
 from datasets.carvana.data_loaders import setup_data_loaders
 
-from training.criterions import BCEDiceLoss
+from training.criterions import CombinedMattingLoss
 from training.optimizer import construct_optimizer
 from training.trainer import Trainer
 from training.utils.train_utils import set_seeds
@@ -41,10 +41,7 @@ def _setup_run(config: Config):
 
     # Construct model, criterion, optimizer and scheduler
     model = build_model_for_train(model_config)
-    criterion = BCEDiceLoss(
-        bce_weight=training_config.criterion.bce_weight,
-        dice_weight=training_config.criterion.dice_weight
-    )
+    criterion = CombinedMattingLoss()
     optimizer = construct_optimizer(model, training_config.optimizer)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer,

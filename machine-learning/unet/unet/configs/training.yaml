@@ -57,7 +57,7 @@ training:
   # Logging configuration
   logging:
     wandb:
-      enabled: true
+      enabled: false
       project: "U-NET"
       entity: "svane20-keyshot"
       tags: [ "unet", "carvana", "segmentation", "experiment" ]
