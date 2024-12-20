@@ -88,14 +88,13 @@ def create_data_loader(
     )
 
     workers = max(1, num_workers)
-    persistent_workers = workers > 0 and pin_memory
 
     return DataLoader(
         dataset,
         batch_size=batch_size,
         shuffle=shuffle,
         num_workers=workers,
-        persistent_workers=persistent_workers,
+        persistent_workers=True,
         pin_memory=pin_memory,
         drop_last=drop_last
     )

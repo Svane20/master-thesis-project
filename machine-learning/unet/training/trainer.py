@@ -3,31 +3,21 @@ import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import time
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from pathlib import Path
 from tqdm import tqdm
-import wandb
-from pydantic import BaseModel, Field
 import json
+import logging
+import os.path
 
 from training.early_stopping import EarlyStopping
 from training.metrics import calculate_dice_score, calculate_dice_edge_score, calculate_iou_score
 from training.utils.checkpoint_utils import load_state_dict_into_model
-from training.utils.logger import setup_logging
-from training.utils.train_utils import get_amp_type, get_resume_checkpoint
+from training.utils.logger import setup_logging, Logger, WeightAndBiasesConfig
+from training.utils.train_utils import get_amp_type, get_resume_checkpoint, DurationMeter, makedir, AverageMeter, \
+    MemMeter, Phase, ProgressMeter, human_readable_time
 
 from unet.configuration.training import TrainConfig
-
-
-class WeightAndBiasesConfig(BaseModel):
-    """
-    Configuration class for Weights & Biases initialization.
-    """
-    epochs: int = Field(description="Number of training epochs")
-    learning_rate: float = Field(description="Learning rate for the optimizer")
-    learning_rate_decay: float = Field(description="Learning rate decay for the optimizer")
-    seed: int = Field(description="Random seed for reproducibility")
-    device: str = Field(description="Device type, e.g., 'cuda' or 'cpu'")
 
 
 class Trainer:
@@ -55,46 +45,127 @@ class Trainer:
             test_data_loader (torch.utils.data.DataLoader): Data loader for testing.
             training_config (TrainConfig): Configuration for training.
         """
+        # Timers
+        self._setup_timers()
+
         # Configuration
         self.train_config = training_config
         self.optimizer_config = training_config.optimizer
         self.early_stopping_config = training_config.early_stopping
         self.checkpoint_config = training_config.checkpoint
+        self.meters = None
 
-        # Iterations
-        self.epoch = 0
-        self.num_epochs = self.train_config.num_epochs
-
-        # Logger
-        self.logger = setup_logging(
-            __name__,
-            log_level_primary="INFO",
-            log_level_secondary="ERROR",
-        )
+        # Logging
+        makedir(self.train_config.logging.log_directory)
+        setup_logging(__name__)
 
         # Device
         self._setup_device(training_config.accelerator)
         self._setup_torch_backend()
 
         # Components
-        self._setup_scaler()
-        self._setup_early_stopping()
-        self.model = model
-        self.criterion = criterion
-        self.optimizer = optimizer
-        self.scheduler = scheduler
+        self._setup_components(model, criterion, optimizer, scheduler)
 
+        # Move components to device
         self._move_to_device(compile_model=self.train_config.compile_model)
 
         # Data loaders
         self.train_data_loader = train_data_loader
         self.test_data_loader = test_data_loader
 
+        self.time_elapsed_meter = DurationMeter("Time Elapsed", self.device, ":.2f")
+
+        if self.checkpoint_config.resume_from is not None:
+            assert os.path.exists(
+                self.checkpoint_config.resume_from
+            ), f"The 'resume_from' checkpoint {self.checkpoint_config.resume_from} does not exist."
+            destination = os.path.join(self.checkpoint_config.save_directory, "checkpoint.pt")
+            if not os.path.exists(destination):
+                makedir(destination)
+                os.symlink(self.checkpoint_config.resume_from, destination)
+
         # Load checkpoint
         self.load_checkpoint()
 
-        # W&B initialization
-        self._init_wandb()
+    def _setup_timers(self):
+        """
+        Initializes counters for elapsed time and eta.
+        """
+        self.start_time = time.time()
+        self.ckpt_time_elapsed = 0
+        self.est_epoch_time = dict.fromkeys([Phase.TRAIN, Phase.TEST], 0)
+
+    def _setup_components(
+            self, model: nn.Module,
+            criterion: nn.Module,
+            optimizer: torch.optim.Optimizer,
+            scheduler: torch.optim.lr_scheduler
+    ) -> None:
+        """
+        Set up the components for training.
+
+        Args:
+            model (nn.Module): Model to train.
+            criterion (nn.Module): Loss function.
+            optimizer (torch.optim.Optimizer): Optimizer for training.
+            scheduler (torch.optim.lr_scheduler): Scheduler for training.
+        """
+        logging.info("Setting up components: Model, criterion, optimizer, scheduler.")
+
+        # Iterations
+        self.epoch = 0
+        self.num_epochs = self.train_config.num_epochs
+
+        # Logger
+        self.logger = self._setup_logging()
+
+        # Components
+        self.model = model
+        self.criterion = criterion
+        self.optimizer = optimizer
+        self.scheduler = scheduler
+
+        # Mixed precision and early stopping
+        self.scaler = torch.amp.GradScaler(
+            device=str(self.device),
+            enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available()
+        )
+        self.early_stopping = self._setup_early_stopping()
+
+        logging.info("Finished setting up components: Model, criterion, optimizer, scheduler")
+
+    def _setup_logging(self) -> Logger:
+        wandb_config = WeightAndBiasesConfig(
+            epochs=self.train_config.num_epochs,
+            learning_rate=self.train_config.optimizer.lr,
+            learning_rate_decay=self.train_config.optimizer.weight_decay,
+            seed=self.train_config.seed,
+            device=self.train_config.accelerator,
+        )
+
+        return Logger(self.train_config.logging, wandb_config)
+
+    def _get_meters(self, phase_filters: List[str] = None) -> Dict[str, Any]:
+        if self.meters is None:
+            return {}
+
+        meters = {}
+        for phase, phase_meters in self.meters.items():
+            if phase_filters is not None and phase not in phase_filters:
+                continue
+
+            for key, key_meters in phase_meters.items():
+                if key_meters is None:
+                    continue
+
+                for name, meter in key_meters.items():
+                    meters[f"{phase}_{key}/{name}"] = meter
+
+        return meters
+
+    def _reset_meters(self, phases: List[str]) -> None:
+        for meter in self._get_meters(phases).values():
+            meter.reset()
 
     def run(self) -> None:
         disable_progress_bar = False
@@ -111,11 +182,7 @@ class Trainer:
                 current_epoch = epoch + 1
 
                 # Train and test for one epoch
-                train_metrics, train_times = self._train_one_epoch(
-                    train_data_loader,
-                    current_epoch,
-                    disable_progress_bar
-                )
+                train_metrics = self._train_one_epoch(train_data_loader)
                 test_metrics, test_times = self._test_one_epoch(test_data_loader, current_epoch, disable_progress_bar)
                 validation_metric = test_metrics.get(
                     self.early_stopping_config.monitor if self.early_stopping_config.enabled else "loss",
@@ -131,25 +198,23 @@ class Trainer:
                 # Epoch duration
                 epoch_duration = time.time() - start_epoch_time
 
-                # Log metrics to Weights & Biases
-                if self.wandb_run is not None:
-                    self.wandb_run.log({
-                        "epoch": current_epoch,
-                        "epoch_duration": epoch_duration,
-                        "learning_rate": current_lr,
-                        **{f"train/{k}": v for k, v in train_times.items()},
-                        **{f"train/{k}": v for k, v in train_metrics.items()},
-                        **{f"test/{k}": v for k, v in test_times.items()},
-                        **{f"test/{k}": v for k, v in test_metrics.items()}
-                    })
+                # Log metrics
+                payload = {
+                    "epoch": current_epoch,
+                    "epoch_duration": epoch_duration,
+                    "learning_rate": current_lr,
+                    **{f"train/{k}": v for k, v in train_metrics.items()},
+                    **{f"test/{k}": v for k, v in test_times.items()},
+                    **{f"test/{k}": v for k, v in test_metrics.items()}
+                }
+                self.logger.log_dict(
+                    payload=payload,
+                    step=epoch
+                )
+                self._save_metrics(payload)
 
                 # Print metrics
-                train_metrics_str = " | ".join([f"Train {k.capitalize()}: {v:.4f}" for k, v in train_metrics.items()])
-                test_metrics_str = " | ".join([f"Test {k.capitalize()}: {v:.4f}" for k, v in test_metrics.items()])
-                self.logger.info(
-                    f"Epoch: {current_epoch}/{self.num_epochs} | LR: {current_lr:.6f} | Epoch Duration: {epoch_duration:.2f}s\n"
-                    f"{train_metrics_str} | {test_metrics_str}"
-                )
+                logging.info(f"{payload}")
 
                 # Early stopping
                 if self.early_stopping is not None:
@@ -162,7 +227,7 @@ class Trainer:
 
                     # Check for early stopping
                     if self.early_stopping.should_stop:
-                        self.logger.info(
+                        logging.info(
                             f"[INFO] Early stopping activated. Best score: {self.early_stopping.best_score:.4f}")
                         break
                 else:
@@ -171,93 +236,94 @@ class Trainer:
 
             # Total Training Time
             total_training_time = time.time() - training_start_time
-            self.wandb_run.log({"training_time": total_training_time / 60})
-            self.logger.info(f"[INFO] Total training time: {total_training_time / 60:.2f} minutes")
+            self.logger.log(name="total_training_time", payload=total_training_time, step=self.num_epochs)
+            logging.info(f"[INFO] Total training time: {total_training_time / 60:.2f} minutes")
         except Exception as e:
-            self.logger.error(f"Error during training: {e}")
-            if self.wandb_run is not None:
-                self.wandb_run.finish()
+            logging.error(f"Error during training: {e}")
+            self.logger.finish()
         finally:
-            if self.wandb_run is not None:
-                self.wandb_run.finish()
+            self.logger.finish()
 
     def load_checkpoint(self) -> None:
         checkpoint_path = get_resume_checkpoint(self.checkpoint_config.resume_from)
         if checkpoint_path is not None:
             self._load_resuming_checkpoint(checkpoint_path)
 
-    def _train_one_epoch(
-            self,
-            data_loader: torch.utils.data.DataLoader,
-            epoch: int,
-            disable_progress_bar: bool
-    ) -> (Dict[str, float], Dict[str, float]):
+    def _train_one_epoch(self, data_loader: torch.utils.data.DataLoader) -> (Dict[str, float], Dict[str, float]):
         """
         Train the model for one epoch.
 
         Args:
             data_loader (torch.utils.data.DataLoader): Data loader for training.
-            epoch (int): Current epoch.
-            disable_progress_bar (bool): Disable the progress bar
 
         Returns:
             Dict[str, float]: Metrics for training.
             Dict[str, float]: Timing metrics for the epoch.
         """
+        # Init stat meters
+        batch_time_meter = AverageMeter(name="Batch Time", device=str(self.device), fmt=":.2f")
+        data_time_meter = AverageMeter("Data Time", str(self.device), ":.2f")
+        mem_meter = MemMeter("Mem (GB)", str(self.device), ":.2f")
+        data_times = []
+        phase = Phase.TRAIN
+
+        iters_per_epoch = len(data_loader)
+
+        progress = ProgressMeter(
+            iters_per_epoch,
+            [
+                batch_time_meter,
+                data_time_meter,
+                mem_meter,
+                self.time_elapsed_meter,
+            ],
+            self._get_meters([phase]),
+            prefix="Train Epoch: [{}]".format(self.epoch),
+        )
+
+        # Model training loop
         self.model.train()
         total_metrics = {}
         num_batches = 0
+        end = time.time()
 
-        # Timing
-        epoch_start_time = time.time()
-        data_loading_time = 0.0
-        step_time = 0.0
+        for batch_idx, (X, y) in enumerate(data_loader):
+            # Measure data loading time
+            data_time_meter.update(time.time() - end)
+            data_times.append(data_time_meter.val)
 
-        progress_bar = tqdm(
-            enumerate(data_loader),
-            desc=f"Training Epoch {epoch}/{self.num_epochs}",
-            total=len(data_loader),
-            disable=disable_progress_bar
-        )
-
-        for batch_idx, (X, y) in progress_bar:
-            batch_start_time = time.time()
             num_batches += 1
 
             # Data loading time
             X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
-            data_loading_time += time.time() - batch_start_time
 
-            # Step time
-            step_start_time = time.time()
+            # Zero the gradients
             self.optimizer.zero_grad(set_to_none=True)
+
+            # Run a single step
             loss_dict = self._run_step(X, y)
-            step_time += time.time() - step_start_time
 
             # Update metrics
             self._update_metrics(total_metrics, loss_dict)
 
-            # Update progress bar
-            current_metrics = {f"train_{k}": (total_metrics[k] / num_batches) for k in total_metrics}
-            progress_bar.set_postfix(current_metrics)
+            # Measure elapsed time
+            batch_time_meter.update(time.time() - end)
+            end = time.time()
+
+            self.time_elapsed_meter.update(time.time() - self.start_time + self.ckpt_time_elapsed)
+
+            mem_meter.update(reset_peak_usage=True)
+            progress.display(batch_idx)
+
+        self.est_epoch_time[Phase.TRAIN] = batch_time_meter.avg * iters_per_epoch
 
         # Compute average metrics
         avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
+        logging.info(f"Losses and meters: {avg_metrics}")
 
-        # Save metrics
-        self._save_metrics(avg_metrics, epoch=epoch, is_train=True)
+        self._reset_meters([phase])
 
-        # Epoch duration
-        epoch_duration = time.time() - epoch_start_time
-        self.logger.info(
-            f"Data Loading: {data_loading_time:.2f}s | Step: {step_time:.2f}s | Duration: {epoch_duration:.2f}s"
-        )
-
-        return avg_metrics, {
-            "data_loading_time": data_loading_time,
-            "step_time": step_time,
-            "epoch_duration": epoch_duration,
-        }
+        return avg_metrics
 
     def _test_one_epoch(
             self,
@@ -323,12 +389,9 @@ class Trainer:
         # Compute average metrics
         avg_metrics = {k: v / num_batches for k, v in total_metrics.items()}
 
-        # Save metrics
-        self._save_metrics(avg_metrics, epoch=epoch, is_train=False)
-
         # Epoch duration
         epoch_duration = time.time() - epoch_start_time
-        self.logger.info(
+        logging.info(
             f"Data Loading: {data_loading_time:.2f}s | Step: {step_time:.2f}s | Duration: {epoch_duration:.2f}s"
         )
 
@@ -434,7 +497,7 @@ class Trainer:
         }
 
     def _load_resuming_checkpoint(self, checkpoint_path: Path) -> None:
-        self.logger.info(f"Resuming training from checkpoint: {checkpoint_path}")
+        logging.info(f"Resuming training from checkpoint: {checkpoint_path}")
 
         with open(checkpoint_path, "rb") as f:
             checkpoint = torch.load(f, map_location="cpu", weights_only=True)
@@ -443,6 +506,7 @@ class Trainer:
 
         self.optimizer.load_state_dict(checkpoint["optimizer"])
         self.epoch = checkpoint["epoch"]
+        self.ckpt_time_elapsed = checkpoint.get("time_elapsed")
 
         if self.optimizer_config.amp.enabled and torch.cuda.is_available() and "scaler" in checkpoint:
             self.scaler.load_state_dict(checkpoint["scaler"])
@@ -473,64 +537,24 @@ class Trainer:
 
         torch.save(obj=state_dict, f=checkpoint_path)
 
-        self.logger.info(f"Checkpoint saved at epoch {epoch} with metric {metric:.4f}.")
+        logging.info(f"Checkpoint saved at epoch {epoch} with metric {metric:.4f}.")
 
-    def _save_metrics(self, metrics: Dict[str, float], epoch: int, is_train: bool) -> None:
+    def _save_metrics(self, metrics: Dict[str, float]) -> None:
         """
         Save metrics to a JSON file.
 
         Args:
             metrics (Dict[str, float]): Dictionary of metrics to save.
-            epoch (int): Epoch index for context.
-            is_train (bool): If True, metrics are for training; otherwise, testing.
         """
-        if not metrics:
-            self.logger.warning("No metrics to save.")
-            return
-
-        # Set file paths
-        current_directory = Path(__file__).resolve().parent
-        filename = "train_metrics.json" if is_train else "test_metrics.json"
-        logs_directory = current_directory / self.train_config.logging.log_directory
-        logs_directory.mkdir(parents=True, exist_ok=True)
-
-        log_entry = {"epoch": epoch, **metrics}
+        logs_directory = self.train_config.logging.log_directory
+        filename = "train_metrics.json"
 
         try:
-            with open(logs_directory / filename, "a") as f:
-                f.write(json.dumps(log_entry) + "\n")
-            self.logger.info(f"Metrics saved to {filename}.")
+            with open(os.path.join(logs_directory, filename), "a") as f:
+                f.write(json.dumps(metrics) + "\n")
+            logging.info(f"Metrics saved to {filename}.")
         except Exception as e:
-            self.logger.error(f"Failed to save metrics to {filename}: {e}")
-
-    def _init_wandb(self):
-        if self.train_config.logging.wandb.enabled:
-            wandb_config = WeightAndBiasesConfig(
-                epochs=self.train_config.num_epochs,
-                learning_rate=self.train_config.optimizer.lr,
-                learning_rate_decay=self.train_config.optimizer.weight_decay,
-                seed=self.train_config.seed,
-                device=self.train_config.accelerator,
-            )
-
-            # Initialize W&B
-            self.wandb_run = wandb.init(
-                project=self.train_config.logging.wandb.project,
-                entity=self.train_config.logging.wandb.entity,
-                tags=self.train_config.logging.wandb.tags,
-                notes=self.train_config.logging.wandb.notes,
-                group=self.train_config.logging.wandb.group,
-                job_type=self.train_config.logging.wandb.job_type,
-                config=wandb_config.model_dump()
-            )
-
-            # Watch the model
-            self.wandb_run.watch(
-                self.model,
-                self.optimizer,
-                log=self.train_config.logging.log,
-                log_freq=self.train_config.logging.log_freq
-            )
+            logging.error(f"Failed to save metrics to {filename}: {e}")
 
     def _setup_device(self, accelerator: str) -> None:
         """
@@ -553,18 +577,18 @@ class Trainer:
         Args:
             compile_model (bool): Compile the model for faster training. Default is True.
         """
-        self.logger.info(f"Moving components to device {self.device}.")
+        logging.info(f"Moving components to device {self.device}.")
 
         if compile_model:
-            self.logger.info("Compiling the model with backend 'aot_eager'.")
+            logging.info("Compiling the model with backend 'aot_eager'.")
 
             self.model = torch.compile(self.model, backend="aot_eager")
 
-            self.logger.info("Done compiling model with backend 'aot_eager'.")
+            logging.info("Done compiling model with backend 'aot_eager'.")
 
         self.model.to(self.device)
 
-        self.logger.info(f"Done moving components to device {self.device}.")
+        logging.info(f"Done moving components to device {self.device}.")
 
     def _setup_torch_backend(self) -> None:
         """
@@ -580,26 +604,19 @@ class Trainer:
             torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = True  # Enable FP16 reductions
             torch.backends.cuda.matmul.allow_bf16_reduced_precision_reduction = True  # Enable BF16 reductions
 
-    def _setup_scaler(self) -> None:
-        """
-        Set up the gradient scaler for training.
-        """
-        self.scaler = torch.amp.GradScaler(
-            device=str(self.device),
-            enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available()
-        )
-
-    def _setup_early_stopping(self) -> None:
+    def _setup_early_stopping(self) -> Optional[EarlyStopping]:
         """
         Set up the early stopping for training.
         """
         if self.early_stopping_config.enabled:
-            self.early_stopping = EarlyStopping(
+            return EarlyStopping(
                 patience=self.early_stopping_config.patience,
                 min_delta=self.early_stopping_config.min_delta,
                 verbose=self.early_stopping_config.verbose,
                 mode=self.early_stopping_config.mode
             )
+
+        return None
 
     def _scheduler_step(self, scheduler: torch.optim.lr_scheduler, metric: Optional[float] = None) -> None:
         """
