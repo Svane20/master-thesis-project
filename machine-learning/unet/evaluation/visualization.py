@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from evaluation.metrics import calculate_dice_score, calculate_dice_edge_score
+from evaluation import metrics
 
 
 def save_predictions(
@@ -49,13 +49,13 @@ def save_predictions(
         with torch.inference_mode():
             y_logits = model(X)
             y_preds = torch.sigmoid(y_logits)
-            preds = (y_preds > 0.5).float()
 
             # For each sample in the batch
             for idx in range(X.size(0)):
-                input_img = X[idx].cpu().numpy().transpose(1, 2, 0)
-                target_mask = y[idx].cpu().numpy().squeeze()
-                pred_mask = preds[idx].cpu().numpy().squeeze()
+                # Convert input image, ground truth, and prediction to CPU numpy arrays
+                input_img = X[idx].cpu().numpy().transpose(1, 2, 0)  # (H, W, C)
+                target_mask = y[idx].cpu().numpy().squeeze()  # (H, W)
+                pred_mask = y_preds[idx].cpu().numpy().squeeze()  # (H, W)
 
                 # Un-normalize the image
                 mean = np.array([0.485, 0.456, 0.406])
@@ -63,9 +63,14 @@ def save_predictions(
                 input_img = std * input_img + mean
                 input_img = np.clip(input_img, 0, 1)
 
+                # Prepare tensors for metric calculations
+                predicted_mask_tensor = torch.tensor(pred_mask).unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
+                target_mask_tensor = torch.tensor(target_mask).unsqueeze(0).unsqueeze(0)  # (1, 1, H, W)
+
                 # Compute metrics per image
-                dice_score = calculate_dice_score(torch.tensor(pred_mask), torch.tensor(target_mask))
-                dice_edge_score = calculate_dice_edge_score(torch.tensor(pred_mask), torch.tensor(target_mask))
+                mse_score = metrics.calculate_mse(predicted_mask_tensor, target_mask_tensor)
+                sad_score = metrics.calculate_sad(predicted_mask_tensor, target_mask_tensor)
+                grad_score = metrics.calculate_grad_error(predicted_mask_tensor, target_mask_tensor)
 
                 # Create figure
                 fig, ax = plt.subplots(1, 3, figsize=(18, 6))
@@ -82,7 +87,7 @@ def save_predictions(
 
                 # Display prediction overlay
                 ax[2].imshow(pred_mask, cmap='gray')
-                ax[2].set_title(f'Predicted Mask\nDice: {dice_score:.4f}, Dice Edge: {dice_edge_score:.4f}')
+                ax[2].set_title(f'Predicted Mask\nMSE: {mse_score:.4f}, SAD: {sad_score:.4f}, GRAD: {grad_score:.4f}')
                 ax[2].axis('off')
 
                 sample_idx = batch_idx * data_loader.batch_size + idx

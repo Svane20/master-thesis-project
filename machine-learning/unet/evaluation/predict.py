@@ -7,7 +7,10 @@ from datasets.transforms import get_test_transforms
 from evaluation.inference import predict_image
 from evaluation.utils.configuration import load_config
 from evaluation.visualization import save_prediction, remove_background
+from training.utils.logger import setup_logging
 from unet.build_model import build_model
+
+setup_logging(__name__)
 
 
 def main() -> None:

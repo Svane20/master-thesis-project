@@ -1,102 +1,78 @@
 import torch
+import torch.nn.functional as F
 
-from evaluation.utils.edge_detection import compute_edge_map
 
-
-def calculate_dice_score(predictions: torch.Tensor, targets: torch.Tensor, epsilon: float = 1e-6) -> float:
+def calculate_mse(predictions: torch.Tensor, targets: torch.Tensor) -> float:
     """
-    Calculates Dice Coefficient between predictions and targets.
+    Calculate Mean Squared Error (MSE) between predictions and targets.
 
     Args:
-        predictions (torch.Tensor): Model predictions.
-        targets (torch.Tensor): Ground truth targets.
-        epsilon (float): Small value to avoid division by zero. Default is 1e-6.
+        predictions (torch.Tensor): Predicted alpha matte.
+        targets (torch.Tensor): Ground truth alpha matte.
 
     Returns:
-        float: Dice Coefficient value.
+        float: MSE value.
     """
-    # Flatten the tensors
-    predictions_flatten = predictions.view(-1)
-    targets_flatten = targets.view(-1)
-
-    # Ensure EPSILON is on the same device and data type as predictions
-    epsilon = torch.tensor(epsilon, device=predictions.device, dtype=predictions.dtype)
-
-    # Calculate intersection and union
-    intersection = (predictions_flatten * targets_flatten).sum()
-    dice = (2.0 * intersection + epsilon) / (predictions_flatten.sum() + targets_flatten.sum() + epsilon)
-
-    return dice.item()
+    mse = torch.mean((predictions - targets) ** 2)
+    return mse.item()
 
 
-def calculate_dice_edge_score(predictions: torch.Tensor, targets: torch.Tensor, epsilon: float = 1e-6) -> float:
+def calculate_sad(predictions: torch.Tensor, targets: torch.Tensor) -> float:
     """
-    Calculates Dice Coefficient between edge maps of predictions and targets.
+    Calculate Sum of Absolute Differences (SAD) between predictions and targets.
 
     Args:
-        predictions (torch.Tensor): Model predictions.
-        targets (torch.Tensor): Ground truth targets.
-        epsilon (float): Small value to avoid division by zero. Default is 1e-6.
+        predictions (torch.Tensor): Predicted alpha matte.
+        targets (torch.Tensor): Ground truth alpha matte.
 
     Returns:
-        float: Dice Coefficient value.
+        float: SAD value.
     """
-    if predictions.dim() not in [2, 3, 4]:
-        raise ValueError("Invalid dimensions for predictions/targets.")
-
-    if predictions.dim() == 2:  # [H, W]
-        predictions = predictions.unsqueeze(0).unsqueeze(0)
-        targets = targets.unsqueeze(0).unsqueeze(0)
-    elif predictions.dim() == 3:  # [C, H, W]
-        predictions = predictions.unsqueeze(0)
-        targets = targets.unsqueeze(0)
-
-    # Compute edge maps
-    edge_preds = compute_edge_map(predictions)
-    edge_targets = compute_edge_map(targets)
-
-    # Threshold the edge maps
-    edge_preds = (edge_preds > edge_preds.mean()).float()
-    edge_targets = (edge_targets > edge_targets.mean()).float()
-
-    # Flatten the tensors
-    edge_preds_flat = edge_preds.view(-1)
-    edge_targets_flat = edge_targets.view(-1)
-
-    # Ensure EPSILON is on the same device and data type as predictions
-    epsilon = torch.tensor(epsilon, device=predictions.device, dtype=predictions.dtype)
-
-    # Calculate intersection and union
-    intersection = (edge_preds_flat * edge_targets_flat).sum()
-    dice = (2.0 * intersection + epsilon) / (edge_preds_flat.sum() + edge_targets_flat.sum() + epsilon)
-
-    return dice.item()
+    sad = torch.sum(torch.abs(predictions - targets))
+    return sad.item()
 
 
-def calculate_iou_score(predictions: torch.Tensor, targets: torch.Tensor, epsilon: float = 1e-6) -> float:
+def calculate_grad_error(predictions: torch.Tensor, targets: torch.Tensor) -> float:
     """
-    Calculates Intersection over Union (IoU) between predictions and targets.
+    Calculate Gradient Error (GRAD) between predictions and targets.
 
     Args:
-        predictions (torch.Tensor): Model predictions.
-        targets (torch.Tensor): Ground truth targets.
-        epsilon (float): Small value to avoid division by zero. Default is 1e-6.
+        predictions (torch.Tensor): Predicted alpha matte.
+        targets (torch.Tensor): Ground truth alpha matte.
 
     Returns:
-        float: Intersection over Union (IoU) value.
+        float: GRAD value.
     """
-    # Flatten the tensors
-    predictions_flatten = predictions.view(-1)
-    targets_flatten = targets.view(-1)
+    # Ensure predictions and targets have proper shape
+    predictions = predictions.squeeze(1)  # Remove singleton dimension if present
+    targets = targets.squeeze(1)
 
-    # Calculate intersection and union
-    intersection = (predictions_flatten * targets_flatten).sum()
-    union = predictions_flatten.sum() + targets_flatten.sum() - intersection
+    # Add channel dimension for conv2d
+    predictions = predictions.unsqueeze(1)
+    targets = targets.unsqueeze(1)
 
-    # Ensure EPSILON is on the same device and data type as predictions
-    epsilon = torch.tensor(epsilon, device=predictions.device, dtype=predictions.dtype)
+    # Define Sobel filters for gradient computation
+    sobel_x = torch.tensor(
+        data=[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]],
+        dtype=torch.float32,
+        device=predictions.device
+    ).view(1, 1, 3, 3)
+    sobel_y = torch.tensor(
+        [[-1, -2, -1], [0, 0, 0], [1, 2, 1]],
+        dtype=torch.float32,
+        device=predictions.device
+    ).view(1, 1, 3, 3)
 
-    # Calculate IoU
-    iou = (intersection + epsilon) / (union + epsilon)  # Add epsilon to prevent division by zero
+    # Apply Sobel filters to compute gradients
+    grad_pred_x = F.conv2d(predictions, sobel_x, padding=1)
+    grad_pred_y = F.conv2d(predictions, sobel_y, padding=1)
+    grad_target_x = F.conv2d(targets, sobel_x, padding=1)
+    grad_target_y = F.conv2d(targets, sobel_y, padding=1)
 
-    return iou.item()
+    # Calculate gradient magnitudes
+    grad_pred = torch.sqrt(grad_pred_x ** 2 + grad_pred_y ** 2)
+    grad_target = torch.sqrt(grad_target_x ** 2 + grad_target_y ** 2)
+
+    # Compute gradient error
+    grad_error = torch.sum(torch.abs(grad_pred - grad_target))
+    return grad_error.item()

@@ -315,7 +315,7 @@ class Trainer:
             X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
 
             try:
-                with torch.inference_mode():
+                with torch.no_grad():
                     # Use autocast for mixed precision if enabled
                     with torch.amp.autocast(
                             device_type=self.device.type,
