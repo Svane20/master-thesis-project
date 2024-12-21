@@ -21,15 +21,14 @@ dataset:
 
 # Training configuration
 training:
-  num_epochs: 1
+  num_epochs: 100
   accelerator: cuda
   seed: 42
   compile_model: true
 
   # Criterion configuration
   criterion:
-    bce_weight: 0.7
-    dice_weight: 0.3
+    lambda_factor: 1.0
 
   # Optimizer configuration
   optimizer:
@@ -57,7 +56,7 @@ training:
   # Logging configuration
   logging:
     wandb:
-      enabled: false
+      enabled: true
       project: "U-NET"
       entity: "svane20-keyshot"
       tags: [ "unet", "carvana", "segmentation", "experiment" ]
@@ -65,14 +64,13 @@ training:
       group: "carvana-segmentation-experiments"
       job_type: "training"
     log_directory: "./logs"
-    log: 'all'
     log_freq: 10
 
   # Checkpoint configuration
   checkpoint:
     save_directory: "./checkpoints"
-    checkpoint_path: "unet_test.pt"
-    resume_from: null
+    checkpoint_path: "unet.pt"
+    resume_from: null # "./checkpoints/<CHECKPOINT>" or null
 
 # Model configuration
 model:

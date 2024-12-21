@@ -23,6 +23,7 @@ def construct_optimizer(model: nn.Module, config: OptimizerConfig) -> optim.Opti
 
     # Instantiate the optimizer with the given learning rate
     optimizer = optimizer_cls(model.parameters(), lr=config.lr, weight_decay=config.weight_decay)
+
     return optimizer
 
 
@@ -34,7 +35,7 @@ def _get_optimizer_by_name(name: str) -> Type[Adam | AdamW | SGD]:
         name (str): Name of the optimizer.
 
     Returns:
-        optim.Optimizer: Optimizer class.
+        Type[Adam | AdamW | SGD]: Optimizer class.
     """
     match name:
         case "Adam":

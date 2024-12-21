@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from training.metrics import calculate_dice_score, calculate_dice_edge_score
+from evaluation.metrics import calculate_dice_score, calculate_dice_edge_score
 
 
 def save_predictions(

@@ -2,7 +2,7 @@ import torch
 import torch.distributed as dist
 
 import logging
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List, Union, Dict
 import random
 import numpy as np
 from pathlib import Path
@@ -18,7 +18,7 @@ class Phase:
 class AverageMeter:
     """Computes and stores the average and current value"""
 
-    def __init__(self, name, device, fmt=":f"):
+    def __init__(self, name: str, device: str, fmt: str = ":f"):
         """
         Args:
             name (str): Name of the meter.
@@ -38,6 +38,7 @@ class AverageMeter:
         self.avg = 0
         self.sum = 0
         self.count = 0
+        self._allow_updates = True
 
     def update(self, val: float, n: int = 1):
         """
@@ -160,14 +161,41 @@ class DurationMeter:
         return f"{self.name}: {human_readable_time(self.val)}"
 
 
+Meter = Union[AverageMeter, DurationMeter, MemMeter]
+
+
 class ProgressMeter:
-    def __init__(self, num_batches, meters, real_meters, prefix: str = ""):
+    """
+    Progress meter to display the progress of the training.
+    """
+
+    def __init__(
+            self,
+            num_batches: int,
+            meters: List[Meter],
+            real_meters: Dict[str, Meter],
+            prefix: str = ""
+    ):
+        """
+        Args:
+            num_batches (int): Number of batches.
+            meters (List[Meter]): List of meters.
+            real_meters (Dict[str, Meter]): Real meters.
+            prefix (str): Prefix for the meter. Default is "".
+        """
         self.batch_fmtstr = self._get_batch_fmtstr(num_batches)
         self.meters = meters
         self.real_meters = real_meters
         self.prefix = prefix
 
-    def display(self, batch, enable_print=False):
+    def display(self, batch: int, enable_print: bool = False) -> None:
+        """
+        Display the progress of the training.
+
+        Args:
+            batch (int): Batch number.
+            enable_print (bool): Enable print. Default is False.
+        """
         entries = [self.prefix + self.batch_fmtstr.format(batch)]
         entries += [str(meter) for meter in self.meters]
         entries += [
@@ -184,7 +212,16 @@ class ProgressMeter:
         if enable_print:
             print(" | ".join(entries))
 
-    def _get_batch_fmtstr(self, num_batches: int):
+    def _get_batch_fmtstr(self, num_batches: int) -> str:
+        """
+        Get the batch format string.
+
+        Args:
+            num_batches (int): Number of batches.
+
+        Returns:
+            str: Batch format string
+        """
         num_digits = len(str(num_batches // 1))
         fmt = "{:" + str(num_digits) + "d}"
 
@@ -293,8 +330,8 @@ def get_resume_checkpoint(checkpoint_path: str) -> Optional[Path]:
     if checkpoint_path is None:
         return None
 
-    current_directory = Path(__file__).resolve().parent.parent.parent
-    checkpoint_path = current_directory / checkpoint_path
+    root_directory = Path(__file__).resolve().parent.parent.parent
+    checkpoint_path = root_directory / checkpoint_path
     if not checkpoint_path.is_file():
         return None
 

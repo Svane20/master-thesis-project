@@ -1,6 +1,6 @@
 import torch
 
-from training.utils.edge_detection import compute_edge_map
+from evaluation.utils.edge_detection import compute_edge_map
 
 
 def calculate_dice_score(predictions: torch.Tensor, targets: torch.Tensor, epsilon: float = 1e-6) -> float:

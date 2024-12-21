@@ -6,7 +6,7 @@ scratch:
 dataset:
   name: "carvana"
   root: "./data"
-  batch_size: 32
+  batch_size: 16
   pin_memory: true
   train:
     num_workers: 8

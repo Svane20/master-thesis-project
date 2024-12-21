@@ -10,8 +10,7 @@ class AMPConfig:
 
 @dataclass
 class CriterionConfig:
-    bce_weight: float
-    dice_weight: float
+    lambda_factor: float
 
 
 @dataclass
@@ -53,7 +52,6 @@ class EarlyStoppingConfig:
 class LoggingConfig:
     wandb: WandbConfig
     log_directory: str
-    log: str
     log_freq: int
 
 

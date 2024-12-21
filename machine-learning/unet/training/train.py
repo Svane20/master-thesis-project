@@ -18,7 +18,7 @@ from unet.configuration.scratch import ScratchConfig
 from unet.configuration.training import TrainConfig
 
 
-def _setup_run(config: Config):
+def _setup_run(config: Config) -> None:
     """
     Set up the run for training.
 
@@ -41,7 +41,7 @@ def _setup_run(config: Config):
 
     # Construct model, criterion, optimizer and scheduler
     model = build_model_for_train(model_config)
-    criterion = CombinedMattingLoss()
+    criterion = CombinedMattingLoss(lambda_factor=training_config.criterion.lambda_factor)
     optimizer = construct_optimizer(model, training_config.optimizer)
     scheduler = optim.lr_scheduler.CosineAnnealingLR(
         optimizer,
