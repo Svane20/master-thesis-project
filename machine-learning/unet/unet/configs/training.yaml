@@ -48,7 +48,7 @@ training:
   early_stopping:
     enabled: true
     verbose: true
-    patience: 5
+    patience: 20
     min_delta: 0.0
     monitor: "loss"
     mode: "min"
