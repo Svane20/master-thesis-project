@@ -8,7 +8,7 @@ scratch:
 dataset:
   name: "carvana"
   root: "./data"
-  batch_size: 32
+  batch_size: 16
   pin_memory: true
   train:
     num_workers: 8
@@ -28,8 +28,7 @@ training:
 
   # Criterion configuration
   criterion:
-    bce_weight: 0.7
-    dice_weight: 0.3
+    lambda_factor: 1.0
 
   # Optimizer configuration
   optimizer:
@@ -65,14 +64,13 @@ training:
       group: "carvana-segmentation-experiments"
       job_type: "training"
     log_directory: "./logs"
-    log: 'all'
     log_freq: 10
 
   # Checkpoint configuration
   checkpoint:
     save_directory: "./checkpoints"
     checkpoint_path: "unet.pt"
-    resume_from: null
+    resume_from: null # "./checkpoints/<CHECKPOINT>" or null
 
 # Model configuration
 model:

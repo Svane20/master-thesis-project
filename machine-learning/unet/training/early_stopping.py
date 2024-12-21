@@ -1,4 +1,12 @@
+import logging
+from typing import Dict, Any
+
+
 class EarlyStopping:
+    """
+    Early stopping to stop the training when the loss does not improve after certain epochs.
+    """
+
     def __init__(
             self,
             patience: int = 10,
@@ -6,6 +14,13 @@ class EarlyStopping:
             verbose: bool = True,
             mode: str = "min"
     ) -> None:
+        """
+        Args:
+            patience (int): Number of epochs to wait before stopping. Default is 10.
+            min_delta (float): Minimum change in the monitored quantity to qualify as an improvement. Default is 0.0.
+            verbose (bool): If True, prints a message for each improvement. Default is True.
+            mode (str): One of {"min", "max"}. In "min" mode, training will stop when the quantity monitored has stopped decreasing. In "max" mode, training will stop when the quantity monitored has stopped increasing. Default is "min".
+        """
         self.patience = patience
         self.min_delta = min_delta
         self.verbose = verbose
@@ -25,6 +40,12 @@ class EarlyStopping:
             raise ValueError(f"Mode {mode} is not supported. Use 'min' or 'max'.")
 
     def step(self, current_score: float) -> None:
+        """
+        Step the early stopping mechanism.
+
+        Args:
+            current_score (float): Current score to compare.
+        """
         self.has_improved = False
 
         if self.best_score is None:
@@ -32,7 +53,8 @@ class EarlyStopping:
             self.has_improved = True
 
             if self.verbose:
-                print(f"[INFO] Initial best score set to {self.best_score:.4f}")
+                logging.info(f"Initial best score set to {self.best_score:.4f}")
+
             return
 
         if self.monitor_op(current_score, self.best_score):
@@ -41,20 +63,23 @@ class EarlyStopping:
             self.has_improved = True
 
             if self.verbose:
-                print(f"[INFO] Improved best score to {self.best_score:.4f}")
+                logging.info(f"Improved best score to {self.best_score:.4f}")
         else:
             self.counter += 1
 
             if self.verbose:
-                print(f"[INFO] No improvement in {self.counter} epochs. Best score: {self.best_score:.4f}")
+                logging.info(f"No improvement in {self.counter} epochs. Best score: {self.best_score:.4f}")
 
             if self.counter >= self.patience:
                 self.should_stop = True
 
-                if self.verbose:
-                    print(f"[INFO] Early stopping activated. Best score: {self.best_score:.4f}")
+    def state_dict(self) -> Dict[str, Any]:
+        """
+        Return the state dictionary.
 
-    def state_dict(self):
+        Returns:
+            Dict[str, Any]: State dictionary.
+        """
         return {
             'patience': self.patience,
             'min_delta': self.min_delta,
@@ -66,7 +91,13 @@ class EarlyStopping:
             'verbose': self.verbose
         }
 
-    def load_state_dict(self, state_dict):
+    def load_state_dict(self, state_dict: Dict[str, Any]) -> None:
+        """
+        Load the state dictionary.
+
+        Args:
+            state_dict (Dict[str, Any]): State dictionary.
+        """
         self.patience = state_dict['patience']
         self.min_delta = state_dict['min_delta']
         self.mode = state_dict['mode']

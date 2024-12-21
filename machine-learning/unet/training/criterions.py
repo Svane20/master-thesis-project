@@ -1,178 +1,136 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
-from utils.edge_detection import compute_edge_map
+from typing import Dict
 
 
-class DiceLoss(nn.Module):
+def l1_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
     """
-    Dice Loss for binary segmentation tasks.
-
-    The Dice Loss is designed to measure the overlap between the predicted mask
-    and the ground truth mask, especially in cases where the classes are imbalanced.
-    This loss is effective for tasks like binary segmentation where the goal is
-    to maximize the overlap between the predicted and actual regions of interest.
-    """
-
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor, smooth: int = 1) -> torch.Tensor:
-        """
-        Calculate the Dice Loss between predicted and ground truth masks.
-
-        Args:
-            inputs (torch.Tensor): Model predictions (logits).
-            targets (torch.Tensor): Ground truth binary masks.
-            smooth (int): A smoothing factor to avoid division by zero, defaults to 1.
-
-        Returns:
-            torch.Tensor: Dice Loss, a value between 0 and 1, where lower values indicate better overlap.
-        """
-        # Apply sigmoid to predictions to get probabilities in the range [0, 1]
-        inputs = torch.sigmoid(inputs)
-
-        # Flatten tensors to 1D for easy calculation of overlap
-        inputs = inputs.view(-1)
-        targets = targets.view(-1)
-
-        # Calculate the intersection (common positive pixels) between inputs and targets
-        intersection = (inputs * targets).sum()
-
-        # Calculate Dice coefficient
-        # Dice = (2 * |X ∩ Y|) / (|X| + |Y|), using smooth to prevent division by zero
-        dice = (2.0 * intersection + smooth) / (inputs.sum() + targets.sum() + smooth)
-
-        # Dice Loss (1 - Dice coefficient)
-        # A lower Dice Loss indicates better overlap with the ground truth
-        return 1 - dice
-
-
-class BCEDiceLoss(nn.Module):
-    """
-    Combined loss of Binary Cross Entropy (BCE) and Dice Loss.
-
-    This loss function combines the strengths of both BCE and Dice Loss.
-    BCE is effective for pixel-wise classification, while Dice Loss helps improve overlap between the predicted mask and ground truth.
+    Compute the L1 loss (mean absolute error) between predicted and ground truth alpha mattes.
 
     Args:
-        bce_weight (float): Weight for the BCE loss term. Default is 0.5.
-        dice_weight (float): Weight for the Dice loss term. Default is 0.5.
+        pred (torch.Tensor): Predicted alpha matte.
+        gt (torch.Tensor): Ground truth alpha matte.
+
+    Returns:
+        torch.Tensor: L1 loss.
     """
-
-    def __init__(self, bce_weight: float = 0.5, dice_weight: float = 0.5):
-        super().__init__()
-
-        # Initialize BCE with logits loss
-        self.bce = nn.BCEWithLogitsLoss()
-
-        # Initialize Dice loss
-        self.dice = DiceLoss()
-
-        # Weights for BCE and Dice Loss
-        self.bce_weight = bce_weight
-        self.dice_weight = dice_weight
-
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
-        """
-        Calculate the combined BCE and Dice Loss.
-
-        Args:
-            inputs (torch.Tensor): Model predictions (logits).
-            targets (torch.Tensor): Ground truth binary masks.
-
-        Returns:
-            torch.Tensor: The combined loss, weighted by bce_weight and dice_weight.
-        """
-        # Calculate BCE loss
-        bce_loss = self.bce(inputs, targets)
-
-        # Calculate Dice loss
-        dice_loss = self.dice(inputs, targets)
-
-        # Combine the BCE and Dice losses using their respective weights
-        total_loss = self.bce_weight * bce_loss + self.dice_weight * dice_loss
-
-        return total_loss
+    return torch.mean(torch.abs(pred - gt))
 
 
-class EdgeWeightedBCEDiceLoss(nn.Module):
+def gradient_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
     """
-    Combined loss of Binary Cross Entropy (BCE) and Dice Loss with edge weights.
+    Compute a gradient loss to encourage matching edges between predicted and ground truth alpha.
 
-    This loss function combines the strengths of both BCE and Dice Loss.
-    BCE is effective for pixel-wise classification, while Dice Loss helps improve overlap between the predicted mask and ground truth.
-    Additionally, this loss function applies edge weights in the ground truth mask to the BCE to improve edge detection,
-    making the model focus more on accurately segmenting edge regions while still considering the entire mask.
+    We approximate image gradients using a Sobel filter or simple finite differences.
+    Here, simple finite differences to compute horizontal and vertical gradients.
 
     Args:
-        edge_weight (float): Additional weight applied to edge regions in the BCE loss term. Default is 5.0.
-        edge_loss_weight (float): Weight applied to the edge loss term. Default is 1.0.
+        pred (torch.Tensor): Predicted alpha matte.
+        gt (torch.Tensor): Ground truth alpha matte.
+
+    Returns:
+        torch.Tensor: Gradient loss.
+    """
+    # Horizontal and vertical gradient kernels for finite differences
+    kernel_x = torch.tensor(
+        data=[[-1, 1], [0, 0]],
+        dtype=pred.dtype,
+        device=pred.device
+    ).unsqueeze(0).unsqueeze(0)
+    kernel_y = torch.tensor(
+        data=[[-1, 0], [1, 0]],
+        dtype=pred.dtype,
+        device=pred.device
+    ).unsqueeze(0).unsqueeze(0)
+
+    # Ensure shape: [B, 1, H, W]
+    if pred.dim() == 3:
+        pred = pred.unsqueeze(1)
+    if gt.dim() == 3:
+        gt = gt.unsqueeze(1)
+
+    # Compute gradients via convolution
+    pred_gx = F.conv2d(pred, kernel_x, padding=0)
+    pred_gy = F.conv2d(pred, kernel_y, padding=0)
+    gt_gx = F.conv2d(gt, kernel_x, padding=0)
+    gt_gy = F.conv2d(gt, kernel_y, padding=0)
+
+    # Calculate L1 difference in gradients
+    loss_x = torch.mean(torch.abs(pred_gx - gt_gx))
+    loss_y = torch.mean(torch.abs(pred_gy - gt_gy))
+
+    return (loss_x + loss_y) / 2.0
+
+
+def laplacian_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
+    """
+    Compute a loss that emphasizes fine details using a Laplacian filter.
+    This encourages sharper edges and better fine-grained detail alignment.
+
+    Args:
+        pred (torch.Tensor): Predicted alpha matte.
+        gt (torch.Tensor): Ground truth alpha matte.
+
+    Returns:
+        torch.Tensor: Laplacian loss.
+    """
+    # Laplacian kernel
+    lap_kernel = torch.tensor(
+        data=[[0, 1, 0], [1, -4, 1], [0, 1, 0]],
+        dtype=pred.dtype,
+        device=pred.device
+    ).unsqueeze(0).unsqueeze(0)
+
+    # Ensure shape: [B, 1, H, W]
+    if pred.dim() == 3:
+        pred = pred.unsqueeze(1)
+    if gt.dim() == 3:
+        gt = gt.unsqueeze(1)
+
+    pred_lap = F.conv2d(pred, lap_kernel, padding=1)
+    gt_lap = F.conv2d(gt, lap_kernel, padding=1)
+
+    return torch.mean(torch.abs(pred_lap - gt_lap))
+
+
+class CombinedMattingLoss(nn.Module):
+    """
+    Combined loss function for alpha matting tasks.
     """
 
-    def __init__(self, edge_weight: float = 5.0, edge_loss_weight: float = 1.0):
+    def __init__(self, lambda_factor: float = 1.0):
+        """
+        Args:
+            lambda_factor (float): Weight factor for the gradient loss term. Default is 1.0.
+        """
         super().__init__()
 
-        # Initialize BCE with logits loss without reduction (we'll apply custom weighting)
-        self.bce = nn.BCEWithLogitsLoss(reduction='none')
+        self.lambda_factor = lambda_factor
 
-        # Standard Dice loss to ensure segmentation accuracy across the whole mask
-        self.dice = DiceLoss()
-
-        # Weight multiplier applied to BCE loss at edge pixels
-        self.edge_weight = edge_weight
-
-        # Weight applied to the edge loss term
-        self.edge_loss_weight = edge_loss_weight
-
-    def forward(self, inputs: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    def forward(self, pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, torch.Tensor]:
         """
-        Calculate the combined BCE and Dice Loss with edge weights.
+        Compute the combined loss for alpha matting tasks.
 
         Args:
-            inputs (torch.Tensor): Model predictions (logits).
-            targets (torch.Tensor): Ground truth binary masks.
+            pred (torch.Tensor): Predicted alpha matte.
+            gt (torch.Tensor): Ground truth alpha matte.
 
         Returns:
-            torch.Tensor: The combined loss, with edge-weighted BCE and Dice Loss.
+            Dict[str, torch.Tensor]: Dictionary containing the total loss, L1 loss, and gradient loss.
         """
-        # Ensure inputs and targets are 4D or 3D tensors
-        if inputs.dim() == 4:
-            pass
-        elif inputs.dim() == 3:
-            inputs = inputs.unsqueeze(1)
-            targets = targets.unsqueeze(1)
-        else:
-            raise ValueError('Expected inputs to be 3D or 4D tensor')
+        # Compute L1 loss
+        loss_l1 = l1_loss(pred, gt)
 
-        # Ensure targets are float for computation
-        targets = targets.float()
+        # Compute gradient loss
+        loss_grad = gradient_loss(pred, gt)
 
-        # Compute edge map from ground truth mask
-        edges_gt = compute_edge_map(targets)
+        # Combine losses
+        loss = loss_l1 + self.lambda_factor * loss_grad
 
-        # Create edge weight mask for BCE loss
-        edge_weight_mask = 1 + self.edge_weight * edges_gt
-
-        # Calculate BCE loss with edge weighting
-        bce_loss = self.bce(inputs, targets)
-
-        # Apply edge weighting to the BCE loss
-        weighted_bce_loss = (bce_loss * edge_weight_mask).mean()
-
-        # Calculate Dice loss
-        dice_loss = self.dice(inputs, targets)
-
-        # Apply sigmoid to convert logits to probabilities
-        inputs_prob = torch.sigmoid(inputs)
-
-        # Compute edge map from predicted mask
-        edges_pred = compute_edge_map(inputs_prob)
-
-        # Calculate edge loss using L1 loss
-        edge_loss = torch.nn.functional.l1_loss(edges_pred, edges_gt)
-
-        # Combine the weighted BCE, Dice, and edge loss
-        total_loss = weighted_bce_loss + dice_loss + self.edge_loss_weight * edge_loss
-
-        return total_loss
+        return {
+            'loss': loss,
+            'l1_loss': loss_l1,
+            'gradient_loss': loss_grad
+        }

@@ -6,7 +6,7 @@ import albumentations as A
 import numpy as np
 from typing import Dict
 
-from training.metrics import calculate_dice_score, calculate_dice_edge_score, calculate_iou_score
+from evaluation.metrics import calculate_dice_score, calculate_dice_edge_score, calculate_iou_score
 
 
 def _calculate_metrics(predictions: torch.Tensor, targets: torch.Tensor) -> Dict[str, float]:

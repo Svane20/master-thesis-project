@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-from training.metrics import calculate_dice_score, calculate_dice_edge_score
+from evaluation.metrics import calculate_dice_score, calculate_dice_edge_score
 
 
 def save_predictions(
@@ -81,9 +81,8 @@ def save_predictions(
                 ax[1].axis('off')
 
                 # Display prediction overlay
-                ax[2].imshow(input_img)
-                ax[2].imshow(pred_mask, cmap='jet', alpha=0.5)
-                ax[2].set_title(f'Predicted Mask Overlay\nDice: {dice_score:.4f}, Dice Edge: {dice_edge_score:.4f}')
+                ax[2].imshow(pred_mask, cmap='gray')
+                ax[2].set_title(f'Predicted Mask\nDice: {dice_score:.4f}, Dice Edge: {dice_edge_score:.4f}')
                 ax[2].axis('off')
 
                 sample_idx = batch_idx * data_loader.batch_size + idx
