@@ -7,7 +7,7 @@ from typing import Dict, Union
 import wandb
 from numpy import ndarray
 
-from unet.configuration.training import LoggingConfig, WandbConfig
+from unet.configuration.training.base import LoggingConfig, WandbConfig
 
 
 class WeightAndBiasesConfig(BaseModel):

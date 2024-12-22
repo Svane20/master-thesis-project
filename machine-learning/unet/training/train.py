@@ -6,7 +6,7 @@ from pathlib import Path
 
 from datasets.carvana.data_loaders import setup_data_loaders
 
-from training.criterions import CombinedMattingLoss
+from training.criterions import MattingLoss
 from training.optimizer import construct_optimizer
 from training.trainer import Trainer
 from training.utils.train_utils import set_seeds
@@ -15,7 +15,7 @@ from unet.build_model import build_model_for_train
 from unet.configuration.configuration import ModelConfig, Config, load_configuration
 from unet.configuration.dataset import DatasetConfig
 from unet.configuration.scratch import ScratchConfig
-from unet.configuration.training import TrainConfig
+from unet.configuration.training.base import TrainConfig
 
 
 def _setup_run(config: Config) -> None:
@@ -25,7 +25,6 @@ def _setup_run(config: Config) -> None:
     Args:
         config (Config): Configuration for the training.
     """
-
     # Get the configuration values
     scratch_config: ScratchConfig = config.scratch
     dataset_config: DatasetConfig = config.dataset
@@ -41,13 +40,8 @@ def _setup_run(config: Config) -> None:
 
     # Construct model, criterion, optimizer and scheduler
     model = build_model_for_train(model_config)
-    criterion = CombinedMattingLoss(lambda_factor=training_config.criterion.lambda_factor)
     optimizer = construct_optimizer(model, training_config.optimizer)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer,
-        T_max=training_config.scheduler.t_max,
-        eta_min=training_config.scheduler.eta_min
-    )
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=training_config.scheduler.t_max)
 
     # Set up the data loaders
     train_data_loader, test_data_loader = setup_data_loaders(scratch_config, dataset_config)
@@ -55,7 +49,6 @@ def _setup_run(config: Config) -> None:
     # Set up the trainer
     trainer = Trainer(
         model=model,
-        criterion=criterion,
         optimizer=optimizer,
         scheduler=scheduler,
         train_data_loader=train_data_loader,
@@ -81,7 +74,10 @@ def main(args: Namespace) -> None:
     configuration_path = current_dir / args.config
 
     config: Config = load_configuration(configuration_path)
-    _setup_run(config)
+
+    print(f"Configuration: {config}")
+
+    # _setup_run(config)
 
 
 if __name__ == "__main__":

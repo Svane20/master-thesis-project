@@ -9,15 +9,14 @@ import logging
 import os.path
 import numpy as np
 
+from training.criterions import CORE_LOSS_KEY, MattingLoss
 from training.early_stopping import EarlyStopping
 from training.utils.checkpoint_utils import load_state_dict_into_model
 from training.utils.logger import setup_logging, Logger, WeightAndBiasesConfig
 from training.utils.train_utils import get_amp_type, get_resume_checkpoint, DurationMeter, makedir, AverageMeter, \
     MemMeter, Phase, ProgressMeter, Meter, human_readable_time
 
-from unet.configuration.training import TrainConfig
-
-CORE_LOSS_KEY = "loss"
+from unet.configuration.training.base import TrainConfig
 
 
 class Trainer:
@@ -28,7 +27,6 @@ class Trainer:
     def __init__(
             self,
             model: nn.Module,
-            criterion: nn.Module,
             optimizer: torch.optim.Optimizer,
             scheduler: torch.optim.lr_scheduler,
             train_data_loader: torch.utils.data.DataLoader,
@@ -40,7 +38,6 @@ class Trainer:
         """
         Args:
             model (nn.Module): Model to train.
-            criterion (nn.Module): Loss function.
             optimizer (torch.optim.Optimizer): Optimizer for training.
             scheduler (torch.optim.lr_scheduler): Scheduler for training.
             train_data_loader (torch.utils.data.DataLoader): Data loader for training.
@@ -70,7 +67,7 @@ class Trainer:
         self._setup_torch_backend()
 
         # Components
-        self._setup_components(model, criterion, optimizer, scheduler)
+        self._setup_components(model, optimizer, scheduler)
 
         # Move components to device
         self._move_to_device(compile_model=self.train_config.compile_model)
@@ -219,6 +216,13 @@ class Trainer:
             try:
                 # Run a single step
                 self._run_step(X, y, phase, loss_meter, extra_losses_meters)
+
+                # Gradient clipping
+                torch.nn.utils.clip_grad_norm_(
+                    parameters=self.model.parameters(),
+                    max_norm=1.0,
+                    norm_type=2.0
+                )
 
                 # Step the optimizer
                 if self.scaler is not None:
@@ -430,8 +434,11 @@ class Trainer:
         # Forward pass
         outputs = self.model(inputs)
 
+        # Convert the outputs to the alpha matte probabilities
+        probabilities = torch.sigmoid(outputs)
+
         # Calculate losses
-        losses = self.criterion(outputs, targets)
+        losses = self.criterion(probabilities, targets)
 
         # Extract the core loss and step losses
         loss = {}
@@ -441,9 +448,6 @@ class Trainer:
                 {f"losses/{phase}_{k}": v for k, v in losses.items()}
             )
             loss = losses.pop(CORE_LOSS_KEY)
-
-        # Update steps
-        self.steps[phase] += 1
 
         # Loss dictionary
         return {'loss': loss}, step_losses
@@ -463,8 +467,8 @@ class Trainer:
         load_state_dict_into_model(model=self.model, state_dict=checkpoint["model"])
 
         self.optimizer.load_state_dict(checkpoint["optimizer"])
+        self.criterion.load_state_dict(checkpoint["criterion"])
         self.epoch = checkpoint["epoch"]
-        self.steps = checkpoint["steps"]
         self.ckpt_time_elapsed = checkpoint["time_elapsed"]
 
         if self.optimizer_config.amp.enabled and torch.cuda.is_available() and "scaler" in checkpoint:
@@ -493,8 +497,8 @@ class Trainer:
         checkpoint = {
             "model": self.model.state_dict(),
             "optimizer": self.optimizer.state_dict(),
+            "criterion": self.criterion.state_dict(),
             "epoch": epoch,
-            "steps": self.steps,
             "time_elapsed": self.time_elapsed_meter.val,
         }
 
@@ -523,8 +527,8 @@ class Trainer:
             raise ValueError(f"Unsupported accelerator: {accelerator}")
 
     def _setup_components(
-            self, model: nn.Module,
-            criterion: nn.Module,
+            self,
+            model: nn.Module,
             optimizer: torch.optim.Optimizer,
             scheduler: torch.optim.lr_scheduler
     ) -> None:
@@ -533,7 +537,6 @@ class Trainer:
 
         Args:
             model (nn.Module): Model to train.
-            criterion (nn.Module): Loss function.
             optimizer (torch.optim.Optimizer): Optimizer for training.
             scheduler (torch.optim.lr_scheduler): Scheduler for training.
         """
@@ -541,8 +544,7 @@ class Trainer:
 
         # Iterations
         self.epoch = 0
-        self.steps = {Phase.TRAIN: 0, Phase.TEST: 0}
-        self.max_epochs = self.train_config.num_epochs
+        self.max_epochs = self.train_config.max_epochs
 
         # Logger
         self.logger = self._setup_logging()
@@ -551,7 +553,11 @@ class Trainer:
         self.model = model
         print_model_summary(self.model, self.logging_config.log_directory)
 
-        self.criterion = criterion
+        self.criterion = MattingLoss(
+            weight_dict=self.train_config.criterion.weight_dict,
+            dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
+            device=self.device
+        )
         self.optimizer = optimizer
         self.scheduler = scheduler
 
@@ -597,7 +603,7 @@ class Trainer:
             Logger: Logger for training.
         """
         wandb_config = WeightAndBiasesConfig(
-            epochs=self.train_config.num_epochs,
+            epochs=self.train_config.max_epochs,
             learning_rate=self.optimizer_config.lr,
             learning_rate_decay=self.optimizer_config.weight_decay,
             seed=self.train_config.seed,

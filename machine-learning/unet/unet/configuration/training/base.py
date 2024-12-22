@@ -1,28 +1,13 @@
 from dataclasses import dataclass
 from typing import Optional, List
 
-
-@dataclass
-class AMPConfig:
-    enabled: bool
-    amp_dtype: str
-
-
-@dataclass
-class CriterionConfig:
-    lambda_factor: float
-
-
-@dataclass
-class OptimizerConfig:
-    name: str
-    lr: float
-    weight_decay: float
-    amp: AMPConfig
+from unet.configuration.training.criterion import CriterionConfig
+from unet.configuration.training.optimizer import OptimizerConfig
 
 
 @dataclass
 class SchedulerConfig:
+    name: str
     t_max: int
     eta_min: float
 
@@ -64,7 +49,8 @@ class CheckpointConfig:
 
 @dataclass
 class TrainConfig:
-    num_epochs: int
+    max_epochs: int
+    warmup_epochs: int
     accelerator: str
     seed: int
     compile_model: bool
