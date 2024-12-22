@@ -128,6 +128,16 @@ class MattingLoss(nn.Module):
         Returns:
             Dict[str, torch.Tensor]: Dictionary of loss components.
         """
+        # Reset buffers
+        self.reconstruction_loss.zero_()
+        self.laplacian_loss.zero_()
+        self.gradient_loss.zero_()
+        self.boundary_loss.zero_()
+        self.core_loss.zero_()
+
+        # Convert predictions to probabilities
+        pred = torch.sigmoid(pred)
+
         # Compute losses
         losses = self._forward(pred, gt)
 
@@ -225,9 +235,6 @@ if __name__ == "__main__":
     config = {"reconstruction": 1.0, "laplacian": 1.0, "gradient": 0.5, "boundary": 0.5}
 
     with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=dtype):
-        # Convert predictions to probabilities
-        predictions = torch.sigmoid(predictions)
-
         # Compute the loss
         loss_fn = MattingLoss(weight_dict=config, device=device, dtype=dtype)
         losses = loss_fn(predictions, targets)

@@ -434,11 +434,8 @@ class Trainer:
         # Forward pass
         outputs = self.model(inputs)
 
-        # Convert the outputs to the alpha matte probabilities
-        probabilities = torch.sigmoid(outputs)
-
         # Calculate losses
-        losses = self.criterion(probabilities, targets)
+        losses = self.criterion(outputs, targets)
 
         # Extract the core loss and step losses
         loss = {}
