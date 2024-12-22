@@ -93,12 +93,15 @@ class Trainer:
             for epoch in range(self.epoch, self.max_epochs):
                 train_metrics, train_losses = self._train_one_epoch(train_data_loader)
                 test_metrics, test_losses = self._test_one_epoch(test_data_loader)
-                validation_metric = test_metrics.get(
-                    f"{Phase.TEST}_{self.early_stopping_config.monitor}"
-                    if self.early_stopping_config.enabled
-                    else CORE_LOSS_KEY,
-                    None
-                )
+
+                # Validation metric
+                validation_metric_key = self.early_stopping_config.monitor \
+                    if self.early_stopping_config.enabled \
+                    else f"losses/{Phase.TEST}_{CORE_LOSS_KEY}"
+                assert validation_metric_key in test_losses, (
+                    f"Validation metric {validation_metric_key} not found in test losses. "
+                    f"Available keys: {test_losses.keys()}")
+                validation_metric = test_losses.get(validation_metric_key, 0.0)
 
                 # Step the scheduler
                 self._scheduler_step(self.scheduler, validation_metric)

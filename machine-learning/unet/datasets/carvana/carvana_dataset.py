@@ -56,20 +56,19 @@ class CarvanaDataset(Dataset):
         image_path = os.path.join(self.image_directory, self.images[index])
         mask_path = os.path.join(self.mask_directory, self.images[index].replace(".jpg", "_mask.gif"))
 
+        # Load the image
         image = np.array(Image.open(image_path).convert("RGB"))
+
+        # Load the mask and normalize to [0, 1]
         mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
-        mask = mask / 255.0  # Scale to [0, 1] range
+        mask = mask / 255.0
 
         if self.transforms:
             augmented = self.transforms(image=image, mask=mask)
             image = augmented['image']
             mask = augmented['mask']
-        else:
-            # Convert to tensor if no transform is provided
-            image = ToTensorV2()(image=image)['image']
-            mask = torch.tensor(mask, dtype=torch.float32).unsqueeze(0)
 
-        # Ensure the mask has a channel dimension
+        # Add channel dimension to the mask
         if mask.ndim == 2:
             mask = mask.unsqueeze(0)
 

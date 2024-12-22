@@ -4,12 +4,13 @@ import torch
 import torch.nn.functional as F
 
 
-def compute_boundary_map(gt: torch.Tensor, epsilon: float = 1e-6) -> torch.Tensor:
+def compute_boundary_map(gt: torch.Tensor, threshold: float = 0.1, epsilon: float = 1e-6) -> torch.Tensor:
     """
     Compute a boundary map from the ground truth alpha matte.
 
     Args:
         gt (torch.Tensor): Ground truth alpha matte.
+        threshold (float): Threshold for boundary detection. Default is 0.1.
         epsilon (float): Small epsilon for numerical stability. Default is 1e-6.
 
     Returns:
@@ -21,8 +22,8 @@ def compute_boundary_map(gt: torch.Tensor, epsilon: float = 1e-6) -> torch.Tenso
     grad_gt_x = F.conv2d(gt, sobel_x, padding=1)
     grad_gt_y = F.conv2d(gt, sobel_y, padding=1)
 
-    grad_magnitude = torch.sqrt(grad_gt_x ** 2 + grad_gt_y ** 2 + epsilon)  # Small epsilon for numerical stability
-    boundary_map = (grad_magnitude > 0.1).float()  # Threshold to identify boundary regions
+    grad_magnitude = torch.sqrt(grad_gt_x ** 2 + grad_gt_y ** 2 + epsilon)
+    boundary_map = (grad_magnitude > threshold).float()
 
     return boundary_map
 
@@ -54,33 +55,27 @@ def laplacian_pyramid(image: torch.Tensor, kernel: torch.Tensor, max_levels: int
     return pyramid
 
 
-def gauss_kernel(device: torch.device, dtype=torch.float32) -> torch.Tensor:
+def gauss_kernel(device: torch.device = torch.device("cpu"), dtype: torch.dtype = torch.float32) -> torch.Tensor:
     """
     Create a 2D Gaussian kernel.
 
     Args:
-        device (torch.device): Device to create the kernel on.
-        dtype (torch.dtype): Data type of the kernel. Default is torch.float32.
+        device (torch.device): Device to create the kernel on. Default is 'cpu'.
+        dtype (torch.dtype): Data type of the kernel. Default is 'torch.float32'.
 
     Returns:
-        torch.Tensor: 2D Gaussian kernel
+        torch.Tensor: 2D Gaussian kernel.
     """
-    # Gaussian kernel
     kernel = torch.tensor(
-        data=[[1, 4, 6, 4, 1],
-              [4, 16, 24, 16, 4],
-              [6, 24, 36, 24, 6],
-              [4, 16, 24, 16, 4],
-              [1, 4, 6, 4, 1]],
-        device=device,
-        dtype=dtype
-    )
+        [[1, 4, 6, 4, 1],
+         [4, 16, 24, 16, 4],
+         [6, 24, 36, 24, 6],
+         [4, 16, 24, 16, 4],
+         [1, 4, 6, 4, 1]],
+        dtype=dtype, device=device
+    ) / 256.0
 
-    # Normalize kernel to sum to 1
-    kernel /= 256
-
-    # Ensure shape: [1, 1, H, W]
-    return kernel[None, None, :, :]
+    return kernel.unsqueeze(0).unsqueeze(0)  # Shape: [1, 1, 5, 5]
 
 
 def gauss_conv2d(image: torch.Tensor, kernel: torch.Tensor) -> torch.Tensor:

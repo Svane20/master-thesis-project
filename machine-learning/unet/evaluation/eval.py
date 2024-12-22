@@ -7,7 +7,6 @@ from datasets.transforms import get_test_transforms
 
 from evaluation.inference import evaluate_model
 from evaluation.utils.configuration import load_config
-from evaluation.visualization import save_predictions
 from training.utils.logger import setup_logging
 
 from unet.build_model import build_model
@@ -18,8 +17,6 @@ setup_logging(__name__)
 def main() -> None:
     # Directories
     root_directory = Path(__file__).resolve().parent.parent
-    current_directory = Path(__file__).resolve().parent
-    outputs_directory = current_directory / "outputs"
 
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_config(
@@ -52,13 +49,6 @@ def main() -> None:
 
     # Model evaluation
     evaluate_model(model=model, data_loader=data_loader, device=device)
-    save_predictions(
-        model=model,
-        data_loader=data_loader,
-        device=device,
-        num_batches=1,
-        directory=outputs_directory
-    )
 
 
 if __name__ == "__main__":

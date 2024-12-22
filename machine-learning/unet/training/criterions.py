@@ -79,11 +79,15 @@ def boundary_aware_loss(pred: torch.Tensor, gt: torch.Tensor, boundary_map: torc
     Returns:
         torch.Tensor: Boundary-aware loss.
     """
-    # Apply boundary weights to the L1 loss
     l1_loss = F.l1_loss(pred, gt, reduction="none")
-    boundary_loss = torch.mean(l1_loss * boundary_map)
 
-    return boundary_loss
+    # Apply boundary map to emphasize boundary regions (0, 0.5, 1)
+    semi_transparent_mask = (gt > 0.0) & (gt < 1.0)
+
+    # Weighted loss
+    weighted_loss = l1_loss * (boundary_map + semi_transparent_mask.float())
+
+    return torch.mean(weighted_loss)
 
 
 class MattingLoss(nn.Module):
@@ -104,11 +108,8 @@ class MattingLoss(nn.Module):
         total_weight = sum(weight_dict.values())
         self.weight_dict = {k: v / total_weight for k, v in weight_dict.items()}
 
-        # Check if all required weights are provided
-        assert "reconstruction" in self.weight_dict, "Reconstruction loss weight must be provided."
-        assert "laplacian" in self.weight_dict, "Laplacian loss weight must be provided."
-        assert "gradient" in self.weight_dict, "Gradient loss weight must be provided."
-        assert "boundary" in self.weight_dict, "Boundary loss weight must be provided."
+        for key in ["reconstruction", "laplacian", "gradient", "boundary"]:
+            assert key in self.weight_dict, f"{key} loss weight must be provided."
 
         # Initialize buffers to store the losses
         self.register_buffer(name="reconstruction_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))

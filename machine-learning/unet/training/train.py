@@ -41,7 +41,11 @@ def _setup_run(config: Config) -> None:
     # Construct model, criterion, optimizer and scheduler
     model = build_model_for_train(model_config)
     optimizer = construct_optimizer(model, training_config.optimizer)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=training_config.scheduler.t_max)
+    scheduler = optim.lr_scheduler.CosineAnnealingLR(
+        optimizer,
+        T_max=training_config.scheduler.t_max,
+        eta_min=training_config.scheduler.eta_min
+    )
 
     # Set up the data loaders
     train_data_loader, test_data_loader = setup_data_loaders(scratch_config, dataset_config)
@@ -75,9 +79,7 @@ def main(args: Namespace) -> None:
 
     config: Config = load_configuration(configuration_path)
 
-    print(f"Configuration: {config}")
-
-    # _setup_run(config)
+    _setup_run(config)
 
 
 if __name__ == "__main__":

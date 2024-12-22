@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 from pathlib import Path
@@ -6,7 +7,7 @@ from PIL import Image
 from datasets.transforms import get_test_transforms
 from evaluation.inference import predict_image
 from evaluation.utils.configuration import load_config
-from evaluation.visualization import save_prediction, remove_background
+from evaluation.visualization import save_prediction
 from training.utils.logger import setup_logging
 from unet.build_model import build_model
 
@@ -40,13 +41,24 @@ def main() -> None:
     transforms = get_test_transforms(configuration.scratch.resolution)
 
     # Get an image from the test dataset
-    image_path = test_directory / "images" / "cf89c3220bc4_03.jpg"
-    image = Image.open(image_path).convert("RGB")
+    image_title = "cf89c3220bc4_03"
+    image_path = test_directory / "images" / f"{image_title}.jpg"
+    image = np.array(Image.open(image_path).convert("RGB"))
+
+    # Get the mask path
+    mask_path = test_directory / "masks" / f"{image_title}_mask.gif"
+    mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
+    mask = mask / 255.0  # Scale to [0, 1] range
 
     # Predict the mask
-    predicted_mask = predict_image(image=image, model=model, transform=transforms, device=device)
-    save_prediction(image=image, predicted_mask=predicted_mask, directory=predictions_directory)
-    remove_background(image=image, predicted_mask=predicted_mask, directory=predictions_directory)
+    predicted_mask, metrics = predict_image(image=image, mask=mask, model=model, transform=transforms, device=device)
+    save_prediction(
+        image=image,
+        predicted_mask=predicted_mask,
+        gt_mask=mask,
+        metrics=metrics,
+        directory=predictions_directory
+    )
 
 
 if __name__ == "__main__":
