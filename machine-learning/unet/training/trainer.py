@@ -8,6 +8,7 @@ from pathlib import Path
 import logging
 import os.path
 import numpy as np
+import json
 
 from training.criterions import CORE_LOSS_KEY, MattingLoss
 from training.early_stopping import EarlyStopping
@@ -90,7 +91,7 @@ class Trainer:
         test_data_loader = self.test_data_loader
 
         try:
-            for epoch in range(self.epoch, self.max_epochs):
+            while self.epoch < self.max_epochs:
                 train_metrics, train_losses = self._train_one_epoch(train_data_loader)
                 test_metrics, test_losses = self._test_one_epoch(test_data_loader)
 
@@ -112,7 +113,7 @@ class Trainer:
                 # Log metrics
                 epoch_duration_est = self.est_epoch_time[Phase.TRAIN] + self.est_epoch_time[Phase.TEST]
                 payload = {
-                    "overview/epoch": epoch,
+                    "overview/epoch": self.epoch,
                     "overview/epoch_duration": epoch_duration_est,
                     "overview/learning_rate": self.optimizer.param_groups[0]["lr"],
                     **{f"train/{k}": v for k, v in train_metrics.items()},
@@ -121,18 +122,25 @@ class Trainer:
                 }
                 self.logger.log_dict(
                     payload=payload,
-                    step=epoch
+                    step=self.epoch
                 )
                 logging.info(payload)
 
+                # Save training stats to file
+                # self._save_stats(filename="training_stats.json", payload=payload)
+
                 # Early stopping
-                current_epoch = epoch + 1
+                current_epoch = self.epoch + 1
                 if self.early_stopping is not None:
                     # Update early stopping
                     self.early_stopping.step(validation_metric)
 
                     # Check for improvement
                     if self.early_stopping.has_improved:
+                        # Save best stats to file
+                        # self._save_stats(filename="best_stats.json", payload=payload)
+
+                        # Save model checkpoint
                         self._save_checkpoint(epoch=current_epoch)
 
                     # Check for early stopping
@@ -157,6 +165,20 @@ class Trainer:
             self.logger.finish()
         finally:
             self.logger.finish()
+
+    def _save_stats(self, filename: str, payload: Dict[str, Any]) -> None:
+        """
+        Save the stats to a file.
+
+        Args:
+            filename (str): Filename to save the stats to.
+            payload (Dict[str, Any]): Payload to save.
+        """
+        try:
+            with open(os.path.join(self.logging_config.log_directory, filename), "a") as f:
+                f.write(json.dumps(payload) + "\n")
+        except Exception as e:
+            logging.error(f"Error saving stats to file {filename}: {e}")
 
     def load_checkpoint(self) -> None:
         """
