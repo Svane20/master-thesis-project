@@ -252,6 +252,7 @@ class Trainer:
 
         # Estimate epoch time
         self.est_epoch_time[phase] = batch_time_meter.avg * iters_per_epoch
+        self._log_timers(phase)
 
         # Compute average loss metrics
         metrics[f"{phase}_loss"] = loss_meter.avg
@@ -361,6 +362,7 @@ class Trainer:
 
         # Estimate epoch time
         self.est_epoch_time[phase] = batch_time_meter.avg * iters_per_epoch
+        self._log_timers(phase)
 
         # Compute average loss metrics
         metrics[f"{phase}_loss"] = loss_meter.avg
@@ -683,6 +685,32 @@ class Trainer:
         self.start_time = time.time()
         self.ckpt_time_elapsed = 0
         self.est_epoch_time = dict.fromkeys([Phase.TRAIN, Phase.TEST], 0)
+
+    def _log_timers(self, phase: str) -> None:
+        """
+        Log the timers for the given phase.
+
+        Args:
+            phase (str): Phase to log the timers for.
+        """
+        time_remaining = 0
+        epochs_remaining = self.max_epochs - self.epoch - 1
+        val_epochs_remaining = sum(
+            n % self.val_epoch_freq == 0 for n in range(self.epoch, self.max_epochs)
+        )
+
+        if (self.max_epochs - 1) % self.val_epoch_freq != 0:
+            val_epochs_remaining += 1
+
+        if phase == Phase.TEST:
+            val_epochs_remaining -= 1
+
+        time_remaining += (
+                epochs_remaining * self.est_epoch_time[Phase.TRAIN]
+                + val_epochs_remaining * self.est_epoch_time[Phase.TEST]
+        )
+
+        logging.info(f"Estimated time remaining: {human_readable_time(time_remaining)}")
 
     def _get_meters(self, phase_filters: List[str] = None) -> Dict[str, Meter]:
         """
