@@ -3,11 +3,14 @@ from torch import Tensor
 
 import logging
 import sys
-from typing import Dict, Union
+from typing import Dict, Union, TextIO
 import wandb
 from numpy import ndarray
+import atexit
+import functools
 
-from unet.configuration.training import LoggingConfig, WandbConfig
+from training.utils.train_utils import makedir
+from unet.configuration.training.base import LoggingConfig, WandbConfig
 
 
 class WeightAndBiasesConfig(BaseModel):
@@ -118,16 +121,22 @@ class Logger:
             self.wandb_logger.finish()
 
 
-def setup_logging(name: str) -> None:
+def setup_logging(name: str, out_directory: str = None) -> None:
     """
     Setup logging for the training process.
 
     Args:
         name (str): Name of the logger.
+        out_directory (str): Output directory for the logs.
 
     Returns:
         logging.Logger: Logger object.
     """
+    log_filename = None
+    if out_directory:
+        makedir(out_directory)
+        log_filename = f"{out_directory}/log.txt"
+
     logger = logging.getLogger(name)
     logger.setLevel("INFO")
 
@@ -146,6 +155,12 @@ def setup_logging(name: str) -> None:
     console_handler.setLevel("INFO")
     logger.addHandler(console_handler)
 
+    if log_filename:
+        file_handler = logging.StreamHandler(_cached_log_stream(log_filename))
+        file_handler.setLevel("INFO")
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+
     logging.root = logger
 
 
@@ -158,3 +173,20 @@ def shutdown_logging() -> None:
 
     for handler in handlers:
         handler.close()
+
+
+@functools.lru_cache(maxsize=None)
+def _cached_log_stream(filename: str) -> TextIO:
+    """
+    Create a log stream with a buffer size of 10 KB.
+
+    Args:
+        filename (str): Name of the log file.
+
+    Returns:
+        TextIO: Log stream.
+    """
+    log_buffer_kb = 10 * 1024  # 10 KB
+    io = open(filename, "a", buffering=log_buffer_kb)
+    atexit.register(io.close)
+    return io

@@ -1,45 +1,14 @@
 import torch
+import torchvision
 
-from PIL import Image
 import albumentations as A
 import numpy as np
-from typing import Dict
+from typing import Dict, Tuple
 import time
 import logging
 
-from evaluation import metrics
+from evaluation.metrics import compute_metrics, compute_metrics_batch
 from training.utils.train_utils import AverageMeter, MemMeter, DurationMeter, ProgressMeter
-
-
-def _calculate_metrics(predictions: torch.Tensor, targets: torch.Tensor) -> Dict[str, float]:
-    """
-    Calculate metrics for a batch of predictions and targets.
-
-    Args:
-        predictions (torch.Tensor): Predictions with shape (batch_size, ...).
-        targets (torch.Tensor): Ground truth targets with shape (batch_size, ...).
-
-    Returns:
-        Dict[str, float]: Dictionary of metrics.
-    """
-    # Initialize sums
-    batch_size = predictions.size(0)
-    mse_sum = 0.0
-    sad_sum = 0.0
-    grad_sum = 0.0
-
-    # Compute metrics for each sample in the batch
-    for i in range(batch_size):
-        mse_sum += metrics.calculate_mse(predictions[i], targets[i])
-        sad_sum += metrics.calculate_sad(predictions[i], targets[i])
-        grad_sum += metrics.calculate_grad_error(predictions[i], targets[i])
-
-    # Average metrics across the batch
-    return {
-        "mse": mse_sum / batch_size,
-        "sad": sad_sum / batch_size,
-        "grad": grad_sum / batch_size,
-    }
 
 
 def evaluate_model(
@@ -84,9 +53,11 @@ def evaluate_model(
 
     # Model inference
     model.eval()
-    metrics_sum = {}
-    total_samples = 0
     end = time.time()
+
+    # Metrics
+    metrics_sum = {"mse": 0, "sad": 0, "grad": 0, "conn": 0}
+    total_samples = 0
 
     for batch_idx, (X, y) in enumerate(data_loader):
         # Measure data loading time
@@ -97,16 +68,24 @@ def evaluate_model(
 
         try:
             with torch.no_grad():
-                with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=torch.float16):
+                with torch.amp.autocast(
+                        device_type=device.type,
+                        enabled=torch.cuda.is_available(),
+                        dtype=torch.float16
+                ):
                     # Get predictions
                     outputs = model(X)
-                    probabilities = torch.sigmoid(outputs)
+
+                    # Clamp outputs to ensure they're in [0, 1]
+                    outputs = torch.clamp(outputs, 0, 1)
 
                     # Calculate batch metrics
-                    batch_results = _calculate_metrics(probabilities, y)
-                    for k, v in batch_results.items():
-                        metrics_sum[k] = metrics_sum.get(k, 0) + v
-                    total_samples += len(y)
+                    batch_metrics = compute_metrics_batch(outputs, y)
+
+                    for k, v in batch_metrics.items():
+                        metrics_sum[k] += v * X.size(0)
+
+                    total_samples += X.size(0)
 
             # Measure elapsed time
             batch_time_meter.update(time.time() - end)
@@ -125,9 +104,9 @@ def evaluate_model(
             raise e
 
     # Compute average metrics
-    metrics = {k: v / total_samples for k, v in metrics_sum.items()}
+    avg_metrics = {k: v / total_samples for k, v in metrics_sum.items()}
     logging.info(f"Evaluation completed")
-    logging.info(f"Metrics: {metrics}")
+    logging.info(f"Metrics: {avg_metrics}")
 
     # Log state metrics
     state_metrics = {
@@ -141,35 +120,104 @@ def evaluate_model(
 
 
 def predict_image(
-        image: Image.Image,
+        image: np.ndarray,
+        mask: np.ndarray,
         model: torch.nn.Module,
         transform: A.Compose,
         device: torch.device,
-) -> np.ndarray:
+) -> Tuple[np.ndarray, Dict[str, float]]:
     """
-    Predict the binary mask for a single image.
+    Predict the alpha matte for an image.
 
     Args:
-        image (Image.Image): Input image
-        model (torch.nn.Module): Model to use for prediction
-        transform (albumentations.Compose): Transform to apply to the image
-        device (torch.device): Device to use for inference
+        image (numpy.ndarray): Input image.
+        mask (numpy.ndarray): Ground truth mask.
+        model (torch.nn.Module): Model to use for prediction.
+        transform (albumentations.Compose): Transform to apply to the image.
+        device (torch.device): Device to use for inference.
 
     Returns:
-        np.ndarray: Predicted binary mask
+        Tuple[np.ndarray, Dict[str, float]]: Predicted mask and evaluation metrics.
     """
     model.eval()
 
     # Apply transformations
-    image_np = np.array(image)
-    transformed = transform(image=image_np)
+    transformed = transform(image=image, mask=mask)
     image_tensor = transformed["image"].unsqueeze(0).to(device)  # Add batch dimension
+    mask_tensor = transformed["mask"].unsqueeze(0).unsqueeze(0).to(device)  # Add batch dimension
 
     with torch.inference_mode():
-        with torch.amp.autocast(device_type=device.type, enabled=device.type == "cuda", dtype=torch.float16):
-            # Get predictions
-            y_logits = model(image_tensor)
-            y_preds = torch.sigmoid(y_logits)
-            preds = (y_preds > 0.5).float()  # Binary mask
+        with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=torch.float16):
+            outputs = model(image_tensor)
+            outputs = torch.clamp(outputs, 0, 1)  # Clamp to [0, 1]
 
-    return preds.squeeze(0).cpu().numpy()  # Remove batch and convert to NumPy
+            # Convert binary GT mask to alpha matte
+            alpha_gt_mask = _convert_binary_to_alpha_mask(mask_tensor.squeeze().cpu().numpy())
+            alpha_gt_mask = torch.tensor(alpha_gt_mask).unsqueeze(0).unsqueeze(0).to(device)  # Match shape
+
+            # Calculate metrics
+            metrics = compute_metrics(outputs, mask_tensor)
+
+    logging.info(
+        f"Metrics:\n"
+        f"  MSE: {metrics['mse']:.6f}\n"
+        f"  SAD: {metrics['sad']:.6f}\n"
+        f"  Grad: {metrics['grad']:.6f}\n"
+        f"  Conn: {metrics['conn']:.6f}\n"
+    )
+
+    # Convert alpha matte to numpy array
+    pred_alpha = outputs.squeeze(0).cpu().numpy()
+
+    # Validate alpha matte values
+    validation_results = _validate_alpha_matte(pred_alpha)
+    logging.info(f"Alpha Matte Validation Results: {validation_results}")
+
+    # Save the predicted mask
+    torchvision.utils.save_image(outputs, "predictions/output.png")
+
+    return pred_alpha, metrics
+
+
+def _validate_alpha_matte(alpha_matte: np.ndarray, tolerance: float = 0.05) -> Dict[str, bool]:
+    """
+    Validate the alpha matte for expected values (0, 0.5, 1).
+
+    Args:
+        alpha_matte (np.ndarray): Predicted alpha matte.
+        tolerance (float): Tolerance range for expected values.
+
+    Returns:
+        Dict[str, bool]: Dictionary indicating the presence of 0, 0.5, and 1.
+    """
+    values = {
+        "background (0)": np.any(np.isclose(alpha_matte, 0, atol=tolerance)),
+        "overlap (0.5)": np.any(np.isclose(alpha_matte, 0.5, atol=tolerance)),
+        "foreground (1)": np.any(np.isclose(alpha_matte, 1, atol=tolerance))
+    }
+
+    return values
+
+
+def _convert_binary_to_alpha_mask(binary_mask: np.ndarray, overlap_region: float = 0.05) -> np.ndarray:
+    """
+    Convert a binary mask to a pseudo-alpha matte for comparison.
+
+    Args:
+        binary_mask (np.ndarray): Ground truth binary mask (0 or 1).
+        overlap_region (float): Fraction of the mask edges to set as overlap (0.5).
+
+    Returns:
+        np.ndarray: Alpha matte with 0 (background), 0.5 (overlap), and 1 (foreground).
+    """
+    from scipy.ndimage import gaussian_filter
+
+    # Create overlap region by applying a Gaussian blur to edges
+    blurred_mask = gaussian_filter(binary_mask, sigma=3)  # Smooth the edges
+    alpha_mask = np.clip(blurred_mask, 0, 1)  # Ensure values are between 0 and 1
+
+    # Set overlap region to ~0.5
+    overlap_mask = (alpha_mask > overlap_region) & (alpha_mask < 1 - overlap_region)
+    alpha_mask[overlap_mask] = 0.5
+
+    return alpha_mask

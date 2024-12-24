@@ -21,14 +21,20 @@ dataset:
 
 # Training configuration
 training:
-  num_epochs: 100
+  max_epochs: 100
+  warmup_epochs: 10 # 5-10% of max_epochs
   accelerator: cuda
   seed: 42
   compile_model: true
 
   # Criterion configuration
   criterion:
-    lambda_factor: 1.0
+    name: "MattingLoss"
+    weight_dict:
+      reconstruction: 1.0
+      laplacian: 1.0
+      gradient: 0.5
+      boundary: 0.5
 
   # Optimizer configuration
   optimizer:
@@ -41,8 +47,9 @@ training:
 
   # Scheduler configuration
   scheduler:
-    t_max: 10
-    eta_min: 1.0e-6
+    name: "CosineAnnealingLR"
+    t_max: 90 # 80-90% of max_epochs
+    eta_min: 1.0e-5
 
   # Early stopping configuration
   early_stopping:
@@ -50,7 +57,7 @@ training:
     verbose: true
     patience: 20
     min_delta: 0.0
-    monitor: "loss"
+    monitor: "losses/test_core_loss"
     mode: "min"
 
   # Logging configuration

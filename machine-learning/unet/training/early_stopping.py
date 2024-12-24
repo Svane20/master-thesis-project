@@ -53,7 +53,7 @@ class EarlyStopping:
             self.has_improved = True
 
             if self.verbose:
-                logging.info(f"Initial best score set to {self.best_score:.4f}")
+                logging.info(f"Initial best score set to {self.best_score}")
 
             return
 
@@ -63,12 +63,12 @@ class EarlyStopping:
             self.has_improved = True
 
             if self.verbose:
-                logging.info(f"Improved best score to {self.best_score:.4f}")
+                logging.info(f"Improved best score to {self.best_score}")
         else:
             self.counter += 1
 
             if self.verbose:
-                logging.info(f"No improvement in {self.counter} epochs. Best score: {self.best_score:.4f}")
+                logging.info(f"No improvement in {self.counter} epochs. Best score: {self.best_score}")
 
             if self.counter >= self.patience:
                 self.should_stop = True

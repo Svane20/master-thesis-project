@@ -4,7 +4,7 @@ from torch.optim import Adam, AdamW, SGD
 
 from typing import Type
 
-from unet.configuration.training import OptimizerConfig
+from unet.configuration.training.optimizer import OptimizerConfig
 
 
 def construct_optimizer(model: nn.Module, config: OptimizerConfig) -> optim.Optimizer:
