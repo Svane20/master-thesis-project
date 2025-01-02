@@ -1,4 +1,4 @@
-bpy~=4.2.0
+bpy
 fake-bpy-module-latest
 pydantic
 numpy
