@@ -44,6 +44,10 @@ training:
     amp:
       enabled: true
       amp_dtype: float16
+    gradient_clip:
+      enabled: true
+      max_norm: 0.1
+      norm_type: 2
 
   # Scheduler configuration
   scheduler:
@@ -73,6 +77,7 @@ training:
       group: "carvana-segmentation-experiments"
       job_type: "training"
     log_directory: "./logs"
+    log_metrics: false
     log_freq: 10
 
   # Checkpoint configuration
@@ -83,6 +88,7 @@ training:
 
 # Model configuration
 model:
+  name: "UNet"
   image_encoder:
     pretrained: true
     freeze_pretrained: false

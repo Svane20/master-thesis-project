@@ -19,6 +19,7 @@ dataset:
 
 # Model configuration
 model:
+  name: "UNet"
   image_encoder:
     pretrained: true
     freeze_pretrained: true

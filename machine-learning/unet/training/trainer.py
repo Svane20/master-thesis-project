@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.optim as optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import time
 from typing import Dict, Optional, Any, List, Tuple
@@ -14,7 +12,7 @@ import json
 from configuration.training.root import TrainConfig
 from training.criterions import CORE_LOSS_KEY, MattingLoss
 from training.early_stopping import EarlyStopping
-from training.optimizer import construct_optimizer
+from training.optimizers import construct_optimizer, GradientClipper
 from training.schedulers import SchedulerWrapper
 from training.utils.checkpoint_utils import load_state_dict_into_model
 from training.utils.logger import setup_logging, Logger, WeightAndBiasesConfig
@@ -127,7 +125,8 @@ class Trainer:
                 logging.info(payload)
 
                 # Save training stats to file
-                # self._save_stats(filename="training_stats.json", payload=payload)
+                if self.logging_config.log_metrics:
+                    self._save_stats(filename="training_stats.json", payload=payload)
 
                 # Early stopping
                 current_epoch = self.epoch + 1
@@ -138,7 +137,8 @@ class Trainer:
                     # Check for improvement
                     if self.early_stopping.has_improved:
                         # Save best stats to file
-                        # self._save_stats(filename="best_stats.json", payload=payload)
+                        if self.logging_config.log_metrics:
+                            self._save_stats(filename="best_stats.json", payload=payload)
 
                         # Save model checkpoint
                         self._save_checkpoint(epoch=current_epoch)
@@ -150,6 +150,10 @@ class Trainer:
                         )
                         break
                 else:
+                    # Save best stats to file
+                    if self.logging_config.log_metrics:
+                        self._save_stats(filename="best_stats.json", payload=payload)
+
                     # Save the model at the end of each epoch
                     self._save_checkpoint(epoch=current_epoch)
 
@@ -242,12 +246,9 @@ class Trainer:
                 # Run a single step
                 self._run_step(X, y, phase, loss_meter, extra_losses_meters)
 
-                # Gradient clipping
-                torch.nn.utils.clip_grad_norm_(
-                    parameters=self.model.parameters(),
-                    max_norm=1.0,
-                    norm_type=2.0
-                )
+                # Clipping gradients
+                if self.gradient_clipper is not None:
+                    self.gradient_clipper(model=self.model)
 
                 # Step the optimizer
                 if self.scaler is not None:
@@ -422,6 +423,8 @@ class Trainer:
             loss_meter (AverageMeter): Loss meter.
             extra_losses_meters (Dict[str, AverageMeter]): Extra loss meters.
         """
+        # It's important to set grads to None, especially with Adam
+        # since 0 grads will also update a model even if the step doesn't produce gradient
         self.optimizer.zero_grad(set_to_none=True)
 
         with torch.amp.autocast(
@@ -557,7 +560,7 @@ class Trainer:
         Args:
             model (nn.Module): Model to train.
         """
-        logging.info("Setting up components: Model, criterion, optimizer, scheduler.")
+        logging.info("Setting up components: Model, criterion, optimizer, scheduler, scaler.")
 
         # Iterations
         self.epoch = 0
@@ -570,6 +573,7 @@ class Trainer:
         self.model = model
         print_model_summary(self.model, self.logging_config.log_directory)
 
+        # Criterion, optimizer, scheduler
         self.criterion = MattingLoss(
             weight_dict=self.criterion_config.weight_dict,
             dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
@@ -585,11 +589,18 @@ class Trainer:
         )
         self.early_stopping = self._setup_early_stopping()
 
+        # Gradient Clipping
+        self.gradient_clipper = GradientClipper(
+            enabled=self.optimizer_config.gradient_clip.enabled,
+            max_norm=self.optimizer_config.gradient_clip.max_norm,
+            norm_type=self.optimizer_config.gradient_clip.norm_type
+        )
+
         # Meters
         self.meters = self._setup_meters()
         self.best_meter_values = {}
 
-        logging.info("Finished setting up components: Model, criterion, optimizer, scheduler")
+        logging.info("Finished setting up components: Model, criterion, optimizer, scheduler, scaler")
 
     def _setup_meters(self) -> Dict[str, Any]:
         """

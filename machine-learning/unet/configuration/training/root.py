@@ -31,6 +31,7 @@ class EarlyStoppingConfig:
 class LoggingConfig:
     wandb: WandbConfig
     log_directory: str
+    log_metrics: bool
     log_freq: int
 
 
