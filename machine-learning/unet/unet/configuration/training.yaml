@@ -48,8 +48,10 @@ training:
   # Scheduler configuration
   scheduler:
     name: "CosineAnnealingLR"
-    t_max: 90 # 80-90% of max_epochs
-    eta_min: 1.0e-5
+    enabled: true
+    parameters:
+      t_max: 90 # 80-90% of max_epochs
+      eta_min: 1.0e-5
 
   # Early stopping configuration
   early_stopping:

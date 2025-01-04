@@ -3,10 +3,10 @@ from pathlib import Path
 from typing import Optional
 from omegaconf import OmegaConf
 
-from unet.configuration.dataset import DatasetConfig
-from unet.configuration.model import ModelConfig
-from unet.configuration.scratch import ScratchConfig
-from unet.configuration.training.base import TrainConfig
+from configuration.dataset import DatasetConfig
+from configuration.model import ModelConfig
+from configuration.scratch import ScratchConfig
+from configuration.training.root import TrainConfig
 
 
 @dataclass

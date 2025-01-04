@@ -4,7 +4,7 @@ from torch.optim import Adam, AdamW, SGD
 
 from typing import Type
 
-from unet.configuration.training.optimizer import OptimizerConfig
+from configuration.training.optimizer import OptimizerConfig
 
 
 def construct_optimizer(model: nn.Module, config: OptimizerConfig) -> optim.Optimizer:
@@ -18,7 +18,6 @@ def construct_optimizer(model: nn.Module, config: OptimizerConfig) -> optim.Opti
     Returns:
         optim.Optimizer: Optimizer for the model.
     """
-    # Use the helper function to get the PyTorch optimizer class
     optimizer_cls = _get_optimizer_by_name(config.name)
 
     # Instantiate the optimizer with the given learning rate
@@ -45,4 +44,4 @@ def _get_optimizer_by_name(name: str) -> Type[Adam | AdamW | SGD]:
         case "SGD":
             return optim.SGD
         case _:
-            raise ValueError(f"Unsupported optimizer: {name}")
+            raise ValueError(f"Optimizer: {name} is not supported.")

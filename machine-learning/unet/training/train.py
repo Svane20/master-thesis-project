@@ -1,20 +1,18 @@
 import torch
-import torch.optim as optim
 
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 from datasets.carvana.data_loaders import setup_data_loaders
 
-from training.optimizer import construct_optimizer
 from training.trainer import Trainer
 from training.utils.train_utils import set_seeds
 
-from unet.build_model import build_model_for_train
-from unet.configuration.configuration import ModelConfig, Config, load_configuration
-from unet.configuration.dataset import DatasetConfig
-from unet.configuration.scratch import ScratchConfig
-from unet.configuration.training.base import TrainConfig
+from configuration.configuration import ModelConfig, Config, load_configuration
+from configuration.dataset import DatasetConfig
+from configuration.scratch import ScratchConfig
+from configuration.training.root import TrainConfig
+from unet.build_model import build_unet_model_for_train
 
 
 def _setup_run(config: Config) -> None:
@@ -37,14 +35,8 @@ def _setup_run(config: Config) -> None:
     # Set seed for reproducibility
     set_seeds(training_config.seed)
 
-    # Construct model, criterion, optimizer and scheduler
-    model = build_model_for_train(model_config)
-    optimizer = construct_optimizer(model, training_config.optimizer)
-    scheduler = optim.lr_scheduler.CosineAnnealingLR(
-        optimizer,
-        T_max=training_config.scheduler.t_max,
-        eta_min=training_config.scheduler.eta_min
-    )
+    # Construct model
+    model = build_unet_model_for_train(model_config)
 
     # Set up the data loaders
     train_data_loader, test_data_loader = setup_data_loaders(scratch_config, dataset_config)
@@ -52,8 +44,6 @@ def _setup_run(config: Config) -> None:
     # Set up the trainer
     trainer = Trainer(
         model=model,
-        optimizer=optimizer,
-        scheduler=scheduler,
         train_data_loader=train_data_loader,
         test_data_loader=test_data_loader,
         training_config=training_config,
@@ -88,7 +78,7 @@ if __name__ == "__main__":
         "-c",
         "--config",
         type=str,
-        default="unet/configs/training.yaml",
+        default="unet/configuration/training.yaml",
         help="Path to the configuration file.",
     )
 
