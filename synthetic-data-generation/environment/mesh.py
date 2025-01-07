@@ -74,7 +74,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
 
     Args:
         delatin_sub_meshes (Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]): The Delatin sub-meshes (vertices and faces).
-        grass_biomes (List[str]): The grass biome paths to apply.
+        grass_biomes (Tuple[List[str], List[str], List[str]]): The grass biome paths to apply.
         tree_biomes (List[str]): The tree biome paths to apply.
         grass_densities (Tuple[DensityRange, DensityRange, DensityRange], optional): The grass densities.
         tree_densities (Tuple[DensityRange, DensityRange, DensityRange], optional): The tree densities.
