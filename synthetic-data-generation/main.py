@@ -11,7 +11,7 @@ from bpy_utils.bpy_ops import save_as_blend_file, render_image
 from configuration.addons import install_addons
 from configuration.configuration import Configuration, load_configuration, save_configuration
 from configuration.hdri import HDRIConfiguration
-from constants.directories import HOUSES_DIRECTORY
+from constants.directories import HOUSES_DIRECTORY, VEGETATION_DIRECTORY, PLANT_LIBRARY_DIRECTORY
 from engine.rendering import setup_rendering
 from environment.biomes import get_all_biomes_by_directory
 from environment.hdri import add_sky_to_scene
@@ -112,7 +112,9 @@ def setup_terrain() -> NDArray[np.float32]:
     Returns:
         NDArray[np.float32]: A height map (2D array) representing terrain.
     """
-    grass_biomes = get_all_biomes_by_directory()
+    grass_biomes = get_all_biomes_by_directory(directory=PLANT_LIBRARY_DIRECTORY, keywords=["clean_lawn"])
+    not_grass_biomes = get_all_biomes_by_directory(directory=PLANT_LIBRARY_DIRECTORY, keywords=["rock_plain"])
+    tree_biomes = get_all_biomes_by_directory(directory=VEGETATION_DIRECTORY)
 
     # Create terrain and segmentation map
     height_map, segmentation_map = create_terrain_segmentation(
@@ -129,7 +131,8 @@ def setup_terrain() -> NDArray[np.float32]:
 
     generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes=delatin_sub_meshes,
-        biomes_paths=grass_biomes,
+        grass_biomes=(grass_biomes, not_grass_biomes, not_grass_biomes),
+        tree_biomes=tree_biomes,
         world_size=WORLD_SIZE,
     )
 

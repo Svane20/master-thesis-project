@@ -2,7 +2,6 @@ import torch
 from torch.utils.data.dataset import Dataset
 
 from albumentations import Compose
-from albumentations.pytorch import ToTensorV2
 import numpy as np
 import os
 from PIL import Image
@@ -59,8 +58,10 @@ class CarvanaDataset(Dataset):
         # Load the image
         image = np.array(Image.open(image_path).convert("RGB"))
 
-        # Load the mask and normalize to [0, 1]
+        # Load the mask
         mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
+
+        # Convert binary mask -> alpha mask [0, 1]
         mask = mask / 255.0
 
         if self.transforms:
@@ -71,5 +72,8 @@ class CarvanaDataset(Dataset):
         # Add channel dimension to the mask
         if mask.ndim == 2:
             mask = mask.unsqueeze(0)
+
+        # Ensure the mask is in the range [0, 1]
+        mask = mask.clamp(0, 1)
 
         return image, mask

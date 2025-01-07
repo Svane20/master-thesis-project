@@ -12,7 +12,8 @@ load_dotenv()
 logger = setup_logger(__name__)
 
 # Directories
-BASE_DIR = Path(os.getenv("ADDONS_BASE_PATH", "C:\\Thesis"))
+BASE_DIR = Path(os.getenv("ADDONS_BASE_PATH"))
+assert BASE_DIR is not None, "The ADDONS_BASE_PATH environment variable is not set."
 PLUGIN_DIR = BASE_DIR / "plugins"
 PACKAGES_DIR = BASE_DIR / "packages"
 ASSETS_DIR = BASE_DIR / "assets"

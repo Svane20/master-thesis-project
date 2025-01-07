@@ -9,17 +9,20 @@ from custom_logging.custom_logger import setup_logger
 logger = setup_logger(__name__)
 
 
-def get_all_biomes_by_directory(directory: Path = BIOMES_DIRECTORY) -> List[str]:
+def get_all_biomes_by_directory(directory: Path = BIOMES_DIRECTORY, keywords: List[str] = None) -> List[str]:
     """
     Get all biome files in the specified directory.
 
     Args:
         directory (Path): The directory to search for biome files.
+        keywords (List[str], optional): A list of keywords to filter biome files. Defaults to None.
 
     Returns:
         List[str]: A list of biome file paths.
     """
-    paths = [str(f) for f in directory.rglob("*") if str(f).endswith(".biome")]
+    paths = [str(f) for f in directory.rglob("*") if str(f).endswith(".biome") and "_biomes_" in str(f)]
+    if keywords:
+        paths = [path for path in paths if any(keyword in path for keyword in keywords)]
 
     logger.info(f"Found {len(paths)} biomes in {directory}")
     return paths
