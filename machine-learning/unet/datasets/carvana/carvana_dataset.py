@@ -4,6 +4,7 @@ from torch.utils.data.dataset import Dataset
 from albumentations import Compose
 import numpy as np
 import os
+import cv2
 from PIL import Image
 from pathlib import Path
 from typing import Tuple, Optional
@@ -58,11 +59,9 @@ class CarvanaDataset(Dataset):
         # Load the image
         image = np.array(Image.open(image_path).convert("RGB"))
 
-        # Load the mask
+        # Load the binary mask and convert it to a smooth alpha mask
         mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
-
-        # Convert binary mask -> alpha mask [0, 1]
-        mask = mask / 255.0
+        mask = _convert_binary_mask_to_smooth_alpha_mask(mask)
 
         if self.transforms:
             augmented = self.transforms(image=image, mask=mask)
@@ -73,7 +72,44 @@ class CarvanaDataset(Dataset):
         if mask.ndim == 2:
             mask = mask.unsqueeze(0)
 
-        # Ensure the mask is in the range [0, 1]
-        mask = mask.clamp(0, 1)
-
         return image, mask
+
+
+def _convert_binary_mask_to_smooth_alpha_mask(
+        binary_mask: np.ndarray,
+        threshold_thresh: int = 1,
+        threshold_max_value: int = 255,
+        blur_kernel_size: Tuple[int, int] = (5, 5),
+        blur_sigma: Tuple[float, float] = (0, 0),
+) -> np.ndarray:
+    """
+    Convert a binary mask to a smooth alpha mask.
+
+    Args:
+        binary_mask (np.ndarray): Binary mask to convert.
+        threshold_thresh (int): Threshold value for the binary mask.
+        threshold_max_value (int): Maximum value for the threshold.
+        blur_kernel_size (Tuple[int, int]): Kernel size for Gaussian blur.
+        blur_sigma (Tuple[float, float]): Sigma values for Gaussian blur in x and y directions.
+
+    Returns:
+        np.ndarray: Smooth alpha mask.
+    """
+    # Set the threshold for the binary mask
+    _, binary_mask = cv2.threshold(
+        src=binary_mask,
+        thresh=threshold_thresh,
+        maxval=threshold_max_value,
+        type=cv2.THRESH_BINARY
+    )
+
+    # Apply Gaussian blur to the binary mask
+    blurred_mask = cv2.GaussianBlur(src=binary_mask, ksize=blur_kernel_size, sigmaX=blur_sigma[0], sigmaY=blur_sigma[1])
+
+    # Normalize the blurred mask to [0, 1]
+    alpha_mask = blurred_mask / 255.0
+
+    # Ensure the alpha mask is in the range [0, 1]
+    alpha_mask = np.clip(alpha_mask, a_min=0, a_max=1)
+
+    return alpha_mask
