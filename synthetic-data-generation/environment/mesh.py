@@ -62,73 +62,50 @@ def convert_delatin_mesh_to_sub_meshes(
 
 def generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes: Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]],
-        grass_biomes: Tuple[List[str], List[str], List[str]],
-        tree_biomes: List[str],
+        biomes_paths: List[str],
         grass_densities: Tuple[DensityRange, DensityRange, DensityRange] = ((60, 100.), (0., 0.1), (0.1, 5.)),
-        tree_densities: Tuple[DensityRange, DensityRange, DensityRange] = ((0.001, 0.025), (0.01, 0.5), (0.01, 0.5)),
         biome_label_indices: Tuple[int, int, int] = (255, 0, 0),
         world_size: int = WorldDefaults.SIZE,
 ) -> None:
     """
     Generate mesh objects from Delatin sub-meshes, apply biomes, and delete the object after.
-
     Args:
         delatin_sub_meshes (Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]): The Delatin sub-meshes (vertices and faces).
-        grass_biomes (Tuple[List[str], List[str], List[str]]): The grass biome paths to apply.
-        tree_biomes (List[str]): The tree biome paths to apply.
+        biomes_paths (List[str]): The biomes paths to be applied to the objects.
         grass_densities (Tuple[DensityRange, DensityRange, DensityRange], optional): The grass densities.
-        tree_densities (Tuple[DensityRange, DensityRange, DensityRange], optional): The tree densities.
         biome_label_indices (Tuple[int, int, int], optional): The biome label indices.
         world_size (int, optional): The size of the world (terrain scaling).
-
     Raises:
         ValueError: If sub-meshes or biomes are not provided.
     """
     logger.info(f"Starting to generate {len(delatin_sub_meshes)} mesh objects from Delatin sub-meshes.")
 
-    if not delatin_sub_meshes or not grass_biomes:
+    if not delatin_sub_meshes or not biomes_paths:
         raise ValueError("Sub-meshes or biome paths cannot be empty.")
 
-    for i, (
-            (vertices, faces),
-            grass_biomes_flag,
-            density_grass,
-            density_tree,
-            biome_label_index
-    ) in enumerate(
-        zip(
-            delatin_sub_meshes.values(),
-            grass_biomes,
-            grass_densities,
-            tree_densities,
-            biome_label_indices
-        )
+    for i, ((vertices, faces), density_grass, biome_label_index) in enumerate(
+            zip(delatin_sub_meshes.values(), grass_densities, biome_label_indices)
     ):
         logger.debug(f"Processing sub-mesh {i} with {len(vertices)} vertices and {len(faces)} faces.")
 
         # Normalize and scale the X and Y coordinates of the vertices to fit the terrain
         vertices[:, :2] = (vertices[:, :2] / np.max(vertices[:, :2])) * world_size - world_size / 2
-
         # Get object names before creating new objects
         existing_object_names = bpy.data.objects.keys()
-
         # Create a new mesh
         bpy_mesh = bpy.data.meshes.new(f"generated_mesh_{i}")
         bpy_mesh.from_pydata(vertices=vertices, edges=[], faces=faces)
         bpy_mesh.update()
         bpy_mesh.validate(verbose=True)
         logger.info(f"Created mesh '{bpy_mesh.name}' for object '{i}'.")
-
         # Create a new object and link it to the scene
         object_name = f"generated_mesh_{i}"
         mesh_object = bpy.data.objects.new(object_name, bpy_mesh)
         bpy.data.collections["Collection"].objects.link(mesh_object)
         bpy.context.view_layer.objects.active = mesh_object
         logger.info(f"Mesh object '{object_name}' added to the scene.")
-
         # Get object names after creation
         new_object_names = bpy.data.objects.keys()
-
         # Get the unique object names that were created
         unique_object_names = _get_unique_object_names(
             existing_object_names=existing_object_names,
@@ -136,28 +113,17 @@ def generate_mesh_objects_from_delation_sub_meshes(
         )
         logger.debug(f"Unique object names created: {unique_object_names}")
 
-        if grass_biomes_flag:
-            # Apply a random grass biome to the object
-            apply_biomes_to_objects(
-                unique_object_names=unique_object_names,
-                biome_paths=grass_biomes_flag,
-                density=density_grass,
-                label_index=biome_label_index,
-            )
-            logger.info(f"Applied grass biomes to object '{object_name}' with label index {biome_label_index}.")
-
-        # Apply a random tree biome to the object
+        # Apply a random biome to the object
         apply_biomes_to_objects(
             unique_object_names=unique_object_names,
-            biome_paths=tree_biomes,
-            density=density_tree,
-            label_index=0,
+            biome_paths=biomes_paths,
+            density=density_grass,
+            label_index=biome_label_index,
         )
-        logger.info(f"Applied tree biomes to object '{object_name}' with label index 0.")
+        logger.info(f"Applied biomes to object '{object_name}' with label index {biome_label_index}.")
 
         # Delete the object after applying the biome
         delete_object_by_selection(mesh_object)
-        logger.info(f"Deleted object '{object_name}' after biome application.")
 
 
 def _assign_vertex_z_values(

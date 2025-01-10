@@ -112,9 +112,7 @@ def setup_terrain() -> NDArray[np.float32]:
     Returns:
         NDArray[np.float32]: A height map (2D array) representing terrain.
     """
-    grass_biomes = get_all_biomes_by_directory(directory=PLANT_LIBRARY_DIRECTORY, keywords=["clean_lawn"])
-    not_grass_biomes = get_all_biomes_by_directory(directory=PLANT_LIBRARY_DIRECTORY, keywords=["rock_plain"])
-    tree_biomes = get_all_biomes_by_directory(directory=VEGETATION_DIRECTORY)
+    grass_biomes = get_all_biomes_by_directory()
 
     # Create terrain and segmentation map
     height_map, segmentation_map = create_terrain_segmentation(
@@ -131,8 +129,7 @@ def setup_terrain() -> NDArray[np.float32]:
 
     generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes=delatin_sub_meshes,
-        grass_biomes=(grass_biomes, not_grass_biomes, not_grass_biomes),
-        tree_biomes=tree_biomes,
+        biomes_paths=grass_biomes,
         world_size=WORLD_SIZE,
     )
 
