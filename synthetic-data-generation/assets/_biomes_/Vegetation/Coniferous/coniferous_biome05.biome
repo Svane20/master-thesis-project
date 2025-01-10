@@ -1,0 +1,156 @@
+{
+    "info": {
+        "name": "Coniferous_Biome05",
+        "type": "Biome",
+        "keywords": "Rocks,Stump,Pine,Stumps,Fern,Stump Leave,Scots Pine,Rock",
+        "author": "Bproduction",
+        "website": "https://bproduction-3d.com/",
+        "description": "Biome from vegetation pack",
+        "layercount": 4,
+        "estimated_density": 0.10439999999999999
+    },
+    "00": {
+        "name": "ShortScot_Trees",
+        "color": [
+            0.5143992304801941,
+            0.6574140191078186,
+            0.006157686933875084
+        ],
+        "preset": "BASENAME.layer00.preset",
+        "asset_file": "INSTANCES_DEFINED",
+        "instances": [
+            [
+                "Scots_pine1",
+                "Scots_pine1"
+            ],
+            [
+                "Scots_pine2",
+                "Scots_pine2"
+            ]
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_lowpoly_sapling_02",
+            "s_display_placeholder_scale": [
+                4.122000217437744,
+                4.122000217437744,
+                4.833000183105469
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "01": {
+        "name": "Rocks",
+        "color": [
+            0.05352838709950447,
+            0.05496902018785477,
+            0.05210977420210838
+        ],
+        "preset": "BASENAME.layer01.preset",
+        "asset_file": "INSTANCES_DEFINED",
+        "instances": [
+            [
+                "Rock8",
+                "Rock8"
+            ],
+            [
+                "Rock9",
+                "Rock9"
+            ]
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_hemisphere_02",
+            "s_display_placeholder_scale": [
+                2.009999990463257,
+                2.009999990463257,
+                2.009999990463257
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "02": {
+        "name": "Ferns",
+        "color": [
+            0.11536677926778793,
+            0.6859543919563293,
+            0.004164858255535364
+        ],
+        "preset": "BASENAME.layer02.preset",
+        "asset_file": "INSTANCES_DEFINED",
+        "instances": [
+            [
+                "fern1",
+                "fern1"
+            ],
+            [
+                "fern4",
+                "fern4"
+            ]
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_lowpoly_plant_04",
+            "s_display_placeholder_scale": [
+                1.7700001001358032,
+                1.7700001001358032,
+                1.7700001001358032
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "03": {
+        "name": "Stumps",
+        "color": [
+            0.685958743095398,
+            0.4172750413417816,
+            0.05642586946487427
+        ],
+        "preset": "BASENAME.layer03.preset",
+        "asset_file": "INSTANCES_DEFINED",
+        "instances": [
+            [
+                "Stump3",
+                "Stump3"
+            ],
+            [
+                "Stump4",
+                "Stump4"
+            ],
+            [
+                "stump_leave2",
+                "stump_leave2"
+            ]
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_extruded_hexagon",
+            "s_display_placeholder_scale": [
+                0.6360000371932983,
+                0.6360000371932983,
+                1.5929999351501465
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    }
+}

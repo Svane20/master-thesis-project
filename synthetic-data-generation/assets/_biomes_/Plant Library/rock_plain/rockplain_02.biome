@@ -1,0 +1,157 @@
+{
+    "info": {
+        "name": "Rockplain 02",
+        "type": "Biome",
+        "keywords": "Gs Rockplain Gravel, Bd3D,Geo-Scatter,Aio,Gs Rockplain Dry Plant ,Gs Rockplain Thorns,Biome,Dead,Dry,Gravel,Desert,Multi,Gs Dryland Branches ,Rockplain 02,Gs Rockplain Rocks ",
+        "author": "Geo-Scatter",
+        "website": "https://geoscatter.com",
+        "description": "Biome from the free Geo-Scatter Plant-Library",
+        "layercount": 5,
+        "estimated_density": 177.97199999999998
+    },
+    "00": {
+        "name": "Rockplain Dry Plant",
+        "color": [
+            0.1589999943971634,
+            0.05700000002980232,
+            0.02500000037252903
+        ],
+        "preset": "BASENAME.layer00.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS Rockplain dry plant 01",
+            "GS Rockplain dry plant 02",
+            "GS Rockplain dry plant 03"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_hemisphere_03",
+            "s_display_placeholder_scale": [
+                0.4620000123977661,
+                0.4620000123977661,
+                0.7229999899864197
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "01": {
+        "name": "Rockplain Rocks",
+        "color": [
+            0.6179999709129333,
+            0.6179999709129333,
+            0.6179999709129333
+        ],
+        "preset": "BASENAME.layer01.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS Rockplain rocks 01",
+            "GS Rockplain rocks 02",
+            "GS Rockplain rocks 03"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_hemisphere_01",
+            "s_display_placeholder_scale": [
+                0.5099999904632568,
+                0.5099999904632568,
+                0.30000001192092896
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "02": {
+        "name": "Rockplain Gravel",
+        "color": [
+            0.6179999709129333,
+            0.6179999709129333,
+            0.6179999709129333
+        ],
+        "preset": "BASENAME.layer02.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS Rockplain gravel"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_flat_triangle",
+            "s_display_placeholder_scale": [
+                0.23399999737739563,
+                0.23399999737739563,
+                0.05400000140070915
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "03": {
+        "name": "Rockplain Branches",
+        "color": [
+            0.11699999868869781,
+            0.0860000029206276,
+            0.052000001072883606
+        ],
+        "preset": "BASENAME.layer03.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS Dryland branches 01",
+            "GS Dryland branches 02"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_lowpoly_cluster_02",
+            "s_display_placeholder_scale": [
+                0.30000001192092896,
+                0.30000001192092896,
+                0.30000001192092896
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    },
+    "04": {
+        "name": "Rockplain Thorns",
+        "color": [
+            0.1589999943971634,
+            0.05700000002980232,
+            0.02500000037252903
+        ],
+        "preset": "BASENAME.layer04.preset",
+        "asset_file": "geoscatter_plantlibrary",
+        "instances": [
+            "GS Rockplain thorns"
+        ],
+        "display": {
+            "s_display_method": "placeholder",
+            "s_display_placeholder_type": "SCATTER5_placeholder_lowpoly_cluster_02",
+            "s_display_placeholder_scale": [
+                0.30000001192092896,
+                0.30000001192092896,
+                0.10000000149011612
+            ],
+            "s_display_point_radius": 0.30000001192092896,
+            "s_display_cloud_radius": 0.10000000149011612,
+            "s_display_cloud_density": 10.0,
+            "s_display_camdist_allow": false,
+            "s_display_camdist_distance": 5.0,
+            "s_display_viewport_method": "except_rendered"
+        }
+    }
+}
