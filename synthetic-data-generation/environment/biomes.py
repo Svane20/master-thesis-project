@@ -12,10 +12,8 @@ logger = setup_logger(__name__)
 def get_all_biomes_by_directory(directory: Path = BIOMES_DIRECTORY) -> List[str]:
     """
     Get all biome files in the specified directory.
-
     Args:
         directory (Path): The directory to search for biome files.
-
     Returns:
         List[str]: A list of biome file paths.
     """

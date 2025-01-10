@@ -69,14 +69,12 @@ def generate_mesh_objects_from_delation_sub_meshes(
 ) -> None:
     """
     Generate mesh objects from Delatin sub-meshes, apply biomes, and delete the object after.
-
     Args:
         delatin_sub_meshes (Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]): The Delatin sub-meshes (vertices and faces).
         biomes_paths (List[str]): The biomes paths to be applied to the objects.
         grass_densities (Tuple[DensityRange, DensityRange, DensityRange], optional): The grass densities.
         biome_label_indices (Tuple[int, int, int], optional): The biome label indices.
         world_size (int, optional): The size of the world (terrain scaling).
-
     Raises:
         ValueError: If sub-meshes or biomes are not provided.
     """
@@ -92,27 +90,22 @@ def generate_mesh_objects_from_delation_sub_meshes(
 
         # Normalize and scale the X and Y coordinates of the vertices to fit the terrain
         vertices[:, :2] = (vertices[:, :2] / np.max(vertices[:, :2])) * world_size - world_size / 2
-
         # Get object names before creating new objects
         existing_object_names = bpy.data.objects.keys()
-
         # Create a new mesh
         bpy_mesh = bpy.data.meshes.new(f"generated_mesh_{i}")
         bpy_mesh.from_pydata(vertices=vertices, edges=[], faces=faces)
         bpy_mesh.update()
         bpy_mesh.validate(verbose=True)
         logger.info(f"Created mesh '{bpy_mesh.name}' for object '{i}'.")
-
         # Create a new object and link it to the scene
         object_name = f"generated_mesh_{i}"
         mesh_object = bpy.data.objects.new(object_name, bpy_mesh)
         bpy.data.collections["Collection"].objects.link(mesh_object)
         bpy.context.view_layer.objects.active = mesh_object
         logger.info(f"Mesh object '{object_name}' added to the scene.")
-
         # Get object names after creation
         new_object_names = bpy.data.objects.keys()
-
         # Get the unique object names that were created
         unique_object_names = _get_unique_object_names(
             existing_object_names=existing_object_names,

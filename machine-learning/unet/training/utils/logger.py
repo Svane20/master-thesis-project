@@ -9,8 +9,8 @@ from numpy import ndarray
 import atexit
 import functools
 
+from configuration.training.root import LoggingConfig, WandbConfig
 from training.utils.train_utils import makedir
-from unet.configuration.training.base import LoggingConfig, WandbConfig
 
 
 class WeightAndBiasesConfig(BaseModel):

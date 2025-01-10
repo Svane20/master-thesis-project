@@ -1,5 +1,4 @@
 from pathlib import Path
-
 BASE_DIRECTORY: Path = Path(__file__).resolve().parent.parent
 
 # Configuration File

@@ -5,7 +5,7 @@ from pathlib import Path
 from deployment.export_model import export_to_onnx
 from deployment.trim_checkpoint import save_model_checkpoint
 from evaluation.utils.configuration import load_config
-from unet.build_model import build_model
+from unet.build_model import build_unet_model
 
 
 def main() -> None:
@@ -16,12 +16,12 @@ def main() -> None:
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_config(
         current_directory=root_directory,
-        configuration_path="unet/configs/deployment.yaml"
+        configuration_path="unet/configuration/deployment.yaml"
     )
 
     # Load the model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = build_model(
+    model = build_unet_model(
         configuration=configuration.model,
         checkpoint_path=checkpoint_path,
         compile_model=False,
