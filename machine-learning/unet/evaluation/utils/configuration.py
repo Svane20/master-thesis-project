@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Tuple
 
-from unet.configuration.configuration import Config, load_configuration
+from configuration.configuration import Config, load_configuration
 
 
 def load_config(current_directory: Path, configuration_path: str) -> Tuple[Config, Path]:

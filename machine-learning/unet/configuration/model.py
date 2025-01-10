@@ -15,5 +15,6 @@ class MaskDecoderConfig:
 
 @dataclass
 class ModelConfig:
+    name: str
     image_encoder: ImageEncoderConfig
     mask_decoder: MaskDecoderConfig

@@ -4,13 +4,13 @@ import torch.nn as nn
 from pathlib import Path
 import logging
 
-from unet.configuration.configuration import ModelConfig
+from configuration.configuration import ModelConfig
 from unet.modeling.image_encoder import ImageEncoder
 from unet.modeling.mask_decoder import MaskDecoder
 from unet.modeling.unet import UNet
 
 
-def build_model_for_train(configuration: ModelConfig) -> nn.Module:
+def build_unet_model_for_train(configuration: ModelConfig) -> nn.Module:
     """
     Builds the model for training.
 
@@ -23,7 +23,7 @@ def build_model_for_train(configuration: ModelConfig) -> nn.Module:
     return _build(configuration)
 
 
-def build_model(
+def build_unet_model(
         configuration: ModelConfig,
         checkpoint_path: Path = None,
         compile_model: bool = True,

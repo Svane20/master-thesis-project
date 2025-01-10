@@ -1,15 +1,9 @@
 from dataclasses import dataclass
 from typing import Optional, List
 
-from unet.configuration.training.criterion import CriterionConfig
-from unet.configuration.training.optimizer import OptimizerConfig
-
-
-@dataclass
-class SchedulerConfig:
-    name: str
-    t_max: int
-    eta_min: float
+from configuration.training.criterion import CriterionConfig
+from configuration.training.optimizer import OptimizerConfig
+from configuration.training.scheduler import SchedulerConfig
 
 
 @dataclass
@@ -37,6 +31,7 @@ class EarlyStoppingConfig:
 class LoggingConfig:
     wandb: WandbConfig
     log_directory: str
+    log_metrics: bool
     log_freq: int
 
 

@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 import time
 from typing import Dict, Optional, Any, List, Tuple
@@ -10,14 +9,15 @@ import os.path
 import numpy as np
 import json
 
+from configuration.training.root import TrainConfig
 from training.criterions import CORE_LOSS_KEY, MattingLoss
 from training.early_stopping import EarlyStopping
+from training.optimizers import construct_optimizer, GradientClipper
+from training.schedulers import SchedulerWrapper
 from training.utils.checkpoint_utils import load_state_dict_into_model
 from training.utils.logger import setup_logging, Logger, WeightAndBiasesConfig
 from training.utils.train_utils import get_amp_type, get_resume_checkpoint, DurationMeter, makedir, AverageMeter, \
     MemMeter, Phase, ProgressMeter, Meter, human_readable_time
-
-from unet.configuration.training.base import TrainConfig
 
 
 class Trainer:
@@ -28,8 +28,6 @@ class Trainer:
     def __init__(
             self,
             model: nn.Module,
-            optimizer: torch.optim.Optimizer,
-            scheduler: torch.optim.lr_scheduler,
             train_data_loader: torch.utils.data.DataLoader,
             test_data_loader: torch.utils.data.DataLoader,
             training_config: TrainConfig,
@@ -39,8 +37,6 @@ class Trainer:
         """
         Args:
             model (nn.Module): Model to train.
-            optimizer (torch.optim.Optimizer): Optimizer for training.
-            scheduler (torch.optim.lr_scheduler): Scheduler for training.
             train_data_loader (torch.utils.data.DataLoader): Data loader for training.
             test_data_loader (torch.utils.data.DataLoader): Data loader for testing.
             training_config (TrainConfig): Configuration for training.
@@ -52,7 +48,9 @@ class Trainer:
 
         # Configuration
         self.train_config = training_config
+        self.criterion_config = training_config.criterion
         self.optimizer_config = training_config.optimizer
+        self.scheduler_config = training_config.scheduler
         self.logging_config = training_config.logging
         self.early_stopping_config = training_config.early_stopping
         self.checkpoint_config = training_config.checkpoint
@@ -68,10 +66,10 @@ class Trainer:
         self._setup_torch_backend()
 
         # Components
-        self._setup_components(model, optimizer, scheduler)
+        self._setup_components(model)
 
         # Move components to device
-        self._move_to_device(compile_model=self.train_config.compile_model)
+        self._move_to_device(compile_model=training_config.compile_model)
 
         # Data loaders
         self.train_data_loader = train_data_loader
@@ -105,7 +103,7 @@ class Trainer:
                 validation_metric = test_losses.get(validation_metric_key, 0.0)
 
                 # Step the scheduler
-                self._scheduler_step(self.scheduler, validation_metric)
+                self.scheduler.step(validation_metric)
 
                 # Combine train and test losses
                 combined_losses = {**train_losses, **test_losses}
@@ -127,7 +125,8 @@ class Trainer:
                 logging.info(payload)
 
                 # Save training stats to file
-                # self._save_stats(filename="training_stats.json", payload=payload)
+                if self.logging_config.log_metrics:
+                    self._save_stats(filename="training_stats.json", payload=payload)
 
                 # Early stopping
                 current_epoch = self.epoch + 1
@@ -138,7 +137,8 @@ class Trainer:
                     # Check for improvement
                     if self.early_stopping.has_improved:
                         # Save best stats to file
-                        # self._save_stats(filename="best_stats.json", payload=payload)
+                        if self.logging_config.log_metrics:
+                            self._save_stats(filename="best_stats.json", payload=payload)
 
                         # Save model checkpoint
                         self._save_checkpoint(epoch=current_epoch)
@@ -150,6 +150,10 @@ class Trainer:
                         )
                         break
                 else:
+                    # Save best stats to file
+                    if self.logging_config.log_metrics:
+                        self._save_stats(filename="best_stats.json", payload=payload)
+
                     # Save the model at the end of each epoch
                     self._save_checkpoint(epoch=current_epoch)
 
@@ -242,12 +246,9 @@ class Trainer:
                 # Run a single step
                 self._run_step(X, y, phase, loss_meter, extra_losses_meters)
 
-                # Gradient clipping
-                torch.nn.utils.clip_grad_norm_(
-                    parameters=self.model.parameters(),
-                    max_norm=1.0,
-                    norm_type=2.0
-                )
+                # Clipping gradients
+                if self.gradient_clipper is not None:
+                    self.gradient_clipper(model=self.model)
 
                 # Step the optimizer
                 if self.scaler is not None:
@@ -422,6 +423,8 @@ class Trainer:
             loss_meter (AverageMeter): Loss meter.
             extra_losses_meters (Dict[str, AverageMeter]): Extra loss meters.
         """
+        # It's important to set grads to None, especially with Adam
+        # since 0 grads will also update a model even if the step doesn't produce gradient
         self.optimizer.zero_grad(set_to_none=True)
 
         with torch.amp.autocast(
@@ -550,21 +553,14 @@ class Trainer:
         else:
             raise ValueError(f"Unsupported accelerator: {accelerator}")
 
-    def _setup_components(
-            self,
-            model: nn.Module,
-            optimizer: torch.optim.Optimizer,
-            scheduler: torch.optim.lr_scheduler
-    ) -> None:
+    def _setup_components(self, model: nn.Module) -> None:
         """
         Set up the components for training.
 
         Args:
             model (nn.Module): Model to train.
-            optimizer (torch.optim.Optimizer): Optimizer for training.
-            scheduler (torch.optim.lr_scheduler): Scheduler for training.
         """
-        logging.info("Setting up components: Model, criterion, optimizer, scheduler.")
+        logging.info("Setting up components: Model, criterion, optimizer, scheduler, scaler.")
 
         # Iterations
         self.epoch = 0
@@ -577,13 +573,14 @@ class Trainer:
         self.model = model
         print_model_summary(self.model, self.logging_config.log_directory)
 
+        # Criterion, optimizer, scheduler
         self.criterion = MattingLoss(
-            weight_dict=self.train_config.criterion.weight_dict,
+            weight_dict=self.criterion_config.weight_dict,
             dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
             device=self.device
         )
-        self.optimizer = optimizer
-        self.scheduler = scheduler
+        self.optimizer = construct_optimizer(model, self.train_config.optimizer)
+        self.scheduler = SchedulerWrapper(optimizer=self.optimizer, config=self.scheduler_config)
 
         # Mixed precision and early stopping
         self.scaler = torch.amp.GradScaler(
@@ -592,11 +589,18 @@ class Trainer:
         )
         self.early_stopping = self._setup_early_stopping()
 
+        # Gradient Clipping
+        self.gradient_clipper = GradientClipper(
+            enabled=self.optimizer_config.gradient_clip.enabled,
+            max_norm=self.optimizer_config.gradient_clip.max_norm,
+            norm_type=self.optimizer_config.gradient_clip.norm_type
+        )
+
         # Meters
         self.meters = self._setup_meters()
         self.best_meter_values = {}
 
-        logging.info("Finished setting up components: Model, criterion, optimizer, scheduler")
+        logging.info("Finished setting up components: Model, criterion, optimizer, scheduler, scaler")
 
     def _setup_meters(self) -> Dict[str, Any]:
         """
@@ -686,19 +690,6 @@ class Trainer:
             )
 
         return None
-
-    def _scheduler_step(self, scheduler: torch.optim.lr_scheduler, metric: Optional[float] = None) -> None:
-        """
-        Steps the scheduler based on its type and current training phase.
-
-        Args:
-            scheduler (torch.optim.lr_scheduler): The learning rate scheduler.
-            metric (Optional[float]): Validation metric for ReduceLROnPlateau.
-        """
-        if isinstance(scheduler, ReduceLROnPlateau) and metric is not None:
-            scheduler.step(metric)
-        elif not isinstance(scheduler, ReduceLROnPlateau):
-            scheduler.step()
 
     def _setup_timers(self) -> None:
         """

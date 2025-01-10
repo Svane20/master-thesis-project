@@ -9,7 +9,7 @@ from evaluation.inference import predict_image
 from evaluation.utils.configuration import load_config
 from evaluation.visualization import save_prediction
 from training.utils.logger import setup_logging
-from unet.build_model import build_model
+from unet.build_model import build_unet_model
 
 setup_logging(__name__)
 
@@ -23,12 +23,12 @@ def main() -> None:
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_config(
         current_directory=root_directory,
-        configuration_path="unet/configs/inference.yaml"
+        configuration_path="unet/configuration/inference.yaml"
     )
 
     # Load the model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = build_model(
+    model = build_unet_model(
         configuration=configuration.model,
         checkpoint_path=checkpoint_path,
         compile_model=False,
