@@ -124,6 +124,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
 
         # Delete the object after applying the biome
         delete_object_by_selection(mesh_object)
+        logger.info(f"Deleted object '{object_name}' after biome application.")
 
 
 def _assign_vertex_z_values(

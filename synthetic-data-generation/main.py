@@ -11,7 +11,7 @@ from bpy_utils.bpy_ops import save_as_blend_file, render_image
 from configuration.addons import install_addons
 from configuration.configuration import Configuration, load_configuration, save_configuration
 from configuration.hdri import HDRIConfiguration
-from constants.directories import HOUSES_DIRECTORY, VEGETATION_DIRECTORY, PLANT_LIBRARY_DIRECTORY
+from constants.directories import HOUSES_DIRECTORY
 from engine.rendering import setup_rendering
 from environment.biomes import get_all_biomes_by_directory
 from environment.hdri import add_sky_to_scene
