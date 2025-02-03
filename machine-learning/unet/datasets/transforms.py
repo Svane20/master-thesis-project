@@ -26,7 +26,7 @@ def get_train_transforms(resolution: int) -> A.Compose:
 
         # Blur and noise for robustness
         A.GaussianBlur(blur_limit=(3, 5), p=0.2),
-        A.GaussNoise(var_limit=(10.0, 50.0), p=0.2),
+        A.GaussNoise(std_range=(0.01, 0.05), p=0.2),
 
         # Normalize and convert to tensor
         A.Normalize(

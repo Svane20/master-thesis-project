@@ -52,7 +52,7 @@ class CyclesConfiguration(BaseModel):
     use_adaptive_sampling: bool = True
     adaptive_threshold: float = 0.01
     time_limit: int = 240
-    view_transform: str = "Khronos PBR Neutral"
+    view_transform: str = "Standard"
 
 
 class PreferencesConfiguration(BaseModel):

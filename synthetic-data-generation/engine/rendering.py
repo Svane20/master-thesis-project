@@ -159,7 +159,7 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings, render_configuration: 
         device.use = False
 
     # Enable the specified devices
-    for index in _get_gpu_indices(devices, preferences.default_device()):
+    for index in _get_gpu_indices(devices, 0):
         devices[index].use = True
 
     enabled_devices = [device.name for device in devices if device.use]
