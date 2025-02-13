@@ -204,13 +204,6 @@ def main() -> None:
     total_iterations = len(iterations)
     logging.info(f"Total iterations: {total_iterations}")
 
-    # Constants
-    project_name = configuration.constants.project_name
-    world_size = int(configuration.terrain_configuration.world_size)
-    seed = configuration.constants.seed
-    blender_files_directory = f"{playground_directory}/blender_files"
-    outputs_configuration = configuration.render_configuration.outputs_configuration
-
     # Track execution times for estimation
     elapsed_times = []
 
@@ -223,15 +216,15 @@ def main() -> None:
         location = get_random_camera_location(
             iteration=iteration,
             height_map=height_map,
-            world_size=world_size,
-            seed=seed
+            world_size=int(configuration.terrain_configuration.world_size),
+            seed=configuration.constants.seed
         )
 
         update_camera_position(location=location)
 
         # Save the Blender file
         if configuration.constants.save_blend_files:
-            save_as_blend_file(image_name=project_name, iteration=index, directory_path=blender_files_directory)
+            save_as_blend_file(iteration=index, directory_path=f"{playground_directory}/blender_files")
 
         # Render the image
         if configuration.constants.render_images:
@@ -239,7 +232,7 @@ def main() -> None:
 
             # Rename the rendered image and mask(s)
             move_rendered_images_to_playground(
-                configuration=outputs_configuration,
+                configuration=configuration.render_configuration.outputs_configuration,
                 directory=playground_directory,
                 iteration=index
             )

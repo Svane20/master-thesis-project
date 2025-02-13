@@ -20,10 +20,9 @@
     }
   ],
   "constants": {
-    "project_name": "full_example",
     "save_blend_files": false,
     "render_images": true,
-    "seed": 1
+    "seed": null
   },
   "directories": {
     "playground_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/playground",
@@ -62,7 +61,7 @@
     },
     "outputs_configuration": {
       "render_image": true,
-      "render_object_index": true,
+      "render_object_index": false,
       "render_environment": true,
       "output_path": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/output",
       "image_output_configuration": {

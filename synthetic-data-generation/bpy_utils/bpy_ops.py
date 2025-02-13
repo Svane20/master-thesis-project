@@ -93,17 +93,11 @@ def render_image(write_still: bool = True) -> None:
         raise
 
 
-def save_as_blend_file(
-        image_name: str,
-        directory_path: str,
-        iteration: int = 0,
-        allow_overwrite: bool = True
-) -> None:
+def save_as_blend_file(directory_path: str, iteration: int = 0, allow_overwrite: bool = True) -> None:
     """
     Saves the current Blender scene as a .blend file.
 
     Args:
-        image_name (str): The name of the file to save.
         iteration (int): The current iteration number. Defaults to 0.
         directory_path (Path): The directory path to save the .blend file.
         allow_overwrite (bool): Whether to allow overwriting an existing file. Defaults to True.
@@ -111,12 +105,12 @@ def save_as_blend_file(
     Raises:
         IOError: If the blend file fails to save.
     """
-    filename = f"{image_name}_{iteration}.{FileExtension.BLEND.value}"
+    filename = f"Blend_{iteration}.{FileExtension.BLEND.value}"
     logging.info(f"Saving blend file: '{filename}'")
 
     try:
         directory_path = Path(directory_path)
-        output_path = _prepare_output_path(image_name, iteration, directory_path, allow_overwrite)
+        output_path = _prepare_output_path(filename, directory_path, allow_overwrite)
 
         # Save the blend file
         bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
@@ -144,13 +138,12 @@ def _build_append_paths(object_path: Path, collection_name: str) -> Tuple[str, s
     return file_path, collection_path
 
 
-def _prepare_output_path(image_name: str, iteration: int, directory_path: Path, allow_overwrite: bool) -> Path:
+def _prepare_output_path(filename: str, directory_path: Path, allow_overwrite: bool) -> Path:
     """
     Prepares the output path for saving a .blend file.
 
     Args:
-        image_name (str): The name of the file to save.
-        iteration (int): The current iteration number. Defaults to 0.
+        filename (str): The name of the file to save.
         directory_path (Path): The directory path to save the .blend file.
         allow_overwrite (bool): Whether to allow overwriting an existing file.
 
@@ -162,7 +155,7 @@ def _prepare_output_path(image_name: str, iteration: int, directory_path: Path, 
     """
     output_dir = directory_path.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
-    output_path = output_dir / f"{image_name}_{iteration}.{FileExtension.BLEND.value}"
+    output_path = output_dir / filename
 
     if allow_overwrite and output_path.exists():
         output_path.unlink()
