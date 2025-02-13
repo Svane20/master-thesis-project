@@ -1,5 +1,4 @@
 import bpy
-
 import numpy as np
 from numpy.typing import NDArray
 from pydelatin import Delatin

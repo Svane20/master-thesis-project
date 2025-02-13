@@ -1,10 +1,8 @@
 import numpy as np
 from numpy.typing import NDArray
-
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
 from pydelatin import Delatin
-
 from typing import Tuple, Dict
 
 from custom_logging.custom_logger import setup_logger

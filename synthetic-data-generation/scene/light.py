@@ -1,10 +1,10 @@
 import bpy
 from mathutils import Vector, Euler
-
 import numpy as np
 from numpy.typing import NDArray
 import random
 from enum import Enum
+
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)

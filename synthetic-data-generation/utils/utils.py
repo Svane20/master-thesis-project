@@ -5,7 +5,6 @@ from configuration.configuration import Configuration
 from configuration.outputs import OutputsConfiguration
 from configuration.render import RenderConfiguration
 from constants.file_extensions import FileExtension
-
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
