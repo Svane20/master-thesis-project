@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Tuple
 
 from bpy_utils.bpy_data import list_data_blocks_in_blend_file, BlendFilePropertyKey
-from constants.directories import BLENDER_FILES_DIRECTORY
 from constants.file_extensions import FileExtension
 from custom_logging.custom_logger import setup_logger
 
@@ -99,8 +98,8 @@ def render_image(write_still: bool = True) -> None:
 
 def save_as_blend_file(
         image_name: str,
+        directory_path: str,
         iteration: int = 0,
-        directory_path: Path = BLENDER_FILES_DIRECTORY,
         allow_overwrite: bool = True
 ) -> None:
     """
@@ -115,13 +114,17 @@ def save_as_blend_file(
     Raises:
         IOError: If the blend file fails to save.
     """
+    filename = f"{image_name}_{iteration}.{FileExtension.BLEND.value}"
+    logger.info(f"Saving blend file: '{filename}'")
+
     try:
+        directory_path = Path(directory_path)
         output_path = _prepare_output_path(image_name, iteration, directory_path, allow_overwrite)
 
         # Save the blend file
         bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
 
-        logger.info(f"Blend file saved successfully: '{output_path}'")
+        logger.info(f"Blend file saved successfully: '{filename}'")
     except Exception as e:
         logger.error(f"Failed to save blend file: {e}")
         raise

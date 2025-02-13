@@ -1,0 +1,143 @@
+{
+  "addons": [
+    {
+      "install": true,
+      "plugin_title": "Biome-Reader",
+      "plugin_path": "C:/Thesis/plugins/BiomeReaderPlugin.zip",
+      "package_path": "C:/Thesis/packages/plant_library.scatpack",
+      "library_paths": [
+        "C:/Thesis/assets/data/plant_library"
+      ]
+    },
+    {
+      "install": true,
+      "plugin_title": "Vegetation",
+      "plugin_path": "C:/Thesis/plugins/Vegetation_V5.1_Addon.zip",
+      "package_path": "C:/Thesis/packages/Vegetation_v5.1fix2_Geoscatter_Biomes_Pro.scatpack",
+      "library_paths": [
+        "C:/Thesis/assets/data/vegetation"
+      ]
+    }
+  ],
+  "constants": {
+    "project_name": "full_example",
+    "save_blend_files": false,
+    "render_images": true,
+    "seed": 1
+  },
+  "directories": {
+    "playground_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/playground",
+    "biomes_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/biomes",
+    "hdri_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/hdri",
+    "models_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/models"
+  },
+  "render_configuration": {
+    "engine": "CYCLES",
+    "temp_folder": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/temp",
+    "resolution_percentage": 100,
+    "file_format": "PNG",
+    "use_border": true,
+    "use_persistent_data": true,
+    "threads_mode": "FIXED",
+    "threads": 54,
+    "compression": 0,
+    "cycles_configuration": {
+      "camera_cull_margin": 1.0,
+      "distance_cull_margin": 200.0,
+      "use_camera_cull": true,
+      "use_distance_cull": true,
+      "feature_set": "SUPPORTED",
+      "device": "GPU",
+      "tile_size": 4096,
+      "samples": 1,
+      "use_denoising": true,
+      "denoising_use_gpu": true,
+      "use_adaptive_sampling": true,
+      "adaptive_threshold": 0.01,
+      "time_limit": 240,
+      "view_transform": "Khronos PBR Neutral"
+    },
+    "preferences_configuration": {
+      "compute_device_type": "CUDA"
+    },
+    "outputs_configuration": {
+      "render_image": true,
+      "render_object_index": true,
+      "render_environment": true,
+      "output_path": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/output",
+      "image_output_configuration": {
+        "title": "Image",
+        "use_node_format": false,
+        "file_format": "PNG",
+        "color_mode": "RGBA",
+        "path": "Image"
+      },
+      "object_index_output_configuration": {
+        "title": "IndexOB",
+        "use_node_format": false,
+        "file_format": "PNG",
+        "color_mode": "BW",
+        "path": "IndexOB"
+      },
+      "id_mask_output_configuration": {
+        "title": "BiomeMask",
+        "use_node_format": false,
+        "file_format": "PNG",
+        "color_mode": "BW",
+        "path": "BiomeMask"
+      },
+      "environment_output_configuration": {
+        "title": "HDRIMask",
+        "use_node_format": false,
+        "file_format": "PNG",
+        "color_mode": "BW",
+        "path": "HDRIMask"
+      }
+    }
+  },
+  "camera_configuration": {
+    "image_width": 2048,
+    "image_height": 2048,
+    "camera_fov_mu_deg": 60.0,
+    "camera_fov_std_deg": 10.0
+  },
+  "terrain_configuration": {
+    "world_size": 100.0,
+    "image_size": 2048,
+    "noise_basis": "PERLIN_ORIGINAL",
+    "prob_of_trees": 0.25
+  },
+  "hdri_configuration": {
+    "temperature": {
+      "min": 5000,
+      "max": 6500
+    },
+    "strength": {
+      "min": 0.6,
+      "max": 1.0
+    },
+    "density": {
+      "min": 0,
+      "max": 2
+    },
+    "sky_type": "NISHITA",
+    "sun_configuration": {
+      "size": {
+        "min": 1,
+        "max": 3
+      },
+      "elevation": {
+        "min": 45,
+        "max": 90
+      },
+      "rotation": {
+        "min": 0,
+        "max": 360
+      },
+      "intensity": {
+        "min": 0.4,
+        "max": 0.8
+      }
+    }
+  }
+}

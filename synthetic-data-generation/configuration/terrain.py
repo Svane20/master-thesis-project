@@ -1,7 +1,5 @@
 from pydantic import BaseModel
 
-from constants.defaults import ImageDefaults, WorldDefaults
-
 
 class TerrainConfiguration(BaseModel):
     """
@@ -12,6 +10,7 @@ class TerrainConfiguration(BaseModel):
         image_size (int): The size of the image or terrain representation.
         prob_of_trees (float): The probability of placing trees in the terrain (value between 0 and 1).
     """
-    world_size: float = WorldDefaults.SIZE
-    image_size: int = ImageDefaults.SIZE
-    prob_of_trees: float = 0.25
+    world_size: float
+    image_size: int
+    noise_basis: str
+    prob_of_trees: float

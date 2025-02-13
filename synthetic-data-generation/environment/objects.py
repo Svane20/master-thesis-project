@@ -12,7 +12,7 @@ logger = setup_logger(__name__)
 def spawn_objects(
         num_objects: int,
         positions: NDArray[np.float32],
-        path: Path,
+        filepath: str,
         height_map: NDArray[np.float32],
         world_size: float,
         seed: int = None
@@ -23,7 +23,7 @@ def spawn_objects(
     Args:
         num_objects (int): The number of objects to spawn.
         positions (NDArray[np.float32]): The (x, y) positions where objects will be placed.
-        path (Path): The directory path containing .blend files for objects.
+        filepath (str): The directory path containing .blend files for objects.
         height_map (NDArray[np.float32]): The terrain height map.
         world_size (float): The size of the world (terrain scale).
         seed (int, optional): Random seed for reproducibility. Default is None.
@@ -31,6 +31,8 @@ def spawn_objects(
     Raises:
         FileNotFoundError: If no .blend files are found in the specified path.
     """
+    path = Path(filepath)
+
     logger.info(f"Spawning {num_objects} objects on the terrain.")
 
     # Ensure terrain dimensions match the expected format

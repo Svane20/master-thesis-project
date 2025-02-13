@@ -1,7 +1,21 @@
 from pydantic import BaseModel
-from constants.color_mode import ColorMode
-from constants.directories import OUTPUT_DIRECTORY
-from constants.file_formats import FileFormat
+
+class NodeOutputConfiguration(BaseModel):
+    """
+    Configuration for node output settings.
+
+    Attributes:
+        title (str): The title for the image output.
+        use_node_format (bool): Whether to use a custom node format.
+        file_format (str): The file format for the output image (e.g., PNG, EXR).
+        color_mode (str): The color mode for the image (e.g., RGBA, BW).
+        path (str): The output path for the image file.
+    """
+    title: str
+    use_node_format: bool
+    file_format: str
+    color_mode: str
+    path: str
 
 
 class ImageOutputConfiguration(BaseModel):
@@ -15,11 +29,11 @@ class ImageOutputConfiguration(BaseModel):
         color_mode (str): The color mode for the image (e.g., RGBA, BW).
         path (str): The output path for the image file.
     """
-    title: str = "Image"
-    use_node_format: bool = False  # Custom format
-    file_format: str = FileFormat.PNG
-    color_mode: str = ColorMode.RGBA
-    path: str = "Image"
+    title: str
+    use_node_format: bool
+    file_format: str
+    color_mode: str
+    path: str
 
 
 class ObjectIndexOutputConfiguration(BaseModel):
@@ -33,11 +47,11 @@ class ObjectIndexOutputConfiguration(BaseModel):
         color_mode (str): The color mode for the output (e.g., BW).
         path (str): The output path for the object index file.
     """
-    title: str = "IndexOB"
-    use_node_format: bool = False
-    file_format: str = FileFormat.PNG
-    color_mode: str = ColorMode.BW
-    path: str = "IndexOB"
+    title: str
+    use_node_format: bool
+    file_format: str
+    color_mode: str
+    path: str
 
 
 class IDMaskOutputConfiguration(BaseModel):
@@ -51,11 +65,11 @@ class IDMaskOutputConfiguration(BaseModel):
         color_mode (str): The color mode for the ID mask.
         path (str): The output path for the ID mask file.
     """
-    title: str = "BiomeMask"
-    use_node_format: bool = False
-    file_format: str = FileFormat.PNG
-    color_mode: str = ColorMode.BW
-    path: str = "BiomeMask"
+    title: str
+    use_node_format: bool
+    file_format: str
+    color_mode: str
+    path: str
 
 
 class EnvironmentOutputConfiguration(BaseModel):
@@ -69,11 +83,11 @@ class EnvironmentOutputConfiguration(BaseModel):
         color_mode (str): The color mode for the environment output.
         path (str): The output path for the environment file.
     """
-    title: str = "HDRIMask"
-    use_node_format: bool = False
-    file_format: str = FileFormat.PNG
-    color_mode: str = ColorMode.BW
-    path: str = "HDRIMask"
+    title: str
+    use_node_format: bool
+    file_format: str
+    color_mode: str
+    path: str
 
 
 class OutputsConfiguration(BaseModel):
@@ -86,12 +100,12 @@ class OutputsConfiguration(BaseModel):
         render_environment (bool): Whether to render the environment (HDRI).
         output_path (str): The base output path for all rendered files.
     """
-    render_image: bool = True
-    render_object_index: bool = True
-    render_environment: bool = True
-    output_path: str = OUTPUT_DIRECTORY.as_posix()
+    render_image: bool
+    render_object_index: bool
+    render_environment: bool
+    output_path: str
 
-    image_output_configuration: ImageOutputConfiguration = ImageOutputConfiguration()
-    object_index_output_configuration: ObjectIndexOutputConfiguration = ObjectIndexOutputConfiguration()
-    id_mask_output_configuration: IDMaskOutputConfiguration = IDMaskOutputConfiguration()
-    environment_output_configuration: EnvironmentOutputConfiguration = EnvironmentOutputConfiguration()
+    image_output_configuration: NodeOutputConfiguration
+    object_index_output_configuration: NodeOutputConfiguration
+    id_mask_output_configuration: NodeOutputConfiguration
+    environment_output_configuration: NodeOutputConfiguration

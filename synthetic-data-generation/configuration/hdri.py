@@ -1,4 +1,5 @@
 from pydantic import BaseModel
+from typing import Dict
 
 
 class SunConfiguration(BaseModel):
@@ -11,10 +12,10 @@ class SunConfiguration(BaseModel):
         rotation (dict): A dictionary containing the 'min' and 'max' rotation of the sun in degrees.
         intensity (dict): A dictionary containing the 'min' and 'max' intensity of the sun's light.
     """
-    size: dict[str, int] = {"min": 1, "max": 3}
-    elevation: dict[str, int] = {"min": 45, "max": 90}
-    rotation: dict[str, int] = {"min": 0, "max": 360}
-    intensity: dict[str, float] = {"min": 0.4, "max": 0.8}
+    size: Dict[str, int]
+    elevation: Dict[str, int]
+    rotation: Dict[str, int]
+    intensity: Dict[str, float]
 
 
 class HDRIConfiguration(BaseModel):
@@ -28,9 +29,9 @@ class HDRIConfiguration(BaseModel):
         sky_type (str): The type of sky to use in the scene.
         sun_configuration (SunConfiguration): Configuration settings for the sun.
     """
-    temperature: dict[str, int] = {"min": 5000, "max": 6500}
-    strength: dict[str, float] = {"min": 0.6, "max": 1.0}
-    density: dict[str, int] = {"min": 0, "max": 2}
-    sky_type: str = "NISHITA"
+    temperature: Dict[str, int]
+    strength: Dict[str, float]
+    density: Dict[str, int]
+    sky_type: str
 
-    sun_configuration: SunConfiguration = SunConfiguration()
+    sun_configuration: SunConfiguration

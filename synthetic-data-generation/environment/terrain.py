@@ -1,5 +1,3 @@
-from enum import Enum
-
 from mathutils import Vector
 from mathutils.noise import fractal
 from PIL import Image
@@ -8,14 +6,9 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Tuple
 
-from constants.defaults import WorldDefaults, ImageDefaults
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
-
-
-class NoiseBasis(str, Enum):
-    PERLIN_ORIGINAL = "PERLIN_ORIGINAL"
 
 
 def create_delatin_mesh_from_height_map(height_map: NDArray[np.float32], seed: int = None) -> Delatin:
@@ -46,13 +39,13 @@ def create_delatin_mesh_from_height_map(height_map: NDArray[np.float32], seed: i
 
 
 def create_terrain_segmentation(
-        world_size: int = int(WorldDefaults.SIZE),
+        world_size: int,
+        image_size: int,
+        noise_basis: str,
         num_octaves: Tuple[int, int] = (3, 4),
         H: Tuple[float, float] = (0.4, 0.5),
         lacunarity: Tuple[float, float] = (1.1, 1.2),
-        image_size: int = ImageDefaults.SIZE,
         band: int = 48,
-        noise_basis: NoiseBasis = NoiseBasis.PERLIN_ORIGINAL,
         seed: int = None
 ) -> Tuple[NDArray[np.float32], NDArray[np.uint8]]:
     """
@@ -65,7 +58,7 @@ def create_terrain_segmentation(
         lacunarity (Tuple[float, float]): Frequency multiplier for successive noise layers. Default is (1.1, 1.2).
         image_size (int): Size of the resulting image (height map resolution). Default is ImageDefaults.SIZE.
         band (int): Threshold band around the midpoint to classify different areas. Default is 48.
-        noise_basis (NoiseBasis): Type of noise basis (e.g., "PERLIN_ORIGINAL"). Default is "PERLIN_ORIGINAL".
+        noise_basis (str): Type of noise basis (e.g., "PERLIN_ORIGINAL"). Default is "PERLIN_ORIGINAL".
         seed (int, optional): Random seed for reproducibility. Default is None.
 
     Returns:
@@ -75,10 +68,10 @@ def create_terrain_segmentation(
 
     normalized_height_map = _generate_fractal_heightmap(
         world_size=world_size,
+        image_size=image_size,
         num_octaves=num_octaves,
         H=H,
         lacunarity=lacunarity,
-        image_size=image_size,
         noise_basis=noise_basis,
         seed=seed
     )
@@ -90,12 +83,12 @@ def create_terrain_segmentation(
 
 
 def _generate_fractal_heightmap(
-        world_size: float = WorldDefaults.SIZE,
+        world_size: float,
+        image_size: int,
+        noise_basis: str,
         num_octaves: Tuple[int, int] = (3, 4),
         H: Tuple[float, float] = (0.4, 0.5),
         lacunarity: Tuple[float, float] = (1.1, 1.2),
-        image_size: int = ImageDefaults.SIZE,
-        noise_basis: NoiseBasis = NoiseBasis.PERLIN_ORIGINAL,
         seed: int = None
 ) -> NDArray[np.float32]:
     """
@@ -107,7 +100,7 @@ def _generate_fractal_heightmap(
         H (Tuple[float, float]): Controls roughness of the fractal noise. Default is (0.4, 0.5).
         lacunarity (Tuple[float, float]): Frequency multiplier for successive noise layers. Default is (1.1, 1.2).
         image_size (int): Size of the resulting image (height map resolution). Default is ImageDefaults.SIZE.
-        noise_basis (NoiseBasis): Type of noise basis (e.g., "PERLIN_ORIGINAL"). Default is "PERLIN_ORIGINAL".
+        noise_basis (str): Type of noise basis (e.g., "PERLIN_ORIGINAL"). Default is "PERLIN_ORIGINAL".
         seed (int, optional): Random seed for reproducibility. Default is None.
 
     Returns:
@@ -141,7 +134,7 @@ def _generate_fractal_heightmap(
                 H,
                 lacunarity,
                 num_octaves,
-                noise_basis=noise_basis.value,
+                noise_basis=noise_basis,
             )
             depths.append(z)
         height_map.append(depths)
