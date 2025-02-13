@@ -1,17 +1,21 @@
 {
   "addons": [
     {
-      "install": true,
       "plugin_title": "Biome-Reader",
       "plugin_path": "/home/kasv/blender_data/plugins/BiomeReaderPlugin.zip",
-      "package_path": "/home/kasv/blender_data/packages/plant_library.scatpack",
+      "package_path": null,
       "library_paths": [
         "/home/kasv/blender_data/assets/data/plant_library"
       ]
     },
     {
-      "install": true,
-      "plugin_title": "Vegetation",
+      "plugin_title": "Grassblade",
+      "plugin_path": "/home/kasv/blender_data/plugins/GrassbladePro.zip",
+      "package_path": "/home/kasv/blender_data/packages/GrassbladePro_v2.6.scatpack",
+      "library_paths": null
+    },
+    {
+      "plugin_title": null,
       "plugin_path": "/home/kasv/blender_data/plugins/Vegetation_V5.1_Addon.zip",
       "package_path": "/home/kasv/blender_data/packages/Vegetation_v5.1fix2_Geoscatter_Biomes_Pro.scatpack",
       "library_paths": [
