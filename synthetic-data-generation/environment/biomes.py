@@ -5,16 +5,19 @@ import numpy as np
 import logging
 
 
-def get_all_biomes_by_directory(directory: str) -> List[str]:
+def get_all_biomes_by_directory(directory: str, keywords: List[str] | None = None) -> List[str]:
     """
     Get all biome files in the specified directory.
     Args:
         directory (Path): The directory to search for biome files.
+        keywords (List[str], optional): A list of keywords to filter biome files. Defaults to None.
     Returns:
         List[str]: A list of biome file paths.
     """
-    directory = Path(directory)
-    paths = [str(f) for f in directory.rglob("*") if str(f).endswith(".biome")]
+    paths = [str(f) for f in Path(directory).rglob("*") if str(f).endswith(".biome")]
+
+    if keywords:
+        paths = [path for path in paths if any(keyword in path for keyword in keywords)]
 
     logging.info(f"Found {len(paths)} biomes in {directory}")
     return paths
@@ -44,14 +47,14 @@ def apply_biomes_to_objects(
         logging.info(f"Seed set to {seed}")
 
     for object_name in unique_object_names:
-        bpy_object = _get_object_by_name(object_name)
+        bpy_object = get_object_by_name(object_name)
         if bpy_object is None:
             continue
 
         random_biome_path = np.random.choice(biome_paths)
         logging.info(f"Applying biome from {random_biome_path} to object '{bpy_object.name}'.")
 
-        _apply_biome(
+        apply_biome(
             bpy_object=bpy_object,
             biome_path=random_biome_path,
             density=density,
@@ -59,7 +62,7 @@ def apply_biomes_to_objects(
         )
 
 
-def _apply_biome(
+def apply_biome(
         bpy_object: Union[str, bpy.types.Object],
         biome_path: str,
         density: Tuple[float, float] = (20.0, 30.0),
@@ -117,7 +120,7 @@ def _apply_biome(
     logging.info(f"Biome '{biome_path}' applied to object '{bpy_object.name}' successfully.")
 
 
-def _get_object_by_name(name: Union[str, bpy.types.Object]) -> Union[bpy.types.Object, None]:
+def get_object_by_name(name: Union[str, bpy.types.Object]) -> Union[bpy.types.Object, None]:
     """
     Retrieve a Blender object by name.
 

@@ -26,8 +26,6 @@
   },
   "directories": {
     "playground_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/playground",
-    "biomes_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/biomes",
-    "hdri_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/hdri",
     "models_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/models"
   },
   "render_configuration": {
@@ -104,9 +102,27 @@
     "world_size": 100.0,
     "image_size": 2048,
     "noise_basis": "PERLIN_ORIGINAL",
-    "prob_of_trees": 0.25
+    "prob_of_trees": 0.25,
+    "trees_configuration": {
+      "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/biomes",
+      "keywords": null
+    },
+    "grass_configuration": {
+      "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/biomes",
+      "keywords": [
+        "clean_grass"
+      ]
+    },
+    "not_grass_configuration": {
+      "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/biomes",
+      "keywords": [
+        "soil",
+        "rock"
+      ]
+    }
   },
   "hdri_configuration": {
+    "hdris_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/hdri",
     "temperature": {
       "min": 5000,
       "max": 6500

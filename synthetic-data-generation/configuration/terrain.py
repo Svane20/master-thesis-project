@@ -1,4 +1,20 @@
 from pydantic import BaseModel
+from typing import List
+
+
+class TreesConfiguration(BaseModel):
+    directory: str
+    keywords: List[str] | None
+
+
+class GrassConfiguration(BaseModel):
+    directory: str
+    keywords: List[str] | None
+
+
+class NotGrassConfiguration(BaseModel):
+    directory: str
+    keywords: List[str] | None
 
 
 class TerrainConfiguration(BaseModel):
@@ -14,3 +30,6 @@ class TerrainConfiguration(BaseModel):
     image_size: int
     noise_basis: str
     prob_of_trees: float
+    trees_configuration: TreesConfiguration
+    grass_configuration: GrassConfiguration
+    not_grass_configuration: NotGrassConfiguration

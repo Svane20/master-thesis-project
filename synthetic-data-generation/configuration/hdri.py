@@ -29,6 +29,7 @@ class HDRIConfiguration(BaseModel):
         sky_type (str): The type of sky to use in the scene.
         sun_configuration (SunConfiguration): Configuration settings for the sun.
     """
+    hdris_directory: str
     temperature: Dict[str, int]
     strength: Dict[str, float]
     density: Dict[str, int]

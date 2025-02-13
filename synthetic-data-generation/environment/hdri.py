@@ -71,7 +71,7 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
         seed (int, optional): Random seed for reproducibility. Defaults to None.
     """
     hdri_configuration = configuration.hdri_configuration
-    directory = f"{configuration.directories.hdri_directory}/pure_skies"
+    directory = f"{configuration.hdri_configuration.hdris_directory}/pure_skies"
 
     logging.info(f"Adding sky to the scene from directory: {directory}")
     hdri_paths = get_all_hdri_by_directory(directory)

@@ -11,6 +11,7 @@ from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alph
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
 from addons.installation import install_addons
 from configuration.configuration import Configuration, load_configuration
+from configuration.terrain import TerrainConfiguration
 from engine.rendering import setup_rendering
 from environment.biomes import get_all_biomes_by_directory
 from environment.hdri import add_sky_to_scene
@@ -107,14 +108,17 @@ def initialize() -> Tuple[Configuration, Path, NDArray[np.float64]]:
     return configuration, playground_directory, iterations
 
 
-def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
+def setup_terrain(configuration: TerrainConfiguration) -> NDArray[np.float32]:
     """
     Set up the terrain for the scene.
 
     Returns:
         NDArray[np.float32]: A height map (2D array) representing terrain.
     """
-    grass_biomes = get_all_biomes_by_directory(configuration.directories.biomes_directory)
+    grass_biomes = get_all_biomes_by_directory(
+        directory=configuration.grass_configuration.directory,
+        keywords=configuration.grass_configuration.keywords
+    )
 
     # Create terrain and segmentation map
     terrain_configuration = configuration.terrain_configuration
@@ -122,9 +126,9 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         world_size=int(terrain_configuration.world_size),
         image_size=terrain_configuration.image_size,
         noise_basis=terrain_configuration.noise_basis,
-        num_octaves=(1, 2),
-        H=(0.0, 0.0),
-        lacunarity=(0.5, 0.5),
+        # num_octaves=(1, 2),
+        # H=(0.0, 0.0),
+        # lacunarity=(0.5, 0.5),
         seed=configuration.constants.seed
     )
 
@@ -133,7 +137,7 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
 
     generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes=delatin_sub_meshes,
-        biomes_paths=grass_biomes,
+        grass_biomes_path=grass_biomes,
         world_size=int(terrain_configuration.world_size),
     )
 
@@ -182,7 +186,7 @@ def setup_scene() -> Tuple[Configuration, Path, NDArray[np.float32], NDArray[np.
     """
     configuration, playground_directory, iterations = initialize()
 
-    height_map = setup_terrain(configuration)
+    height_map = setup_terrain(configuration.terrain_configuration)
 
     spawn_objects_in_the_scene(configuration, height_map)
 
