@@ -1,17 +1,11 @@
 from datetime import datetime
 from pathlib import Path
+import logging
 
 from configuration.configuration import Configuration
 from configuration.outputs import OutputsConfiguration
 from configuration.render import RenderConfiguration
 from constants.file_extensions import FileExtension
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
-
-IMAGES_DIRNAME = "images"
-MASKS_DIRNAME = "masks"
-BLENDER_FILES_DIRNAME = "blender_files"
 
 
 def create_directory(path: Path) -> None:
@@ -26,9 +20,9 @@ def create_directory(path: Path) -> None:
     """
     try:
         path.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Created directory: {path}")
+        logging.info(f"Created directory: {path}")
     except Exception as e:
-        logger.error(f"Failed to create directory {path}: {e}")
+        logging.error(f"Failed to create directory {path}: {e}")
         raise
 
 
@@ -69,11 +63,11 @@ def get_playground_directory_with_tag(configuration: Configuration) -> Path:
 
     # Create subdirectories for blender files, images and masks
     if configuration.constants.save_blend_files:
-        create_directory(directory / BLENDER_FILES_DIRNAME)
+        create_directory(directory / "blender_files")
 
     if configuration.constants.render_images:
-        create_directory(directory / IMAGES_DIRNAME)
-        create_directory(directory / MASKS_DIRNAME)
+        create_directory(directory / "images")
+        create_directory(directory / "masks")
 
     return directory
 
@@ -104,31 +98,31 @@ def move_rendered_images_to_playground(
     for image in rendered_images:
         try:
             if image_prefix in image.name:
-                filepath = _get_playground_file_path(directory, IMAGES_DIRNAME, image_prefix, iteration, file_extension)
+                filepath = _get_playground_file_path(directory, "images", image_prefix, iteration, file_extension)
                 image.rename(filepath)
-                logger.info(f"Moved {image.name} to {filepath}")
+                logging.info(f"Moved {image.name} to {filepath}")
             elif id_mask_prefix in image.name:
                 filepath = _get_playground_file_path(
                     directory,
-                    MASKS_DIRNAME,
+                    "masks",
                     id_mask_prefix,
                     iteration,
                     file_extension
                 )
                 image.rename(filepath)
-                logger.info(f"Moved {image.name} to {filepath}")
+                logging.info(f"Moved {image.name} to {filepath}")
             elif environment_prefix in image.name:
                 filepath = _get_playground_file_path(
                     directory,
-                    MASKS_DIRNAME,
+                    "masks",
                     environment_prefix,
                     iteration,
                     file_extension
                 )
                 image.rename(filepath)
-                logger.info(f"Moved {image.name} to {filepath}")
+                logging.info(f"Moved {image.name} to {filepath}")
         except Exception as e:
-            logger.error(f"Failed to move {image.name} to {directory}: {e}")
+            logging.error(f"Failed to move {image.name} to {directory}: {e}")
             raise
 
 
@@ -144,12 +138,12 @@ def cleanup_files(configuration: Configuration, remove_output_dir: bool = True,
     """
     if remove_output_dir:
         output_directory = Path(configuration.render_configuration.outputs_configuration.output_path)
-        logger.info(f"Cleaning up output directory: {output_directory}")
+        logging.info(f"Cleaning up output directory: {output_directory}")
         remove_temporary_files(directory=output_directory)
 
     if remove_temporary_dir:
         temp_directory = Path(configuration.render_configuration.temp_folder)
-        logger.info(f"Cleaning up temporary directory: {temp_directory}")
+        logging.info(f"Cleaning up temporary directory: {temp_directory}")
         remove_temporary_files(directory=temp_directory)
 
 
@@ -174,17 +168,17 @@ def remove_temporary_files(
 
     try:
         if image_name is None:
-            logger.info(f"Deleting all temporary files with extension {extension} in {directory}")
+            logging.info(f"Deleting all temporary files with extension {extension} in {directory}")
             temp_files = directory.glob(f"*.{extension}")
         else:
-            logger.info(f"Deleting temporary files with name {image_name}.{extension} in {directory}")
+            logging.info(f"Deleting temporary files with name {image_name}.{extension} in {directory}")
             temp_files = directory.glob(f"{image_name}.{extension}")
 
         for temp_file in temp_files:
             temp_file.unlink()
-            logger.info(f"Deleted temporary file: {temp_file}")
+            logging.info(f"Deleted temporary file: {temp_file}")
     except Exception as e:
-        logger.error(f"Failed to delete files in {directory}: {e}")
+        logging.error(f"Failed to delete files in {directory}: {e}")
         raise
 
 

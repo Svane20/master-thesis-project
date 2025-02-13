@@ -2,11 +2,9 @@ from pathlib import Path
 import numpy as np
 from numpy.typing import NDArray
 import random
+import logging
 
-from custom_logging.custom_logger import setup_logger
 from bpy_utils.bpy_ops import append_object
-
-logger = setup_logger(__name__)
 
 
 def spawn_objects(
@@ -33,39 +31,39 @@ def spawn_objects(
     """
     path = Path(filepath)
 
-    logger.info(f"Spawning {num_objects} objects on the terrain.")
+    logging.info(f"Spawning {num_objects} objects on the terrain.")
 
     # Ensure terrain dimensions match the expected format
     height, width = height_map.shape[:2]
-    logger.debug(f"Terrain dimensions: width={width}, height={height}")
+    logging.debug(f"Terrain dimensions: width={width}, height={height}")
 
     if seed is not None:
         random.seed(seed)
-        logger.info(f"Random seed set to {seed}")
+        logging.info(f"Random seed set to {seed}")
 
     blend_objects_paths = list(path.rglob("*.blend"))
     if not blend_objects_paths:
-        logger.error(f"No .blend files found in directory {path}")
+        logging.error(f"No .blend files found in directory {path}")
         raise FileNotFoundError(f"No .blend files found in directory {path}")
 
-    logger.info(f"Found {len(blend_objects_paths)} .blend files in {path}")
+    logging.info(f"Found {len(blend_objects_paths)} .blend files in {path}")
 
     for index in range(num_objects):
         random_object_path = random.choice(blend_objects_paths)
-        logger.info(f"Selected object file: {random_object_path}")
+        logging.info(f"Selected object file: {random_object_path}")
 
         # Append the object to the scene
         collection_object = append_object(object_path=random_object_path)
-        logger.info(f"Appended object from {random_object_path}")
+        logging.info(f"Appended object from {random_object_path}")
 
         for obj in collection_object.objects:
             if obj.parent is not None:
-                logger.debug(f"Skipping object '{obj.name}' as it has a parent.")
+                logging.debug(f"Skipping object '{obj.name}' as it has a parent.")
                 continue
 
             # Get object position (x, y)
             x, y = positions[index, 0], positions[index, 1]
-            logger.debug(f"Object {index + 1}: initial position ({x}, {y})")
+            logging.debug(f"Object {index + 1}: initial position ({x}, {y})")
 
             # Map normalized coordinates to terrain grid
             x_ = int((x / world_size + 0.5) * width)
@@ -79,6 +77,6 @@ def spawn_objects(
             obj.rotation_euler = (0, 0, random.random() * np.pi * 2)
             obj.pass_index = 2
 
-            logger.info(
+            logging.info(
                 f"Placed object '{obj.name}' at position ({x:.2f}, {y:.2f}, {h:.2f}) with rotation {obj.rotation_euler}."
             )

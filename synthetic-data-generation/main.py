@@ -4,6 +4,8 @@ from typing import Tuple
 import numpy as np
 from numpy.typing import NDArray
 import time
+import logging
+import platform
 
 from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alpha_threshold
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
@@ -18,9 +20,7 @@ from environment.terrain import create_terrain_segmentation, create_delatin_mesh
 from scene.camera import get_camera_iterations, get_random_camera_location, update_camera_position
 from scene.light import create_random_light
 from utils.utils import cleanup_files, get_playground_directory_with_tag, move_rendered_images_to_playground
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
+from custom_logging.custom_logger import setup_logging
 
 
 def clear_cube() -> None:
@@ -45,7 +45,14 @@ def get_configuration() -> Configuration:
         Configuration: The configuration for the Blender pipeline
 
     """
-    config = load_configuration()
+    # Detect OS and set the configuration path accordingly
+    base_directory = Path(__file__).resolve().parent
+    if platform.system() == "Windows":
+        configuration_path: Path = base_directory / "configuration_windows.json"
+    else:  # Assume Linux for any non-Windows OS
+        configuration_path: Path = base_directory / "configuration_linux.json"
+
+    config = load_configuration(configuration_path)
 
     return Configuration(**config)
 
@@ -186,14 +193,16 @@ def setup_scene() -> Tuple[Configuration, Path, NDArray[np.float32], NDArray[np.
 
 def main() -> None:
     """The main function to render the images from multiple camera angles."""
+    setup_logging(__name__)
+
     # Track the overall script execution time
     script_start_time = time.perf_counter()
-    logger.info("Script execution started.")
+    logging.info("Script execution started.")
 
     # Set up the scene
     configuration, playground_directory, height_map, iterations = setup_scene()
     total_iterations = len(iterations)
-    logger.info(f"Total iterations: {total_iterations}")
+    logging.info(f"Total iterations: {total_iterations}")
 
     # Constants
     project_name = configuration.constants.project_name
@@ -208,7 +217,7 @@ def main() -> None:
     # Render images from multiple camera angles
     for index, iteration in enumerate(iterations):
         current_iteration = index + 1
-        logger.info(f"Rendering image {current_iteration}/{total_iterations}")
+        logging.info(f"Rendering image {current_iteration}/{total_iterations}")
         start_time = time.perf_counter()
 
         location = get_random_camera_location(
@@ -241,7 +250,7 @@ def main() -> None:
         elapsed_times.append(elapsed_time)  # Store elapsed time for averaging
 
         minutes, seconds = divmod(elapsed_time, 60)
-        logger.info(
+        logging.info(
             f"Image {current_iteration}/{total_iterations} rendered successfully "
             f"(Execution time: {int(minutes)} minutes and {seconds:.2f} seconds)"
         )
@@ -253,19 +262,19 @@ def main() -> None:
             estimated_remaining_time = avg_time_per_iteration * remaining_iterations
             est_minutes, est_seconds = divmod(estimated_remaining_time, 60)
 
-            logger.info(
+            logging.info(
                 f"Estimated time remaining: {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
             )
 
     # Cleanup temporary files generated during rendering
     cleanup_files(configuration)
-    logger.info("Temporary files cleaned up.")
+    logging.info("Temporary files cleaned up.")
 
     # Log the total execution time of the script
     script_end_time = time.perf_counter()
     total_elapsed_time = script_end_time - script_start_time
     total_minutes, total_seconds = divmod(total_elapsed_time, 60)
-    logger.info(f"Script finished in {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
+    logging.info(f"Script finished in {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
 
 
 if __name__ == "__main__":

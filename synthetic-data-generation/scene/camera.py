@@ -2,10 +2,7 @@ import bpy
 from mathutils import Vector, Euler
 import numpy as np
 from numpy.typing import NDArray
-
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
+import logging
 
 
 def get_camera_iterations(
@@ -30,7 +27,7 @@ def get_camera_iterations(
     """
     if seed is not None:
         np.random.seed(seed)
-        logger.info(f"Seed set to {seed}")
+        logging.info(f"Seed set to {seed}")
 
     return np.linspace(start=start, stop=stop, num=num_iterations, endpoint=endpoint)
 
@@ -50,7 +47,7 @@ def get_random_camera_location(iteration: float, height_map: NDArray[np.float32]
     """
     if seed is not None:
         np.random.seed(seed)
-        logger.info(f"Seed set to {seed}")
+        logging.info(f"Seed set to {seed}")
 
     # Get the terrain shape
     width, height = height_map.shape[:2]
@@ -98,23 +95,23 @@ def update_camera_position(
     try:
         camera: bpy.types.Object = bpy.data.objects["Camera"]
     except KeyError:
-        logger.error("Camera object not found in the scene.")
+        logging.error("Camera object not found in the scene.")
         raise ValueError("Camera not found")
 
     if location is not None:
-        logger.info(f"Updating camera location to {location}.")
+        logging.info(f"Updating camera location to {location}.")
         camera.location = location
     else:
-        logger.info("No location provided; using the current camera location.")
+        logging.info("No location provided; using the current camera location.")
 
     if rotation is not None:
-        logger.info(f"Updating camera rotation to {rotation}.")
+        logging.info(f"Updating camera rotation to {rotation}.")
         camera.rotation_euler = rotation
     else:
-        logger.info(f"No rotation provided; calculating rotation to focus on {focus_point}.")
+        logging.info(f"No rotation provided; calculating rotation to focus on {focus_point}.")
         camera.rotation_euler = _calculate_rotation_to_focus(camera.location, focus_point)
 
-    logger.info(
+    logging.info(
         "Camera updated successfully",
         extra={
             "location": f"({camera.location.x:.2f}, {camera.location.y:.2f}, {camera.location.z:.2f})",

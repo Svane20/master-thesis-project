@@ -4,10 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 import random
 from enum import Enum
-
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
+import logging
 
 
 class LightType(str, Enum):
@@ -51,11 +48,11 @@ def create_random_light(
     Raises:
         Exception: If the light creation fails.
     """
-    logger.info(f"Creating random light '{light_name}'.")
+    logging.info(f"Creating random light '{light_name}'.")
 
     if seed is not None:
         np.random.seed(seed)
-        logger.info(f"Seed set to {seed}")
+        logging.info(f"Seed set to {seed}")
 
     rotation = direction.to_track_quat("Z", "Y").to_euler()
     energy = random.choice(energy_range)
@@ -110,11 +107,11 @@ def create_light(
         scene = bpy.context.scene
 
     if delete_existing_lights:
-        logger.info("Deleting all existing lights.")
+        logging.info("Deleting all existing lights.")
         _delete_all_lights()
 
     try:
-        logger.info(f"Creating light '{light_name}' of type '{light_type.value}' with energy {energy}.")
+        logging.info(f"Creating light '{light_name}' of type '{light_type.value}' with energy {energy}.")
         data_lights = bpy.data.lights
         data_objects = bpy.data.objects
 
@@ -136,7 +133,7 @@ def create_light(
         new_light.specular_factor = specular_factor
         new_light.energy = energy
 
-        logger.info(f"Light '{light_name}' created successfully.", extra={
+        logging.info(f"Light '{light_name}' created successfully.", extra={
             "location": f"({new_light_object.location.x:.2f}, {new_light_object.location.y:.2f}, {new_light_object.location.z:.2f})",
             "rotation": f"(x={new_light_object.rotation_euler.x:.2f}, y={new_light_object.rotation_euler.y:.2f}, z={new_light_object.rotation_euler.z:.2f})",
             "shadow": use_shadow,
@@ -147,7 +144,7 @@ def create_light(
         return new_light_object
 
     except Exception as e:
-        logger.error(f"Failed to create light '{light_name}': {e}")
+        logging.error(f"Failed to create light '{light_name}': {e}")
         raise
 
 
@@ -160,12 +157,12 @@ def _delete_all_lights() -> None:
     """
     try:
         lights = [obj for obj in bpy.data.objects if obj.type == 'LIGHT']
-        logger.info(f"Deleting {len(lights)} lights from the scene.")
+        logging.info(f"Deleting {len(lights)} lights from the scene.")
 
         for light in lights:
             bpy.data.objects.remove(light, do_unlink=True)
 
-        logger.info("All lights have been deleted successfully.")
+        logging.info("All lights have been deleted successfully.")
     except Exception as e:
-        logger.error(f"Failed to delete all lights: {e}")
+        logging.error(f"Failed to delete all lights: {e}")
         raise

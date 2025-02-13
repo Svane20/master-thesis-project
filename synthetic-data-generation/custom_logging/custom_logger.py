@@ -1,4 +1,5 @@
 import logging
+import sys
 
 
 class CustomFormatter(logging.Formatter):
@@ -36,29 +37,29 @@ class CustomFormatter(logging.Formatter):
         return log_message
 
 
-def setup_logger(name: str, level: int = logging.INFO) -> logging.Logger:
+def setup_logging(name: str) -> None:
     """
-    Set up a logger with the given name and logging level.
+    Setup logging for the logger object.
 
     Args:
         name (str): The name of the logger.
-        level (int): The logging level, default is logging.INFO.
-
-    Returns:
-        logging.Logger: Configured logger instance.
     """
     logger = logging.getLogger(name)
+    logger.setLevel("INFO")
 
-    # Avoid adding multiple handlers to the same logger instance
-    if not logger.hasHandlers():
-        # Create a handler that outputs log records to the console
-        handler = logging.StreamHandler()
+    # Create formatter
+    formatter = CustomFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-        # Set the custom formatter for the handler
-        formatter = CustomFormatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        handler.setFormatter(formatter)
+    # Cleanup any existing handlers
+    for h in logger.handlers:
+        logger.removeHandler(h)
+    logger.root.handlers = []
 
-        logger.addHandler(handler)
-        logger.setLevel(level)
+    # Set up the console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel("INFO")
+    logger.addHandler(console_handler)
 
-    return logger
+    # Set the logger as the root logger
+    logging.root = logger

@@ -2,10 +2,7 @@ import bpy
 from pathlib import Path
 from typing import List, Union, Tuple, Set
 import numpy as np
-
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
+import logging
 
 
 def get_all_biomes_by_directory(directory: str) -> List[str]:
@@ -19,7 +16,7 @@ def get_all_biomes_by_directory(directory: str) -> List[str]:
     directory = Path(directory)
     paths = [str(f) for f in directory.rglob("*") if str(f).endswith(".biome")]
 
-    logger.info(f"Found {len(paths)} biomes in {directory}")
+    logging.info(f"Found {len(paths)} biomes in {directory}")
     return paths
 
 
@@ -40,11 +37,11 @@ def apply_biomes_to_objects(
         label_index (int, optional): The label index to assign to scattered objects. Defaults to 0.
         seed (int, optional): Random seed for reproducibility. Defaults to None.
     """
-    logger.info(f"Applying biomes to {len(unique_object_names)} objects.")
+    logging.info(f"Applying biomes to {len(unique_object_names)} objects.")
 
     if seed is not None:
         np.random.seed(seed)
-        logger.info(f"Seed set to {seed}")
+        logging.info(f"Seed set to {seed}")
 
     for object_name in unique_object_names:
         bpy_object = _get_object_by_name(object_name)
@@ -52,7 +49,7 @@ def apply_biomes_to_objects(
             continue
 
         random_biome_path = np.random.choice(biome_paths)
-        logger.info(f"Applying biome from {random_biome_path} to object '{bpy_object.name}'.")
+        logging.info(f"Applying biome from {random_biome_path} to object '{bpy_object.name}'.")
 
         _apply_biome(
             bpy_object=bpy_object,
@@ -84,10 +81,10 @@ def _apply_biome(
     if isinstance(bpy_object, str):
         bpy_object = bpy.data.objects.get(bpy_object)
         if bpy_object is None:
-            logger.error(f"Object '{bpy_object}' not found in the scene.")
+            logging.error(f"Object '{bpy_object}' not found in the scene.")
             raise ValueError(f"Object '{bpy_object}' not found in the scene.")
 
-    logger.info(f"Applying biome '{biome_path}' to object '{bpy_object.name}'.")
+    logging.info(f"Applying biome '{biome_path}' to object '{bpy_object.name}'.")
 
     # Set the object as the new emitter for scattering
     bpy.ops.scatter5.set_new_emitter(obj_name=bpy_object.name)
@@ -96,7 +93,7 @@ def _apply_biome(
 
     # Apply random density within the given range
     scene.scatter5.operators.add_psy_density.f_distribution_density = np.random.uniform(*density)
-    logger.info(f"Biome density set between {density[0]} and {density[1]}.")
+    logging.info(f"Biome density set between {density[0]} and {density[1]}.")
 
     # Force the view layer update
     bpy.context.view_layer.update()
@@ -115,9 +112,9 @@ def _apply_biome(
     for object_name in new_objects:
         scattered_object: bpy.types.Object = bpy.data.objects[object_name]
         scattered_object.pass_index = label_index
-        logger.info(f"Assigned pass index {label_index} to object '{scattered_object.name}'.")
+        logging.info(f"Assigned pass index {label_index} to object '{scattered_object.name}'.")
 
-    logger.info(f"Biome '{biome_path}' applied to object '{bpy_object.name}' successfully.")
+    logging.info(f"Biome '{biome_path}' applied to object '{bpy_object.name}' successfully.")
 
 
 def _get_object_by_name(name: Union[str, bpy.types.Object]) -> Union[bpy.types.Object, None]:
@@ -133,7 +130,7 @@ def _get_object_by_name(name: Union[str, bpy.types.Object]) -> Union[bpy.types.O
     if isinstance(name, str):
         bpy_object = bpy.data.objects.get(name)
         if bpy_object is None:
-            logger.error(f"Object '{name}' not found in the scene.")
+            logging.error(f"Object '{name}' not found in the scene.")
             return None
 
         return bpy_object

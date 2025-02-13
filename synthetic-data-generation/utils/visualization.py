@@ -5,10 +5,6 @@ import matplotlib.pyplot as plt
 from pydelatin import Delatin
 from typing import Tuple, Dict
 
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
-
 
 def visualize_terrain(height_map: NDArray[np.float32], segmentation_map: NDArray[np.uint8]) -> None:
     """

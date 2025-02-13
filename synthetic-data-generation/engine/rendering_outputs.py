@@ -1,26 +1,8 @@
 import bpy
+import logging
 
 from configuration.outputs import OutputsConfiguration, NodeOutputConfiguration
 from configuration.render import EngineType
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
-
-RENDER_LAYERS = "Render Layers"
-FILE_OUTPUT = "File Output"
-
-COMPOSITOR_NODE_MAP_RANGE = "CompositorNodeMapRange"
-COMPOSITOR_NODE_ID_MASK = "CompositorNodeIDMask"
-COMPOSITOR_NODE_OUTPUT_FILE = "CompositorNodeOutputFile"
-
-FROM_MIN = "From Min"
-FROM_MAX = "From Max"
-TO_MIN = "To Min"
-TO_MAX = "To Max"
-VALUE = "Value"
-ID_VALUE = "ID value"
-ALPHA = "Alpha"
-ENV = "Env"
 
 
 def setup_outputs(
@@ -44,7 +26,7 @@ def setup_outputs(
         render_environment (bool, optional): Whether to render the environment. Defaults to True.
         output_path (Path, optional): The output path for the rendered files. Defaults to OUTPUT_DIRECTORY.
     """
-    logger.info("Setting up rendering outputs...")
+    logging.info("Setting up rendering outputs...")
 
     view_layer: bpy.types.ViewLayer = scene.view_layers[0]
 
@@ -55,7 +37,7 @@ def setup_outputs(
     view_layer.use_pass_normal = False
     view_layer.use_pass_z = False
 
-    logger.debug(f"Passes configured", extra={
+    logging.debug(f"Passes configured", extra={
         "Object Index": view_layer.use_pass_object_index,
         "Environment": view_layer.use_pass_environment
     })
@@ -64,13 +46,13 @@ def setup_outputs(
     scene.use_nodes = True
 
     node_tree: bpy.types.CompositorNodeTree = scene.node_tree
-    render_layers: bpy.types.CompositorNodeRLayers = node_tree.nodes.get(RENDER_LAYERS)
+    render_layers: bpy.types.CompositorNodeRLayers = node_tree.nodes.get("Render Layers")
 
-    output_file_node: bpy.types.CompositorNodeOutputFile = node_tree.nodes.get(FILE_OUTPUT) or node_tree.nodes.new(
-        type=COMPOSITOR_NODE_OUTPUT_FILE)
+    output_file_node: bpy.types.CompositorNodeOutputFile = node_tree.nodes.get("File Output") or node_tree.nodes.new(
+        type="CompositorNodeOutputFile")
     output_file_node.inputs.clear()
     output_file_node.base_path = output_path
-    logger.debug(f"Output file node set to: {output_file_node.base_path}")
+    logging.debug(f"Output file node set to: {output_file_node.base_path}")
 
     if render_image:
         _setup_image_output(
@@ -106,7 +88,7 @@ def setup_outputs(
             environment_output_configuration=outputs_configuration.environment_output_configuration
         )
 
-    logger.info("Render outputs configured.", extra={
+    logging.info("Render outputs configured.", extra={
         "Render Image": render_image,
         "Render Object Index": view_layer.use_pass_object_index,
         "Render Environment": view_layer.use_pass_environment
@@ -127,7 +109,7 @@ def _setup_image_output(
         output_file_node (bpy.types.CompositorNodeOutputFile): The output file node.
         render_layers (bpy.types.CompositorNodeRLayers): The render layers node.
     """
-    logger.debug("Setting up image output.")
+    logging.debug("Setting up image output.")
     image_title = image_output_configuration.title
 
     output_file_node.file_slots.new(image_title)
@@ -140,9 +122,9 @@ def _setup_image_output(
     image_output = render_layers.outputs.get(image_title)
     if image_output:
         _ = node_tree.links.new(image_output, output_file_node.inputs[image_title])
-        logger.info(f"Linked {image_title} output to the file node.")
+        logging.info(f"Linked {image_title} output to the file node.")
     else:
-        logger.error(f"Render Layers node does not contain an '{image_title}' output.")
+        logging.error(f"Render Layers node does not contain an '{image_title}' output.")
 
 
 def _setup_object_index_output(
@@ -159,12 +141,12 @@ def _setup_object_index_output(
         render_layers (bpy.types.CompositorNodeRLayers): The render layers node.
         object_index_output_configuration (NodeOutputConfiguration): The configuration for the object index output.
     """
-    logger.debug("Setting up object index output.")
-    map_range_node_indexOB = node_tree.nodes.new(type=COMPOSITOR_NODE_MAP_RANGE)
-    map_range_node_indexOB.inputs[FROM_MIN].default_value = 0
-    map_range_node_indexOB.inputs[FROM_MAX].default_value = 255
-    map_range_node_indexOB.inputs[TO_MIN].default_value = 0
-    map_range_node_indexOB.inputs[TO_MAX].default_value = 1
+    logging.debug("Setting up object index output.")
+    map_range_node_indexOB = node_tree.nodes.new(type="CompositorNodeMapRange")
+    map_range_node_indexOB.inputs["From Min"].default_value = 0
+    map_range_node_indexOB.inputs["From Max"].default_value = 255
+    map_range_node_indexOB.inputs["To Min"].default_value = 0
+    map_range_node_indexOB.inputs["To Max"].default_value = 1
 
     index_ob_title = object_index_output_configuration.title
 
@@ -177,11 +159,11 @@ def _setup_object_index_output(
 
     index_ob_output = render_layers.outputs.get(index_ob_title)
     if index_ob_output:
-        _ = node_tree.links.new(index_ob_output, map_range_node_indexOB.inputs[VALUE])
-        _ = node_tree.links.new(map_range_node_indexOB.outputs[VALUE], output_file_node.inputs[index_ob_title])
-        logger.info(f"Linked {index_ob_title} output to the file node.")
+        _ = node_tree.links.new(index_ob_output, map_range_node_indexOB.inputs["Value"])
+        _ = node_tree.links.new(map_range_node_indexOB.outputs["Value"], output_file_node.inputs[index_ob_title])
+        logging.info(f"Linked {index_ob_title} output to the file node.")
     else:
-        logger.error(f"Render Layers node does not contain an '{index_ob_title}' output.")
+        logging.error(f"Render Layers node does not contain an '{index_ob_title}' output.")
 
 
 def _setup_id_mask_output(
@@ -199,8 +181,8 @@ def _setup_id_mask_output(
         output_file_node (bpy.types.CompositorNodeOutputFile): The output file node.
         render_layers (bpy.types.CompositorNodeRLayers): The render layers node.
     """
-    logger.debug("Setting up terrain mask output.")
-    id_mask_node = node_tree.nodes.new(type=COMPOSITOR_NODE_ID_MASK)
+    logging.debug("Setting up terrain mask output.")
+    id_mask_node = node_tree.nodes.new(type="CompositorNodeIDMask")
     id_mask_node.index = 255
     id_mask_node.use_antialiasing = True
 
@@ -217,11 +199,11 @@ def _setup_id_mask_output(
 
     id_mask_output = render_layers.outputs.get(index_ob_title)
     if id_mask_output:
-        _ = node_tree.links.new(id_mask_output, id_mask_node.inputs[ID_VALUE])
-        _ = node_tree.links.new(id_mask_node.outputs[ALPHA], output_file_node.inputs[id_mask_title])
-        logger.info(f"Linked {id_mask_title} output to the file node.")
+        _ = node_tree.links.new(id_mask_output, id_mask_node.inputs["ID value"])
+        _ = node_tree.links.new(id_mask_node.outputs["Alpha"], output_file_node.inputs[id_mask_title])
+        logging.info(f"Linked {id_mask_title} output to the file node.")
     else:
-        logger.error(f"Render Layers node does not contain an '{index_ob_title}' output for {id_mask_title}.")
+        logging.error(f"Render Layers node does not contain an '{index_ob_title}' output for {id_mask_title}.")
 
 
 def _setup_environment_mask_output(
@@ -238,7 +220,7 @@ def _setup_environment_mask_output(
         output_file_node (bpy.types.CompositorNodeOutputFile): The output file node.
         render_layers (bpy.types.CompositorNodeRLayers): The render layers node.
     """
-    logger.debug("Setting up environment mask output.")
+    logging.debug("Setting up environment mask output.")
 
     environment_title = environment_output_configuration.title
 
@@ -249,9 +231,9 @@ def _setup_environment_mask_output(
     hdri_mask_file_slot.format.color_mode = environment_output_configuration.color_mode
     hdri_mask_file_slot.path = environment_output_configuration.path
 
-    env_output = render_layers.outputs.get(ENV)
+    env_output = render_layers.outputs.get("Env")
     if env_output:
         _ = node_tree.links.new(env_output, output_file_node.inputs[environment_title])
-        logger.info(f"Linked {environment_title} output to the file node.")
+        logging.info(f"Linked {environment_title} output to the file node.")
     else:
-        logger.error("Render Layers node does not contain an 'Env' output.")
+        logging.error("Render Layers node does not contain an 'Env' output.")

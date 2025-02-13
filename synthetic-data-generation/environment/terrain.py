@@ -5,10 +5,7 @@ from pydelatin import Delatin
 import numpy as np
 from numpy.typing import NDArray
 from typing import Tuple
-
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
+import logging
 
 
 def create_delatin_mesh_from_height_map(height_map: NDArray[np.float32], seed: int = None) -> Delatin:
@@ -22,18 +19,18 @@ def create_delatin_mesh_from_height_map(height_map: NDArray[np.float32], seed: i
     Returns:
         Delatin: The Delatin object with vertices and triangles representing the mesh.
     """
-    logger.info("Creating Delatin mesh from terrain...")
+    logging.info("Creating Delatin mesh from terrain...")
 
     if seed is not None:
         np.random.seed(seed)
-        logger.info(f"Seed set to {seed}")
+        logging.info(f"Seed set to {seed}")
 
     width, height = height_map.shape
-    logger.info(f"Terrain shape: width={width}, height={height}")
+    logging.info(f"Terrain shape: width={width}, height={height}")
 
     delatin = Delatin(height_map * np.random.uniform(low=1, high=2.5), width=width, height=height)
 
-    logger.info(f"Delatin mesh created: {len(delatin.vertices)} vertices, {len(delatin.triangles)} faces.")
+    logging.info(f"Delatin mesh created: {len(delatin.vertices)} vertices, {len(delatin.triangles)} faces.")
 
     return delatin
 
@@ -64,7 +61,7 @@ def create_terrain_segmentation(
     Returns:
         Tuple[NDArray[np.float32], NDArray[np.uint8]]: Normalized height map and segmentation map.
     """
-    logger.info("Generating terrain segmentation...")
+    logging.info("Generating terrain segmentation...")
 
     normalized_height_map = _generate_fractal_heightmap(
         world_size=world_size,
@@ -106,11 +103,11 @@ def _generate_fractal_heightmap(
     Returns:
         NDArray[np.float32]: A height map (2D array) normalized to [0, 255] representing terrain heights.
     """
-    logger.info("Generating fractal height map...")
+    logging.info("Generating fractal height map...")
 
     if seed is not None:
         np.random.seed(seed)
-        logger.info(f"Seed set to {seed}")
+        logging.info(f"Seed set to {seed}")
 
     # Generate a grid of points
     grid = np.linspace(-world_size / 2, world_size / 2, 1000, endpoint=True)
@@ -122,7 +119,7 @@ def _generate_fractal_heightmap(
     lacunarity = np.random.uniform(*lacunarity)
     offset = np.random.randint(low=0.0, high=world_size // 2)
 
-    logger.info(f"Fractal noise parameters: num_octaves={num_octaves}, H={H}, lacunarity={lacunarity}, offset={offset}")
+    logging.info(f"Fractal noise parameters: num_octaves={num_octaves}, H={H}, lacunarity={lacunarity}, offset={offset}")
 
     # Generate the height map using fractal noise
     height_map = []
@@ -149,7 +146,7 @@ def _generate_fractal_heightmap(
     height_map_max = np.max(height_map)
     normalized_height_map = (height_map - height_map_min) / (height_map_max - height_map_min) * 255
 
-    logger.info(f"Fractal height map generated with dimensions: {normalized_height_map.shape}")
+    logging.info(f"Fractal height map generated with dimensions: {normalized_height_map.shape}")
 
     return normalized_height_map
 
@@ -168,7 +165,7 @@ def _create_segmentation_map(
     Returns:
         Tuple[NDArray[np.float32], NDArray[np.uint8]]: Normalized height map and RGB segmentation map.
     """
-    logger.info("Creating segmentation map...")
+    logging.info("Creating segmentation map...")
 
     # Threshold values
     lower_band = 128 - band
@@ -188,6 +185,6 @@ def _create_segmentation_map(
     # Normalize the height map to [0, 1] for further use
     height_map /= 255
 
-    logger.info(f"Segmentation map created with dimensions: {segmentation_map.shape}")
+    logging.info(f"Segmentation map created with dimensions: {segmentation_map.shape}")
 
     return height_map, segmentation_map

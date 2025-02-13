@@ -1,12 +1,10 @@
 import bpy
 from pathlib import Path
 from typing import Tuple
+import logging
 
 from bpy_utils.bpy_data import list_data_blocks_in_blend_file, BlendFilePropertyKey
 from constants.file_extensions import FileExtension
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
 
 
 def delete_object_by_selection(obj: bpy.types.Object) -> None:
@@ -20,14 +18,14 @@ def delete_object_by_selection(obj: bpy.types.Object) -> None:
         RuntimeError: If the object fails to delete.
     """
     try:
-        logger.info(f"Deleting object: '{obj.name}'")
+        logging.info(f"Deleting object: '{obj.name}'")
 
         obj.select_set(True)
         bpy.ops.object.delete()
 
-        logger.info(f"Successfully deleted object: '{obj.name}'")
+        logging.info(f"Successfully deleted object: '{obj.name}'")
     except Exception as e:
-        logger.error(f"Failed to delete object: {e}")
+        logging.error(f"Failed to delete object: {e}")
         raise
 
 
@@ -55,7 +53,7 @@ def append_object(object_path: Path) -> bpy.types.Collection:
         # Construct filepaths
         file_path, collection_path = _build_append_paths(object_path, collection_name)
 
-        logger.info(f"Appending object '{collection_name}' from collection '{collection_path}'")
+        logging.info(f"Appending object '{collection_name}' from collection '{collection_path}'")
 
         # Append the object from the collection
         bpy.ops.wm.append(
@@ -64,12 +62,12 @@ def append_object(object_path: Path) -> bpy.types.Collection:
             filename=collection_name
         )
 
-        logger.info(f"Successfully appended collection: '{collection_name}'")
+        logging.info(f"Successfully appended collection: '{collection_name}'")
 
         return bpy.data.collections[collection_name]
 
     except Exception as e:
-        logger.error(f"Failed to append object: {e}")
+        logging.error(f"Failed to append object: {e}")
         raise
 
 
@@ -84,14 +82,14 @@ def render_image(write_still: bool = True) -> None:
         Exception: If the image fails to render.
     """
     try:
-        logger.info("Rendering image...")
+        logging.info("Rendering image...")
 
         # Render the image
         bpy.ops.render.render(write_still=write_still)
 
-        logger.info("Image rendered successfully.")
+        logging.info("Image rendered successfully.")
     except Exception as e:
-        logger.error(f"Failed to render image: {e}")
+        logging.error(f"Failed to render image: {e}")
         raise
 
 
@@ -114,7 +112,7 @@ def save_as_blend_file(
         IOError: If the blend file fails to save.
     """
     filename = f"{image_name}_{iteration}.{FileExtension.BLEND.value}"
-    logger.info(f"Saving blend file: '{filename}'")
+    logging.info(f"Saving blend file: '{filename}'")
 
     try:
         directory_path = Path(directory_path)
@@ -123,9 +121,9 @@ def save_as_blend_file(
         # Save the blend file
         bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
 
-        logger.info(f"Blend file saved successfully: '{filename}'")
+        logging.info(f"Blend file saved successfully: '{filename}'")
     except Exception as e:
-        logger.error(f"Failed to save blend file: {e}")
+        logging.error(f"Failed to save blend file: {e}")
         raise
 
 

@@ -1,16 +1,11 @@
 import bpy
 from typing import List
+import logging
 
 from configuration.camera import CameraConfiguration
 from configuration.render import RenderConfiguration, EngineType
-from custom_logging.custom_logger import setup_logger
 from engine.rendering_outputs import setup_outputs
 from utils.utils import get_temporary_file_path
-
-logger = setup_logger(__name__)
-
-SCENE = "Scene"
-CYCLES_SAMPLES = 1
 
 
 def setup_rendering(
@@ -27,16 +22,16 @@ def setup_rendering(
     Raises:
         Exception: If the render engine is not supported.
     """
-    logger.info("Starting rendering setup...")
+    logging.info("Starting rendering setup...")
 
     scene = bpy.context.scene
     render: bpy.types.RenderSettings = scene.render
 
     render.engine = render_configuration.engine
-    logger.info(f"Render engine set to: {render.engine}")
+    logging.info(f"Render engine set to: {render.engine}")
 
     render.filepath = get_temporary_file_path(render_configuration)
-    logger.info(f"Render output path: {render.filepath}")
+    logging.info(f"Render output path: {render.filepath}")
 
     _setup_camera(render, camera_configuration)
     _setup_render(render, render_configuration)
@@ -53,7 +48,7 @@ def setup_rendering(
         output_path=outputs_configuration.output_path
     )
 
-    logger.info("Rendering configuration complete.")
+    logging.info("Rendering configuration complete.")
 
 
 def _setup_camera(render: bpy.types.RenderSettings, camera_configuration: CameraConfiguration) -> None:
@@ -64,10 +59,10 @@ def _setup_camera(render: bpy.types.RenderSettings, camera_configuration: Camera
         render (bpy.types.RenderSettings): The render settings.
         camera_configuration (CameraConfiguration): The camera configuration.
     """
-    logger.debug("Setting up camera resolution.")
+    logging.debug("Setting up camera resolution.")
     render.resolution_x = camera_configuration.image_width
     render.resolution_y = camera_configuration.image_height
-    logger.info(f"Camera resolution set to: {render.resolution_x}x{render.resolution_y}")
+    logging.info(f"Camera resolution set to: {render.resolution_x}x{render.resolution_y}")
 
 
 def _setup_render(render: bpy.types.RenderSettings, render_configuration: RenderConfiguration) -> None:
@@ -78,7 +73,7 @@ def _setup_render(render: bpy.types.RenderSettings, render_configuration: Render
         render (bpy.types.RenderSettings): The render settings.
         render_configuration (RenderConfiguration): The render configuration.
     """
-    logger.info("Configuring general render settings...")
+    logging.info("Configuring general render settings...")
 
     render.resolution_percentage = render_configuration.resolution_percentage
     render.image_settings.file_format = render_configuration.file_format
@@ -88,7 +83,7 @@ def _setup_render(render: bpy.types.RenderSettings, render_configuration: Render
     render.threads = render_configuration.threads
     render.image_settings.compression = render_configuration.compression
 
-    logger.info("General render settings configured.")
+    logging.info("General render settings configured.")
 
     if render_configuration.engine == EngineType.Cycles:
         _setup_cycles(render, render_configuration)
@@ -102,11 +97,11 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
         render (bpy.types.RenderSettings): The render settings.
         render_configuration (RenderConfiguration): The render configuration for Cycles.
     """
-    logger.info("Setting up Cycles rendering configuration...")
+    logging.info("Setting up Cycles rendering configuration...")
 
     cycles_configuration = render_configuration.cycles_configuration
 
-    scene: bpy.types.Scene = bpy.data.scenes[SCENE]
+    scene: bpy.types.Scene = bpy.data.scenes["Scene"]
     cycles: bpy.types.CyclesRenderSettings = scene.cycles
 
     cycles.camera_cull_margin = cycles_configuration.camera_cull_margin
@@ -117,7 +112,7 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
     cycles.feature_set = cycles_configuration.feature_set
     cycles.device = cycles_configuration.device
     cycles.tile_size = cycles_configuration.tile_size
-    cycles.samples = max(CYCLES_SAMPLES, cycles_configuration.samples)
+    cycles.samples = max(1, cycles_configuration.samples)
     cycles.use_denoising = cycles_configuration.use_denoising
     cycles.denoising_use_gpu = cycles_configuration.denoising_use_gpu
 
@@ -127,7 +122,7 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
 
     scene.view_settings.view_transform = cycles_configuration.view_transform
 
-    logger.info("Cycles rendering configuration complete.")
+    logging.info("Cycles rendering configuration complete.")
     _setup_cuda_devices(render, render_configuration)
 
 
@@ -142,7 +137,7 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings, render_configuration: 
     Raises:
         RuntimeError: If no CUDA devices are found.
     """
-    logger.info("Setting up CUDA devices for rendering...")
+    logging.info("Setting up CUDA devices for rendering...")
 
     preferences_configuration = render_configuration.preferences_configuration
 
@@ -151,7 +146,7 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings, render_configuration: 
 
     devices: List[bpy.types.bpy_prop_collection] = preferences.get_devices() or preferences.devices
     if devices is None:
-        logger.error("No CUDA devices found.")
+        logging.error("No CUDA devices found.")
         raise RuntimeError("No CUDA devices found")
 
     # Disable all devices first
@@ -163,7 +158,7 @@ def _setup_cuda_devices(render: bpy.types.RenderSettings, render_configuration: 
         devices[index].use = True
 
     enabled_devices = [device.name for device in devices if device.use]
-    logger.info(f"Enabled CUDA devices: {enabled_devices}")
+    logging.info(f"Enabled CUDA devices: {enabled_devices}")
 
 
 def _get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_device: int) -> List[int]:
@@ -177,7 +172,7 @@ def _get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_devic
     Returns:
         List[int]: The list of GPU indices.
     """
-    logger.info("Getting GPU indices...")
+    logging.info("Getting GPU indices...")
 
     num_devices = len(devices)
     if num_devices == 0:
@@ -190,5 +185,5 @@ def _get_gpu_indices(devices: List[bpy.types.bpy_prop_collection], default_devic
         # If there are more than 2 devices, skip the second index (CPU)
         gpu_indices.append(2)
 
-    logger.info(f"GPU indices selected: {gpu_indices}")
+    logging.info(f"GPU indices selected: {gpu_indices}")
     return gpu_indices

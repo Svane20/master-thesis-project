@@ -2,13 +2,7 @@ import bpy
 from pathlib import Path
 from typing import Dict
 from enum import Enum
-
-from custom_logging.custom_logger import setup_logger
-
-logger = setup_logger(__name__)
-
-SCENE = "Scene"
-VIEW_LAYER = "ViewLayer"
+import logging
 
 
 class BlendFilePropertyKey(str, Enum):
@@ -40,18 +34,18 @@ def list_data_blocks_in_blend_file(blend_file: Path, key: BlendFilePropertyKey) 
         Exception: If there’s an error loading the blend file or if the key is not found.
     """
     data_blocks_dict = {}
-    logger.info(f"Attempting to load '{key.value}' from blend file: {blend_file}")
+    logging.info(f"Attempting to load '{key.value}' from blend file: {blend_file}")
 
     try:
         with bpy.data.libraries.load(str(blend_file), link=False) as (data_from, data_to):
             if hasattr(data_from, key.value):
                 data_block = getattr(data_from, key.value)
                 data_blocks_dict = {item: [] for item in data_block}
-                logger.info(f"Loaded {key.value}: {list(data_blocks_dict.keys())} from blend_file: {blend_file}")
+                logging.info(f"Loaded {key.value}: {list(data_blocks_dict.keys())} from blend_file: {blend_file}")
             else:
-                logger.warning(f"Blend file does not contain '{key.value}': {blend_file}")
+                logging.warning(f"Blend file does not contain '{key.value}': {blend_file}")
     except Exception as e:
-        logger.error(f"Failed to load blend file: {blend_file}. Error: {e}")
+        logging.error(f"Failed to load blend file: {blend_file}. Error: {e}")
         raise
 
     return data_blocks_dict
@@ -59,8 +53,8 @@ def list_data_blocks_in_blend_file(blend_file: Path, key: BlendFilePropertyKey) 
 
 def set_scene_alpha_threshold(
         alpha_threshold: float = 0.5,
-        scene_name: str = SCENE,
-        view_layer_name: str = VIEW_LAYER
+        scene_name: str = "Scene",
+        view_layer_name: str = "ViewLayer"
 ) -> None:
     """
     Sets the alpha threshold for the specified scene's view layer.
@@ -75,10 +69,10 @@ def set_scene_alpha_threshold(
     """
     try:
         bpy.data.scenes[scene_name].view_layers[view_layer_name].pass_alpha_threshold = alpha_threshold
-        logger.info(
+        logging.info(
             f"Set alpha threshold to {alpha_threshold} for scene '{scene_name}' and view layer '{view_layer_name}'.")
     except KeyError as e:
-        logger.error(f"Failed to set alpha threshold: {e}")
+        logging.error(f"Failed to set alpha threshold: {e}")
         raise
 
 
@@ -94,4 +88,4 @@ def use_backface_culling_on_materials(use_backface_culling: bool = True) -> None
     """
     for material in bpy.data.materials:
         material.use_backface_culling = use_backface_culling
-        logger.debug(f"Set backface culling to {use_backface_culling} for material: {material.name}")
+        logging.debug(f"Set backface culling to {use_backface_culling} for material: {material.name}")
