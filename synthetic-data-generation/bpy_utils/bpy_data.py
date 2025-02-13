@@ -5,6 +5,11 @@ from enum import Enum
 import logging
 
 
+class Constants:
+    SCENE: str = "Scene"
+    VIEW_LAYER: str = "ViewLayer"
+
+
 class BlendFilePropertyKey(str, Enum):
     """
     Enum for selecting specific data blocks from a blend file.
@@ -53,8 +58,8 @@ def list_data_blocks_in_blend_file(blend_file: Path, key: BlendFilePropertyKey) 
 
 def set_scene_alpha_threshold(
         alpha_threshold: float = 0.5,
-        scene_name: str = "Scene",
-        view_layer_name: str = "ViewLayer"
+        scene_name: str = Constants.SCENE,
+        view_layer_name: str = Constants.VIEW_LAYER
 ) -> None:
     """
     Sets the alpha threshold for the specified scene's view layer.

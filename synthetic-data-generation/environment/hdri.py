@@ -10,6 +10,31 @@ from configuration.hdri import HDRIConfiguration, SunConfiguration
 from constants.file_extensions import FileExtension
 
 
+class Constants:
+    HDRI_EXTENSIONS: List[str] = [f".{FileExtension.EXR.value}", f".{FileExtension.HDR.value}"]
+    MIN: str = "min"
+    MAX: str = "max"
+
+    # Shader node types
+    SHADER_NODE_ADD_SHADER: str = "ShaderNodeAddShader"
+    SHADER_NODE_BACKGROUND: str = "ShaderNodeBackground"
+    SHADER_NODE_BLACKBODY: str = "ShaderNodeBlackbody"
+    SHADER_NODE_TEX_ENVIRONMENT: str = "ShaderNodeTexEnvironment"
+    SHADER_NODE_TEX_SKY: str = "ShaderNodeTexSky"
+    SHADER_NODE_VECTOR_MATH: str = "ShaderNodeVectorMath"
+    SHADER_NODE_OUTPUT_WORLD: str = "ShaderNodeOutputWorld"
+
+    # Node properties
+    COLOR: str = "Color"
+    STRENGTH: str = "Strength"
+    TEMPERATURE: str = "Temperature"
+    VECTOR: str = "Vector"
+    BACKGROUND: str = "Background"
+    SURFACE: str = "Surface"
+    SHADER: str = "Shader"
+    MULTIPLY: str = "MULTIPLY"
+
+
 def get_all_hdri_by_directory(directory: str) -> List[Path]:
     """
     Retrieve all HDRI files in the specified directory.
@@ -26,7 +51,7 @@ def get_all_hdri_by_directory(directory: str) -> List[Path]:
     directory = Path(directory)
 
     hdri_files = []
-    for ext in [f".{FileExtension.EXR.value}", f".{FileExtension.HDR.value}"]:
+    for ext in Constants.HDRI_EXTENSIONS:
         hdri_files += list(directory.glob(f"*{ext}"))
 
     if not hdri_files:
@@ -137,24 +162,29 @@ def _create_sky_texture_node(
     Returns:
         bpy.types.ShaderNodeTexSky: The created sky texture node.
     """
-    node_sky = tree_nodes.new(type="ShaderNodeTexSky")
+    node_sky = tree_nodes.new(type=Constants.SHADER_NODE_TEX_SKY)
 
     node_sky.sky_type = configuration.sky_type
-    node_sky.sun_size = np.deg2rad(random.uniform(sun_config.size["min"], sun_config.size["max"]))
-    node_sky.sun_elevation = np.deg2rad(random.uniform(sun_config.elevation["min"], sun_config.elevation["max"]))
-    node_sky.sun_rotation = np.deg2rad(random.uniform(sun_config.rotation["min"], sun_config.rotation["max"]))
-    node_sky.sun_intensity = random.uniform(sun_config.intensity["min"], sun_config.intensity["max"])
+    node_sky.sun_size = np.deg2rad(random.uniform(sun_config.size[Constants.MIN], sun_config.size[Constants.MAX]))
+    node_sky.sun_elevation = np.deg2rad(
+        random.uniform(sun_config.elevation[Constants.MIN], sun_config.elevation[Constants.MAX]))
+    node_sky.sun_rotation = np.deg2rad(
+        random.uniform(sun_config.rotation[Constants.MIN], sun_config.rotation[Constants.MAX]))
+    node_sky.sun_intensity = random.uniform(sun_config.intensity[Constants.MIN], sun_config.intensity[Constants.MAX])
 
     logging.debug(f"Sky texture parameters - Sun size: {node_sky.sun_size}, Elevation: {node_sky.sun_elevation}, "
                   f"Rotation: {node_sky.sun_rotation}, Intensity: {node_sky.sun_intensity}")
 
-    node_sky.altitude = random.randint(configuration.density["min"], configuration.density["max"])
-    node_sky.air_density = _clamp(random.randint(configuration.density["min"], configuration.density["max"]),
-                                  configuration.density["min"], configuration.density["max"])
-    node_sky.dust_density = _clamp(random.randint(configuration.density["min"], configuration.density["max"]),
-                                   configuration.density["min"], configuration.density["max"])
-    node_sky.ozone_density = _clamp(random.randint(configuration.density["min"], configuration.density["max"]),
-                                    configuration.density["min"], configuration.density["max"])
+    node_sky.altitude = random.randint(configuration.density[Constants.MIN], configuration.density[Constants.MAX])
+    node_sky.air_density = _clamp(
+        random.randint(configuration.density[Constants.MIN], configuration.density[Constants.MAX]),
+        configuration.density[Constants.MIN], configuration.density[Constants.MAX])
+    node_sky.dust_density = _clamp(
+        random.randint(configuration.density[Constants.MIN], configuration.density[Constants.MAX]),
+        configuration.density[Constants.MIN], configuration.density[Constants.MAX])
+    node_sky.ozone_density = _clamp(
+        random.randint(configuration.density[Constants.MIN], configuration.density[Constants.MAX]),
+        configuration.density[Constants.MIN], configuration.density[Constants.MAX])
     logging.debug(
         f"Sky texture atmospheric values - Altitude: {node_sky.altitude}, Air density: {node_sky.air_density}, "
         f"Dust density: {node_sky.dust_density}, Ozone density: {node_sky.ozone_density}")
@@ -172,10 +202,10 @@ def _create_sky_background_node(tree_nodes: bpy.types.bpy_prop_collection) -> bp
     Returns:
         bpy.types.ShaderNodeBackground: The created background node.
     """
-    node_background = tree_nodes.new(type="ShaderNodeBackground")
-    node_background.inputs["Strength"].default_value = _clamp(random.uniform(0.2, 0.6), 0.0, 1.0)
+    node_background = tree_nodes.new(type=Constants.SHADER_NODE_BACKGROUND)
+    node_background.inputs[Constants.STRENGTH].default_value = _clamp(random.uniform(0.2, 0.6), 0.0, 1.0)
 
-    logging.debug(f'Set background strength to {node_background.inputs["Strength"].default_value}')
+    logging.debug(f'Set background strength to {node_background.inputs[Constants.STRENGTH].default_value}')
 
     return node_background
 
@@ -194,7 +224,7 @@ def _link_sky_texture_nodes(
         node_background (bpy.types.ShaderNodeBackground): The background node.
     """
     links = node_tree.links
-    links.new(node_sky.outputs["Color"], node_background.inputs["Color"])
+    links.new(node_sky.outputs[Constants.COLOR], node_background.inputs[Constants.COLOR])
 
     logging.info("Linked sky texture nodes successfully.")
 
@@ -213,13 +243,13 @@ def _create_background_node(
     Returns:
         bpy.types.ShaderNodeBackground: The created background node.
     """
-    node_background = tree_nodes.new(type="ShaderNodeBackground")
-    node_background.inputs["Strength"].default_value = _clamp(
-        random.uniform(configuration.strength["min"], configuration.strength["max"]),
-        configuration.strength["min"], configuration.strength["max"]
+    node_background = tree_nodes.new(type=Constants.SHADER_NODE_BACKGROUND)
+    node_background.inputs[Constants.STRENGTH].default_value = _clamp(
+        random.uniform(configuration.strength[Constants.MIN], configuration.strength[Constants.MAX]),
+        configuration.strength[Constants.MIN], configuration.strength[Constants.MAX]
     )
 
-    logging.debug(f'Set background strength to {node_background.inputs["Strength"].default_value}')
+    logging.debug(f'Set background strength to {node_background.inputs[Constants.STRENGTH].default_value}')
 
     return node_background
 
@@ -238,7 +268,7 @@ def _create_environment_node(
     Returns:
         bpy.types.ShaderNodeTexEnvironment: The created environment node.
     """
-    node_environment = tree_nodes.new("ShaderNodeTexEnvironment")
+    node_environment = tree_nodes.new(Constants.SHADER_NODE_TEX_ENVIRONMENT)
     node_environment.image = bpy.data.images.load(path.as_posix())
 
     logging.debug("Loaded HDRI image.")
@@ -260,12 +290,12 @@ def _create_blackbody_node(
     Returns:
         bpy.types.ShaderNodeBlackbody: The created blackbody node.
     """
-    node_blackbody = tree_nodes.new("ShaderNodeBlackbody")
-    node_blackbody.inputs["Temperature"].default_value = random.randint(
-        configuration.temperature["min"], configuration.temperature["max"]
+    node_blackbody = tree_nodes.new(Constants.SHADER_NODE_BLACKBODY)
+    node_blackbody.inputs[Constants.TEMPERATURE].default_value = random.randint(
+        configuration.temperature[Constants.MIN], configuration.temperature[Constants.MAX]
     )
 
-    logging.debug(f'Set blackbody temperature to {node_blackbody.inputs["Temperature"].default_value}')
+    logging.debug(f'Set blackbody temperature to {node_blackbody.inputs[Constants.TEMPERATURE].default_value}')
 
     return node_blackbody
 
@@ -280,8 +310,8 @@ def _create_vector_math_node(tree_nodes: bpy.types.bpy_prop_collection) -> bpy.t
     Returns:
         bpy.types.ShaderNodeVectorMath: The created vector math node.
     """
-    node_multiply = tree_nodes.new("ShaderNodeVectorMath")
-    node_multiply.operation = "MULTIPLY"
+    node_multiply = tree_nodes.new(Constants.SHADER_NODE_VECTOR_MATH)
+    node_multiply.operation = Constants.MULTIPLY
 
     logging.debug("Added multiply operation for vector math.")
 
@@ -307,9 +337,9 @@ def _link_hdri_nodes(
     """
     links = node_tree.links
 
-    links.new(node_multiply.outputs["Vector"], node_background.inputs["Color"])
-    links.new(node_blackbody.outputs["Color"], node_multiply.inputs[0])
-    links.new(node_environment.outputs["Color"], node_multiply.inputs[1])
+    links.new(node_multiply.outputs[Constants.VECTOR], node_background.inputs[Constants.COLOR])
+    links.new(node_blackbody.outputs[Constants.COLOR], node_multiply.inputs[0])
+    links.new(node_environment.outputs[Constants.COLOR], node_multiply.inputs[1])
 
     logging.info("Linked HDRI nodes successfully.")
 
@@ -324,17 +354,17 @@ def _setup_world_output(tree_nodes: bpy.types.bpy_prop_collection, node_tree: bp
     """
     logging.info("Setting up world output shader.")
 
-    node_add = tree_nodes.new(type="ShaderNodeAddShader")
+    node_add = tree_nodes.new(type=Constants.SHADER_NODE_ADD_SHADER)
     links = node_tree.links
     k = 0
 
     for node in tree_nodes:
-        if "Background" in node.name:
-            links.new(node.outputs["Background"], node_add.inputs[k])
+        if Constants.BACKGROUND in node.name:
+            links.new(node.outputs[Constants.BACKGROUND], node_add.inputs[k])
             k += 1
 
-    node_output = tree_nodes.new(type="ShaderNodeOutputWorld")
-    links.new(node_add.outputs["Shader"], node_output.inputs["Surface"])
+    node_output = tree_nodes.new(type=Constants.SHADER_NODE_OUTPUT_WORLD)
+    links.new(node_add.outputs[Constants.SHADER], node_output.inputs[Constants.SURFACE])
 
     logging.info("World output shader set up successfully.")
 

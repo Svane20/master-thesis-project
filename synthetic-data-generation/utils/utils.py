@@ -8,6 +8,12 @@ from configuration.render import RenderConfiguration
 from constants.file_extensions import FileExtension
 
 
+class Constants:
+    IMAGES_DIRNAME = "images"
+    MASKS_DIRNAME = "masks"
+    BLENDER_FILES_DIRNAME = "blender_files"
+
+
 def create_directory(path: Path) -> None:
     """
     Helper function to create a directory if it does not exist.
@@ -63,11 +69,11 @@ def get_playground_directory_with_tag(configuration: Configuration) -> Path:
 
     # Create subdirectories for blender files, images and masks
     if configuration.constants.save_blend_files:
-        create_directory(directory / "blender_files")
+        create_directory(directory / Constants.BLENDER_FILES_DIRNAME)
 
     if configuration.constants.render_images:
-        create_directory(directory / "images")
-        create_directory(directory / "masks")
+        create_directory(directory / Constants.IMAGES_DIRNAME)
+        create_directory(directory / Constants.MASKS_DIRNAME)
 
     return directory
 
@@ -98,13 +104,14 @@ def move_rendered_images_to_playground(
     for image in rendered_images:
         try:
             if image_prefix in image.name:
-                filepath = _get_playground_file_path(directory, "images", image_prefix, iteration, file_extension)
+                filepath = _get_playground_file_path(directory, Constants.IMAGES_DIRNAME, image_prefix, iteration,
+                                                     file_extension)
                 image.rename(filepath)
                 logging.info(f"Moved {image.name} to {filepath}")
             elif id_mask_prefix in image.name:
                 filepath = _get_playground_file_path(
                     directory,
-                    "masks",
+                    Constants.MASKS_DIRNAME,
                     id_mask_prefix,
                     iteration,
                     file_extension
@@ -114,7 +121,7 @@ def move_rendered_images_to_playground(
             elif environment_prefix in image.name:
                 filepath = _get_playground_file_path(
                     directory,
-                    "masks",
+                    Constants.MASKS_DIRNAME,
                     environment_prefix,
                     iteration,
                     file_extension

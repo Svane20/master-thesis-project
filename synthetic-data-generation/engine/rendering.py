@@ -8,6 +8,11 @@ from engine.rendering_outputs import setup_outputs
 from utils.utils import get_temporary_file_path
 
 
+class Constants:
+    SCENE: str = "Scene"
+    CYCLES_SAMPLES: str = 1
+
+
 def setup_rendering(
         render_configuration: RenderConfiguration,
         camera_configuration: CameraConfiguration,
@@ -101,7 +106,7 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
 
     cycles_configuration = render_configuration.cycles_configuration
 
-    scene: bpy.types.Scene = bpy.data.scenes["Scene"]
+    scene: bpy.types.Scene = bpy.data.scenes[Constants.SCENE]
     cycles: bpy.types.CyclesRenderSettings = scene.cycles
 
     cycles.camera_cull_margin = cycles_configuration.camera_cull_margin
@@ -112,7 +117,7 @@ def _setup_cycles(render: bpy.types.RenderSettings, render_configuration: Render
     cycles.feature_set = cycles_configuration.feature_set
     cycles.device = cycles_configuration.device
     cycles.tile_size = cycles_configuration.tile_size
-    cycles.samples = max(1, cycles_configuration.samples)
+    cycles.samples = max(Constants.CYCLES_SAMPLES, cycles_configuration.samples)
     cycles.use_denoising = cycles_configuration.use_denoising
     cycles.denoising_use_gpu = cycles_configuration.denoising_use_gpu
 
