@@ -55,7 +55,7 @@
       "use_adaptive_sampling": true,
       "adaptive_threshold": 0.01,
       "time_limit": 240,
-      "view_transform": "Khronos PBR Neutral"
+      "view_transform": "Standard"
     },
     "preferences_configuration": {
       "compute_device_type": "CUDA"
