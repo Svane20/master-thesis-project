@@ -2,23 +2,36 @@ from pathlib import Path
 from pydantic import BaseModel
 from typing import Union, Dict
 import json
+from typing import List
+import platform
 
+from configuration.addons import AddonConfiguration
 from configuration.camera import CameraConfiguration
+from configuration.constants import Constants
+from configuration.directories import Directories
 from configuration.hdri import HDRIConfiguration
 from configuration.render import RenderConfiguration
 from configuration.terrain import TerrainConfiguration
-
-from constants.directories import CONFIG_PATH
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
 
+# Detect OS and set the configuration path accordingly
+BASE_DIRECTORY: Path = Path(__file__).resolve().parent.parent
+if platform.system() == "Windows":
+    CONFIG_PATH: Path = BASE_DIRECTORY / "configuration_windows.json"
+else:  # Assume Linux for any non-Windows OS
+    CONFIG_PATH: Path = BASE_DIRECTORY / "configuration_linux.json"
+
 
 class Configuration(BaseModel):
-    render_configuration: RenderConfiguration = RenderConfiguration()
-    camera_configuration: CameraConfiguration = CameraConfiguration()
-    terrain_configuration: TerrainConfiguration = TerrainConfiguration()
-    hdri_configuration: HDRIConfiguration = HDRIConfiguration()
+    addons: List[AddonConfiguration]
+    constants: Constants
+    directories: Directories
+    render_configuration: RenderConfiguration
+    camera_configuration: CameraConfiguration
+    terrain_configuration: TerrainConfiguration
+    hdri_configuration: HDRIConfiguration
 
 
 def load_configuration(path: Path = CONFIG_PATH) -> Union[Dict[str, Union[str, int, float, bool, dict]], None]:
@@ -45,38 +58,10 @@ def load_configuration(path: Path = CONFIG_PATH) -> Union[Dict[str, Union[str, i
         return configuration
     except FileNotFoundError as e:
         logger.error(f"Configuration file not found: {path}. Error: {e}")
-        return None
+        raise e
     except json.JSONDecodeError as e:
         logger.error(f"Invalid JSON format in configuration file: {path}. Error: {e}")
-        return None
+        raise e
     except Exception as e:
         logger.error(f"Failed to load configuration from {path}: {e}")
-        return None
-
-
-def save_configuration(
-        configuration: Dict[str, Union[str, int, float, bool, dict]],
-        path: Path = CONFIG_PATH
-) -> Dict[str, Union[str, int, float, bool, dict]]:
-    """
-    Save settings to a JSON file.
-
-    Args:
-        configuration (Dict[str, Union[str, int, float, bool, dict]]):
-            The configuration data to be saved, structured as a dictionary.
-        path (Path): The path to the JSON file where the configuration should be saved.
-
-    Returns:
-        Dict[str, Union[str, int, float, bool, dict]]: The configuration data that was saved.
-
-    Raises:
-        Exception: If the configuration could not be saved.
-    """
-    try:
-        with path.open('w') as f:
-            json.dump(configuration, f, indent=4)
-        logger.info(f"Configuration successfully saved to {path}")
-        return configuration
-    except Exception as e:
-        logger.error(f"Failed to save configuration to {path}: {e}")
-        raise
+        raise e

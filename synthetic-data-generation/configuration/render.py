@@ -2,8 +2,6 @@ from enum import Enum
 from pydantic import BaseModel
 
 from configuration.outputs import OutputsConfiguration
-from constants.directories import TEMP_DIRECTORY
-from constants.file_formats import FileFormat
 
 
 class EngineType(str, Enum):
@@ -39,20 +37,20 @@ class CyclesConfiguration(BaseModel):
         time_limit (int): Time limit for rendering in seconds.
         view_transform (str): The view transform used in rendering.
     """
-    camera_cull_margin: float = 1.0
-    distance_cull_margin: float = 200.0
-    use_camera_cull: bool = True
-    use_distance_cull: bool = True
-    feature_set: str = "SUPPORTED"
-    device: str = "GPU"
-    tile_size: int = 4096
-    samples: int = 128  # Set to a lower value for development, increase for production
-    use_denoising: bool = True
-    denoising_use_gpu: bool = True
-    use_adaptive_sampling: bool = True
-    adaptive_threshold: float = 0.01
-    time_limit: int = 240
-    view_transform: str = "Standard"
+    camera_cull_margin: float
+    distance_cull_margin: float
+    use_camera_cull: bool
+    use_distance_cull: bool
+    feature_set: str
+    device: str
+    tile_size: int
+    samples: int
+    use_denoising: bool
+    denoising_use_gpu: bool
+    use_adaptive_sampling: bool
+    adaptive_threshold: float
+    time_limit: int
+    view_transform: str
 
 
 class PreferencesConfiguration(BaseModel):
@@ -62,7 +60,7 @@ class PreferencesConfiguration(BaseModel):
     Attributes:
         compute_device_type (str): The compute device type (e.g., CUDA).
     """
-    compute_device_type: str = "CUDA"
+    compute_device_type: str
 
 
 class RenderConfiguration(BaseModel):
@@ -83,15 +81,15 @@ class RenderConfiguration(BaseModel):
         preferences_configuration (PreferencesConfiguration): The configuration for Blender preferences.
         outputs_configuration (OutputsConfiguration): The configuration for output settings.
     """
-    engine: EngineType = EngineType.Cycles
-    temp_folder: str = TEMP_DIRECTORY.as_posix()
-    resolution_percentage: int = 100
-    file_format: str = FileFormat.PNG
-    use_border: bool = True
-    use_persistent_data: bool = True
-    threads_mode: str = "FIXED"
-    threads: int = 54
-    compression: int = 0
-    cycles_configuration: CyclesConfiguration = CyclesConfiguration()
-    preferences_configuration: PreferencesConfiguration = PreferencesConfiguration()
-    outputs_configuration: OutputsConfiguration = OutputsConfiguration()
+    engine: str
+    temp_folder: str
+    resolution_percentage: int
+    file_format: str
+    use_border: bool
+    use_persistent_data: bool
+    threads_mode: str
+    threads: int
+    compression: int
+    cycles_configuration: CyclesConfiguration
+    preferences_configuration: PreferencesConfiguration
+    outputs_configuration: OutputsConfiguration

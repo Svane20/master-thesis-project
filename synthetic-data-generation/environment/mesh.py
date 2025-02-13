@@ -1,5 +1,4 @@
 import bpy
-
 import numpy as np
 from numpy.typing import NDArray
 from pydelatin import Delatin
@@ -7,7 +6,6 @@ import trimesh
 from typing import Tuple, Dict, List, Set
 
 from bpy_utils.bpy_ops import delete_object_by_selection
-from constants.defaults import WorldDefaults
 from custom_logging.custom_logger import setup_logger
 from environment.biomes import apply_biomes_to_objects
 
@@ -61,20 +59,20 @@ def convert_delatin_mesh_to_sub_meshes(
 
 
 def generate_mesh_objects_from_delation_sub_meshes(
+        world_size: int,
         delatin_sub_meshes: Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]],
         biomes_paths: List[str],
         grass_densities: Tuple[DensityRange, DensityRange, DensityRange] = ((60, 100.), (0., 0.1), (0.1, 5.)),
         biome_label_indices: Tuple[int, int, int] = (255, 0, 0),
-        world_size: int = WorldDefaults.SIZE,
 ) -> None:
     """
     Generate mesh objects from Delatin sub-meshes, apply biomes, and delete the object after.
     Args:
+        world_size (int, optional): The size of the world (terrain scaling).
         delatin_sub_meshes (Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]): The Delatin sub-meshes (vertices and faces).
         biomes_paths (List[str]): The biomes paths to be applied to the objects.
         grass_densities (Tuple[DensityRange, DensityRange, DensityRange], optional): The grass densities.
         biome_label_indices (Tuple[int, int, int], optional): The biome label indices.
-        world_size (int, optional): The size of the world (terrain scaling).
     Raises:
         ValueError: If sub-meshes or biomes are not provided.
     """

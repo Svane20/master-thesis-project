@@ -3,13 +3,12 @@ from pathlib import Path
 from typing import List, Union, Tuple, Set
 import numpy as np
 
-from constants.directories import BIOMES_DIRECTORY
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
 
 
-def get_all_biomes_by_directory(directory: Path = BIOMES_DIRECTORY) -> List[str]:
+def get_all_biomes_by_directory(directory: str) -> List[str]:
     """
     Get all biome files in the specified directory.
     Args:
@@ -17,6 +16,7 @@ def get_all_biomes_by_directory(directory: Path = BIOMES_DIRECTORY) -> List[str]
     Returns:
         List[str]: A list of biome file paths.
     """
+    directory = Path(directory)
     paths = [str(f) for f in directory.rglob("*") if str(f).endswith(".biome")]
 
     logger.info(f"Found {len(paths)} biomes in {directory}")

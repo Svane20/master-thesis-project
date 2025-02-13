@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import List
 import random
 
+from configuration.configuration import Configuration
 from configuration.hdri import HDRIConfiguration, SunConfiguration
-from constants.directories import HDRI_PURE_SKIES_DIRECTORY
 from constants.file_extensions import FileExtension
 from custom_logging.custom_logger import setup_logger
 
@@ -34,7 +34,7 @@ SHADER = "Shader"
 MULTIPLY = "MULTIPLY"
 
 
-def get_all_hdri_by_directory(directory: Path = HDRI_PURE_SKIES_DIRECTORY) -> List[Path]:
+def get_all_hdri_by_directory(directory: str) -> List[Path]:
     """
     Retrieve all HDRI files in the specified directory.
 
@@ -47,6 +47,8 @@ def get_all_hdri_by_directory(directory: Path = HDRI_PURE_SKIES_DIRECTORY) -> Li
     Raises:
         FileNotFoundError: If no HDRI files are found in the directory.
     """
+    directory = Path(directory)
+
     hdri_files = []
     for ext in HDRI_EXTENSIONS:
         hdri_files += list(directory.glob(f"*{ext}"))
@@ -59,19 +61,17 @@ def get_all_hdri_by_directory(directory: Path = HDRI_PURE_SKIES_DIRECTORY) -> Li
     return hdri_files
 
 
-def add_sky_to_scene(
-        configuration: HDRIConfiguration,
-        directory: Path = HDRI_PURE_SKIES_DIRECTORY,
-        seed: int = None
-) -> None:
+def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
     """
     Add a random sky (HDRI or sky texture) to the Blender scene.
 
     Args:
         configuration (HDRIConfiguration): The HDRI configuration.
-        directory (Path): The directory containing HDRI files. Defaults to HDRI_PURE_SKIES_DIRECTORY.
         seed (int, optional): Random seed for reproducibility. Defaults to None.
     """
+    hdri_configuration = configuration.hdri_configuration
+    directory = f"{configuration.directories.hdri_directory}/pure_skies"
+
     logger.info(f"Adding sky to the scene from directory: {directory}")
     hdri_paths = get_all_hdri_by_directory(directory)
     random_hdri_path = random.choice(hdri_paths)
@@ -83,10 +83,10 @@ def add_sky_to_scene(
     tree_nodes.clear()
 
     logger.debug("Adding HDRI to the scene.")
-    _add_hdri(configuration, random_hdri_path, tree_nodes, node_tree)
+    _add_hdri(hdri_configuration, random_hdri_path, tree_nodes, node_tree)
 
     logger.debug("Adding procedural sky texture to the scene.")
-    _add_sky_texture(configuration, tree_nodes, node_tree, seed)
+    _add_sky_texture(hdri_configuration, tree_nodes, node_tree, seed)
 
     logger.debug("Setting up world output shader.")
     _setup_world_output(tree_nodes, node_tree)

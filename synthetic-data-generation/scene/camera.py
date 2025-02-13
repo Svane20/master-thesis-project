@@ -1,6 +1,5 @@
 import bpy
 from mathutils import Vector, Euler
-
 import numpy as np
 from numpy.typing import NDArray
 

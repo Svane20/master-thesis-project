@@ -1,9 +1,7 @@
 import bpy
 
-from configuration.outputs import OutputsConfiguration, ImageOutputConfiguration, ObjectIndexOutputConfiguration, \
-    IDMaskOutputConfiguration, EnvironmentOutputConfiguration
+from configuration.outputs import OutputsConfiguration, NodeOutputConfiguration
 from configuration.render import EngineType
-from constants.directories import OUTPUT_DIRECTORY
 from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
@@ -27,12 +25,12 @@ ENV = "Env"
 
 def setup_outputs(
         scene: bpy.context.scene,
-        engine_type: EngineType,
+        engine_type: str,
         outputs_configuration: OutputsConfiguration,
         render_image: bool = True,
         render_object_index: bool = True,
         render_environment: bool = True,
-        output_path: str = OUTPUT_DIRECTORY.as_posix()
+        output_path: str = str
 ) -> None:
     """
     Set up rendering outputs for image, object index, and environment masks.
@@ -51,8 +49,8 @@ def setup_outputs(
     view_layer: bpy.types.ViewLayer = scene.view_layers[0]
 
     # Configure rendering passes based on the configuration
-    view_layer.use_pass_object_index = render_object_index and engine_type == EngineType.Cycles
-    view_layer.use_pass_environment = render_environment and engine_type == EngineType.Cycles
+    view_layer.use_pass_object_index = render_object_index and engine_type == EngineType.Cycles.value
+    view_layer.use_pass_environment = render_environment and engine_type == EngineType.Cycles.value
     view_layer.use_pass_material_index = False
     view_layer.use_pass_normal = False
     view_layer.use_pass_z = False
@@ -119,7 +117,7 @@ def _setup_image_output(
         node_tree: bpy.types.CompositorNodeTree,
         output_file_node: bpy.types.CompositorNodeOutputFile,
         render_layers: bpy.types.CompositorNodeRLayers,
-        image_output_configuration: ImageOutputConfiguration
+        image_output_configuration: NodeOutputConfiguration
 ) -> None:
     """
     Set up the image output.
@@ -151,7 +149,7 @@ def _setup_object_index_output(
         node_tree: bpy.types.CompositorNodeTree,
         output_file_node: bpy.types.CompositorNodeOutputFile,
         render_layers: bpy.types.CompositorNodeRLayers,
-        object_index_output_configuration: ObjectIndexOutputConfiguration
+        object_index_output_configuration: NodeOutputConfiguration
 ) -> None:
     """
     Set up the object index output for rendering.
@@ -159,7 +157,7 @@ def _setup_object_index_output(
     Args:
         node_tree (bpy.types.CompositorNodeTree): The compositor node tree.
         render_layers (bpy.types.CompositorNodeRLayers): The render layers node.
-        object_index_output_configuration (ObjectIndexOutputConfiguration): The configuration for the object index output.
+        object_index_output_configuration (NodeOutputConfiguration): The configuration for the object index output.
     """
     logger.debug("Setting up object index output.")
     map_range_node_indexOB = node_tree.nodes.new(type=COMPOSITOR_NODE_MAP_RANGE)
@@ -190,8 +188,8 @@ def _setup_id_mask_output(
         node_tree: bpy.types.CompositorNodeTree,
         output_file_node: bpy.types.CompositorNodeOutputFile,
         render_layers: bpy.types.CompositorNodeRLayers,
-        object_index_output_configuration: ObjectIndexOutputConfiguration,
-        id_mask_output_configuration: IDMaskOutputConfiguration,
+        object_index_output_configuration: NodeOutputConfiguration,
+        id_mask_output_configuration: NodeOutputConfiguration,
 ) -> None:
     """
     Set up the biome mask output.
@@ -230,7 +228,7 @@ def _setup_environment_mask_output(
         node_tree: bpy.types.CompositorNodeTree,
         output_file_node: bpy.types.CompositorNodeOutputFile,
         render_layers: bpy.types.CompositorNodeRLayers,
-        environment_output_configuration: EnvironmentOutputConfiguration
+        environment_output_configuration: NodeOutputConfiguration
 ) -> None:
     """
     Set up the environment mask output.

@@ -1,5 +1,4 @@
 import bpy
-
 from pathlib import Path
 from typing import Tuple
 import numpy as np
@@ -8,10 +7,8 @@ import time
 
 from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alpha_threshold
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
-from configuration.addons import install_addons
-from configuration.configuration import Configuration, load_configuration, save_configuration
-from configuration.hdri import HDRIConfiguration
-from constants.directories import HOUSES_DIRECTORY
+from addons.installation import install_addons
+from configuration.configuration import Configuration, load_configuration
 from engine.rendering import setup_rendering
 from environment.biomes import get_all_biomes_by_directory
 from environment.hdri import add_sky_to_scene
@@ -25,11 +22,6 @@ from custom_logging.custom_logger import setup_logger
 
 logger = setup_logger(__name__)
 
-IMAGE_NAME = "full_example"
-WORLD_SIZE = 100
-IMAGE_SIZE = 2048
-SEED = 1
-
 
 def clear_cube() -> None:
     """Clear the cube object if it exists"""
@@ -39,20 +31,23 @@ def clear_cube() -> None:
         bpy.ops.object.delete()
 
 
-def general_cleanup() -> None:
+def general_cleanup(configuration: Configuration) -> None:
     """Perform all necessary cleanups."""
-    cleanup_files(remove_blender_dir=True)
+    cleanup_files(configuration)
     clear_cube()
 
 
-def load_and_save_configuration() -> Configuration:
-    """Load configuration and save it for future use."""
-    save_configuration(Configuration().model_dump())
+def get_configuration() -> Configuration:
+    """
+    Loads the configuration for the Blender pipeline.
 
+    Returns:
+        Configuration: The configuration for the Blender pipeline
+
+    """
     config = load_configuration()
-    configuration = Configuration(**config)
 
-    return configuration
+    return Configuration(**config)
 
 
 def apply_render_configuration(configuration: Configuration) -> None:
@@ -63,7 +58,7 @@ def apply_render_configuration(configuration: Configuration) -> None:
     )
 
 
-def initialize() -> Tuple[Path, NDArray[np.float64]]:
+def initialize() -> Tuple[Configuration, Path, NDArray[np.float64]]:
     """
     Initialization of required elements:
 
@@ -79,49 +74,51 @@ def initialize() -> Tuple[Path, NDArray[np.float64]]:
     Returns:
         Tuple[Path, NDArray[np.float64]]: The playground directory and camera iterations.
     """
+    # Handle configuration setup
+    configuration = get_configuration()
+
     # General cleanup function to handle all object and directory cleanups
-    general_cleanup()
+    general_cleanup(configuration)
 
     # Install necessary Blender addons
-    install_addons()
-
-    # Handle configuration setup
-    configuration = load_and_save_configuration()
+    install_addons(configuration.addons)
 
     # Apply the rendering setup
     apply_render_configuration(configuration)
 
     create_random_light(
         light_name="Sun",
-        seed=SEED,
+        seed=configuration.constants.seed,
     )
 
     set_scene_alpha_threshold(alpha_threshold=0.5)
 
-    playground_directory = get_playground_directory_with_tag(output_name=IMAGE_NAME)
+    playground_directory = get_playground_directory_with_tag(configuration=configuration)
 
-    iterations = get_camera_iterations(seed=SEED)
+    iterations = get_camera_iterations(seed=configuration.constants.seed)
 
-    return playground_directory, iterations
+    return configuration, playground_directory, iterations
 
 
-def setup_terrain() -> NDArray[np.float32]:
+def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
     """
     Set up the terrain for the scene.
 
     Returns:
         NDArray[np.float32]: A height map (2D array) representing terrain.
     """
-    grass_biomes = get_all_biomes_by_directory()
+    grass_biomes = get_all_biomes_by_directory(configuration.directories.biomes_directory)
 
     # Create terrain and segmentation map
+    terrain_configuration = configuration.terrain_configuration
     height_map, segmentation_map = create_terrain_segmentation(
-        world_size=WORLD_SIZE,
-        image_size=IMAGE_SIZE,
+        world_size=int(terrain_configuration.world_size),
+        image_size=terrain_configuration.image_size,
+        noise_basis=terrain_configuration.noise_basis,
         num_octaves=(1, 2),
         H=(0.0, 0.0),
         lacunarity=(0.5, 0.5),
-        seed=SEED
+        seed=configuration.constants.seed
     )
 
     delatin_mesh = create_delatin_mesh_from_height_map(height_map)
@@ -130,17 +127,18 @@ def setup_terrain() -> NDArray[np.float32]:
     generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes=delatin_sub_meshes,
         biomes_paths=grass_biomes,
-        world_size=WORLD_SIZE,
+        world_size=int(terrain_configuration.world_size),
     )
 
     return height_map
 
 
-def spawn_objects_in_the_scene(height_map: NDArray[np.float32]) -> None:
+def spawn_objects_in_the_scene(configuration: Configuration, height_map: NDArray[np.float32]) -> None:
     """
     Spawn objects in the scene.
 
     Args:
+        configuration (Configuration): The configuration for the scene.
         height_map (NDArray[np.float32]): The terrain height map.
     """
 
@@ -148,42 +146,42 @@ def spawn_objects_in_the_scene(height_map: NDArray[np.float32]) -> None:
     spawn_objects(
         num_objects=1,
         positions=np.array([[0, 0]]),
-        path=HOUSES_DIRECTORY,
+        filepath=f"{configuration.directories.models_directory}/houses",
         height_map=height_map,
-        world_size=WORLD_SIZE,
-        seed=SEED
+        world_size=configuration.terrain_configuration.world_size,
+        seed=configuration.constants.seed
     )
 
     # Set backface culling for all materials
     use_backface_culling_on_materials()
 
 
-def setup_the_sky(configuration: HDRIConfiguration) -> None:
+def setup_the_sky(configuration: Configuration) -> None:
     """
     Set up the sky for the scene.
 
     Args:
-        configuration (HDRIConfiguration): The HDRI configuration.
+        configuration (Configuration): The configuration for the scene.
     """
-    add_sky_to_scene(configuration=configuration, seed=SEED)
+    add_sky_to_scene(configuration=configuration, seed=configuration.constants.seed)
 
 
-def setup_scene() -> Tuple[Path, NDArray[np.float32], NDArray[np.float64]]:
+def setup_scene() -> Tuple[Configuration, Path, NDArray[np.float32], NDArray[np.float64]]:
     """
     Initialize the scene.
 
     Returns:
         Tuple[Path, NDArray[np.float32], NDArray[np.float64]]: The playground directory, the height map and camera iterations.
     """
-    playground_directory, iterations = initialize()
+    configuration, playground_directory, iterations = initialize()
 
-    height_map = setup_terrain()
+    height_map = setup_terrain(configuration)
 
-    spawn_objects_in_the_scene(height_map)
+    spawn_objects_in_the_scene(configuration, height_map)
 
-    setup_the_sky(configuration=HDRIConfiguration())
+    setup_the_sky(configuration)
 
-    return playground_directory, height_map, iterations
+    return configuration, playground_directory, height_map, iterations
 
 
 def main() -> None:
@@ -193,9 +191,19 @@ def main() -> None:
     logger.info("Script execution started.")
 
     # Set up the scene
-    playground_directory, height_map, iterations = setup_scene()
+    configuration, playground_directory, height_map, iterations = setup_scene()
     total_iterations = len(iterations)
     logger.info(f"Total iterations: {total_iterations}")
+
+    # Constants
+    project_name = configuration.constants.project_name
+    world_size = int(configuration.terrain_configuration.world_size)
+    seed = configuration.constants.seed
+    blender_files_directory = f"{playground_directory}/blender_files"
+    outputs_configuration = configuration.render_configuration.outputs_configuration
+
+    # Track execution times for estimation
+    elapsed_times = []
 
     # Render images from multiple camera angles
     for index, iteration in enumerate(iterations):
@@ -206,31 +214,51 @@ def main() -> None:
         location = get_random_camera_location(
             iteration=iteration,
             height_map=height_map,
-            world_size=WORLD_SIZE,
-            seed=SEED
+            world_size=world_size,
+            seed=seed
         )
 
         update_camera_position(location=location)
 
-        if index == 0:
-            save_as_blend_file(image_name=IMAGE_NAME, iteration=index)
+        # Save the Blender file
+        if configuration.constants.save_blend_files:
+            save_as_blend_file(image_name=project_name, iteration=index, directory_path=blender_files_directory)
 
-        render_image(write_still=True)
+        # Render the image
+        if configuration.constants.render_images:
+            render_image(write_still=True)
 
-        # Rename the rendered image and mask(s)
-        move_rendered_images_to_playground(directory=playground_directory, iteration=index)
+            # Rename the rendered image and mask(s)
+            move_rendered_images_to_playground(
+                configuration=outputs_configuration,
+                directory=playground_directory,
+                iteration=index
+            )
 
         # Log the elapsed time for rendering the current image
         end_time = time.perf_counter()
         elapsed_time = end_time - start_time
+        elapsed_times.append(elapsed_time)  # Store elapsed time for averaging
+
         minutes, seconds = divmod(elapsed_time, 60)
         logger.info(
             f"Image {current_iteration}/{total_iterations} rendered successfully "
             f"(Execution time: {int(minutes)} minutes and {seconds:.2f} seconds)"
         )
 
+        # Calculate remaining time estimate
+        if elapsed_times:
+            avg_time_per_iteration = sum(elapsed_times) / len(elapsed_times)
+            remaining_iterations = total_iterations - current_iteration
+            estimated_remaining_time = avg_time_per_iteration * remaining_iterations
+            est_minutes, est_seconds = divmod(estimated_remaining_time, 60)
+
+            logger.info(
+                f"Estimated time remaining: {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
+            )
+
     # Cleanup temporary files generated during rendering
-    cleanup_files()
+    cleanup_files(configuration)
     logger.info("Temporary files cleaned up.")
 
     # Log the total execution time of the script
