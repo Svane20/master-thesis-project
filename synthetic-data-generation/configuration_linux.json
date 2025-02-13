@@ -110,14 +110,18 @@
     "grass_configuration": {
       "directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/biomes",
       "keywords": [
-        "clean_grass"
+        "Clean Grass",
+        "Garden Grass",
+        "Wild Grass",
+        "Tall Grass"
       ]
     },
     "not_grass_configuration": {
       "directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/biomes",
       "keywords": [
-        "soil",
-        "rock"
+        "Mulch",
+        "Pebbles",
+        "Flowers"
       ]
     }
   },

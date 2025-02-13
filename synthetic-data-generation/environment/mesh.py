@@ -58,6 +58,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
         world_size: int,
         delatin_sub_meshes: Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]],
         grass_biomes_path: List[str],
+        not_grass_biomes_path: List[str],
         grass_densities: Tuple[
             Tuple[float, float],
             Tuple[float, float],
@@ -76,6 +77,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
         world_size (int, optional): The size of the world (terrain scaling).
         delatin_sub_meshes (Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]): The Delatin sub-meshes (vertices and faces).
         grass_biomes_path (List[str]): The grass biomes paths to be applied to the objects.
+        not_grass_biomes_path (List[str]): The not grass biomes paths to be applied to the objects.
         grass_densities (Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]], optional): The grass densities.
         tree_densities (Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]], optional): The tree densities.
         biome_label_indices (Tuple[int, int, int], optional): The biome label indices.
@@ -96,7 +98,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
     ) in enumerate(
         zip(
             delatin_sub_meshes.values(),
-            (grass_biomes_path, grass_biomes_path, grass_biomes_path),
+            (grass_biomes_path, not_grass_biomes_path, not_grass_biomes_path),
             grass_densities,
             tree_densities,
             biome_label_indices
@@ -122,24 +124,19 @@ def generate_mesh_objects_from_delation_sub_meshes(
         logging.info(f"Mesh object '{object_name}' added to the scene.")
         # Get object names after creation
         new_object_names = bpy.data.objects.keys()
-        # Get the unique object names that were created
-        unique_object_names = _get_unique_object_names(
-            existing_object_names=existing_object_names,
-            new_object_names=new_object_names
-        )
-        logging.debug(f"Unique object names created: {unique_object_names}")
+
+        logging.debug(f"Unique object names created: {set(new_object_names) - set(existing_object_names)}")
 
         # Apply a random grass biome to the object
         if biomes_path_flag:
-            logging.info(f"Applying biomes to {len(unique_object_names)} objects.")
+            logging.info(f"Applying biomes to {len(set(new_object_names) - set(existing_object_names))} objects.")
 
-            for o_name in unique_object_names:
+            for o_name in set(new_object_names) - set(existing_object_names):
                 bpy_object = get_object_by_name(o_name)
                 if bpy_object is None:
                     continue
 
                 random_biome_path = np.random.choice(biomes_path_flag)
-                logging.info(f"Applying biome from {random_biome_path} to object '{bpy_object.name}'.")
 
                 apply_biome(
                     bpy_object=bpy_object,
@@ -152,7 +149,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
 
         # # Apply a random tree biome to the object
         # apply_biomes_to_objects(
-        #     unique_object_names=unique_object_names,
+        #     unique_object_names=set(new_object_names) - set(existing_object_names),
         #     biome_paths=grass_biomes_path,
         #     density=density_tree,
         #     label_index=0,

@@ -11,7 +11,6 @@ from configuration.constants import Constants
 from configuration.directories import Directories
 from configuration.hdri import HDRIConfiguration
 from configuration.render import RenderConfiguration
-from configuration.spawn_objects import SpawnObjectsConfiguration
 from configuration.terrain import TerrainConfiguration
 
 
@@ -22,7 +21,6 @@ class Configuration(BaseModel):
     render_configuration: RenderConfiguration
     camera_configuration: CameraConfiguration
     terrain_configuration: TerrainConfiguration
-    spawn_objects_configuration: SpawnObjectsConfiguration
     hdri_configuration: HDRIConfiguration
 
 

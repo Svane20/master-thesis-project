@@ -1,17 +1,21 @@
 {
   "addons": [
     {
-      "install": true,
       "plugin_title": "Biome-Reader",
       "plugin_path": "C:/Thesis/plugins/BiomeReaderPlugin.zip",
-      "package_path": "C:/Thesis/packages/plant_library.scatpack",
+      "package_path": null,
       "library_paths": [
         "C:/Thesis/assets/data/plant_library"
       ]
     },
     {
-      "install": true,
-      "plugin_title": "Vegetation",
+      "plugin_title": "Grassblade",
+      "plugin_path": "C:/Thesis/plugins/GrassbladePro.zip",
+      "package_path": "C:/Thesis/packages/GrassbladePro_v2.6.scatpack",
+      "library_paths": null
+    },
+    {
+      "plugin_title": null,
       "plugin_path": "C:/Thesis/plugins/Vegetation_V5.1_Addon.zip",
       "package_path": "C:/Thesis/packages/Vegetation_v5.1fix2_Geoscatter_Biomes_Pro.scatpack",
       "library_paths": [
@@ -104,20 +108,24 @@
     "noise_basis": "PERLIN_ORIGINAL",
     "prob_of_trees": 0.25,
     "trees_configuration": {
-      "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/biomes",
+      "directory": "C:/Users/svane/AppData/Roaming/Blender Foundation/Blender/data/scatter library/_biomes_/Vegetation",
       "keywords": null
     },
     "grass_configuration": {
-      "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/biomes",
+      "directory": "C:/Users/svane/AppData/Roaming/Blender Foundation/Blender/data/scatter library/_biomes_/Grassblade",
       "keywords": [
-        "clean_grass"
+        "Clean Grass",
+        "Garden Grass",
+        "Wild Grass",
+        "Tall Grass"
       ]
     },
     "not_grass_configuration": {
-      "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/biomes",
+      "directory": "C:/Users/svane/AppData/Roaming/Blender Foundation/Blender/data/scatter library/_biomes_/Grassblade",
       "keywords": [
-        "soil",
-        "rock"
+        "Mulch",
+        "Pebbles",
+        "Flowers"
       ]
     }
   },

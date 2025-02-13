@@ -6,11 +6,10 @@ class AddonConfiguration(BaseModel):
     """
     Configuration class for managing the plant library in Blender.
     """
-    install: bool
-    plugin_title: str
-    plugin_path: str
-    package_path: str
-    library_paths: List[str]
+    plugin_title: str | None
+    plugin_path: str | None
+    package_path: str | None
+    library_paths: List[str] | None
 
 
 class AddonsConfiguration(BaseModel):
