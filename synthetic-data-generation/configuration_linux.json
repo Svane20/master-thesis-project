@@ -3,19 +3,19 @@
     {
       "install": true,
       "plugin_title": "Biome-Reader",
-      "plugin_path": "C:/Thesis/plugins/BiomeReaderPlugin.zip",
-      "package_path": "C:/Thesis/packages/plant_library.scatpack",
+      "plugin_path": "/home/kasv/blender_data/plugins/BiomeReaderPlugin.zip",
+      "package_path": "/home/kasv/blender_data/packages/plant_library.scatpack",
       "library_paths": [
-        "C:/Thesis/assets/data/plant_library"
+        "/home/kasv/blender_data/assets/data/plant_library"
       ]
     },
     {
       "install": true,
       "plugin_title": "Vegetation",
-      "plugin_path": "C:/Thesis/plugins/Vegetation_V5.1_Addon.zip",
-      "package_path": "C:/Thesis/packages/Vegetation_v5.1fix2_Geoscatter_Biomes_Pro.scatpack",
+      "plugin_path": "/home/kasv/blender_data/plugins/Vegetation_V5.1_Addon.zip",
+      "package_path": "/home/kasv/blender_data/packages/Vegetation_v5.1fix2_Geoscatter_Biomes_Pro.scatpack",
       "library_paths": [
-        "C:/Thesis/assets/data/vegetation"
+        "/home/kasv/blender_data/assets/data/vegetation"
       ]
     }
   ],
@@ -26,14 +26,14 @@
     "seed": 1
   },
   "directories": {
-    "playground_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/playground",
-    "biomes_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/biomes",
-    "hdri_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/hdri",
-    "models_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/models"
+    "playground_directory": "/home/kasv/master-thesis-project/synthetic-data-generation/playground",
+    "biomes_directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/biomes",
+    "hdri_directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/hdri",
+    "models_directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/models"
   },
   "render_configuration": {
     "engine": "CYCLES",
-    "temp_folder": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/temp",
+    "temp_folder": "/home/kasv/master-thesis-project/synthetic-data-generation/temp",
     "resolution_percentage": 100,
     "file_format": "PNG",
     "use_border": true,
@@ -64,7 +64,7 @@
       "render_image": true,
       "render_object_index": true,
       "render_environment": true,
-      "output_path": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/output",
+      "output_path": "/home/kasv/master-thesis-project/synthetic-data-generation/output",
       "image_output_configuration": {
         "title": "Image",
         "use_node_format": false,
