@@ -108,11 +108,11 @@
     "noise_basis": "PERLIN_ORIGINAL",
     "prob_of_trees": 0.25,
     "trees_configuration": {
-      "directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/biomes",
+      "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Vegetation",
       "keywords": null
     },
     "grass_configuration": {
-      "directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/biomes",
+      "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Grassblade",
       "keywords": [
         "Clean Grass",
         "Garden Grass",
@@ -121,7 +121,7 @@
       ]
     },
     "not_grass_configuration": {
-      "directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/biomes",
+      "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Grassblade",
       "keywords": [
         "Mulch",
         "Pebbles",
