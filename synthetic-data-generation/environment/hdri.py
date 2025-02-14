@@ -5,8 +5,10 @@ from typing import List
 import random
 import logging
 
+from scipy.linalg import solve_lyapunov
+
 from configuration.configuration import Configuration
-from configuration.hdri import HDRIConfiguration, SunConfiguration
+from configuration.sky import SkyConfiguration, SunConfiguration
 from constants.file_extensions import FileExtension
 
 
@@ -67,11 +69,11 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
     Add a random sky (HDRI or sky texture) to the Blender scene.
 
     Args:
-        configuration (HDRIConfiguration): The HDRI configuration.
+        configuration (Configuration): The HDRI configuration.
         seed (int, optional): Random seed for reproducibility. Defaults to None.
     """
-    hdri_configuration = configuration.hdri_configuration
-    directory = f"{configuration.directories.hdri_directory}/pure_skies"
+    sky_configuration = configuration.sky_configuration
+    directory = configuration.sky_configuration.directory
 
     logging.info(f"Adding sky to the scene from directory: {directory}")
     hdri_paths = get_all_hdri_by_directory(directory)
@@ -84,17 +86,17 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
     tree_nodes.clear()
 
     logging.debug("Adding HDRI to the scene.")
-    _add_hdri(hdri_configuration, random_hdri_path, tree_nodes, node_tree)
+    _add_hdri(sky_configuration, random_hdri_path, tree_nodes, node_tree)
 
     logging.debug("Adding procedural sky texture to the scene.")
-    _add_sky_texture(hdri_configuration, tree_nodes, node_tree, seed)
+    _add_sky_texture(sky_configuration, tree_nodes, node_tree, seed)
 
     logging.debug("Setting up world output shader.")
     _setup_world_output(tree_nodes, node_tree)
 
 
 def _add_hdri(
-        configuration: HDRIConfiguration,
+        configuration: SkyConfiguration,
         path: Path,
         tree_nodes: bpy.types.bpy_prop_collection,
         node_tree: bpy.types.ShaderNodeTree
@@ -103,7 +105,7 @@ def _add_hdri(
     Add HDRI node setup to the node tree.
 
     Args:
-        configuration (HDRIConfiguration): The configuration for HDRI settings.
+        configuration (SkyConfiguration): The configuration for HDRI settings.
         path (Path): The path to the HDRI file.
         tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
         node_tree (bpy.types.ShaderNodeTree): The node tree to which the HDRI nodes will be added.
@@ -119,7 +121,7 @@ def _add_hdri(
 
 
 def _add_sky_texture(
-        configuration: HDRIConfiguration,
+        configuration: SkyConfiguration,
         tree_nodes: bpy.types.bpy_prop_collection,
         node_tree: bpy.types.ShaderNodeTree,
         seed: int = None
@@ -128,7 +130,7 @@ def _add_sky_texture(
     Add a procedural sky texture node setup to the node tree.
 
     Args:
-        configuration (HDRIConfiguration): The configuration for sky settings.
+        configuration (SkyConfiguration): The configuration for sky settings.
         tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
         node_tree (bpy.types.ShaderNodeTree): The node tree to which the sky texture nodes will be added.
         seed (int, optional): Random seed for reproducibility. Defaults to None.
@@ -149,7 +151,7 @@ def _add_sky_texture(
 def _create_sky_texture_node(
         tree_nodes: bpy.types.bpy_prop_collection,
         sun_config: SunConfiguration,
-        configuration: HDRIConfiguration
+        configuration: SkyConfiguration
 ) -> bpy.types.ShaderNodeTexSky:
     """
     Create a procedural sky texture node.
@@ -157,7 +159,7 @@ def _create_sky_texture_node(
     Args:
         tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
         sun_config (SunConfiguration): The sun configuration for the sky texture.
-        configuration (HDRIConfiguration): The configuration for sky settings.
+        configuration (SkyConfiguration): The configuration for sky settings.
 
     Returns:
         bpy.types.ShaderNodeTexSky: The created sky texture node.
@@ -231,14 +233,14 @@ def _link_sky_texture_nodes(
 
 def _create_background_node(
         tree_nodes: bpy.types.bpy_prop_collection,
-        configuration: HDRIConfiguration
+        configuration: SkyConfiguration
 ) -> bpy.types.ShaderNodeBackground:
     """
     Create a background node with strength from configuration.
 
     Args:
         tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
-        configuration (HDRIConfiguration): The configuration for HDRI settings.
+        configuration (SkyConfiguration): The configuration for HDRI settings.
 
     Returns:
         bpy.types.ShaderNodeBackground: The created background node.
@@ -278,14 +280,14 @@ def _create_environment_node(
 
 def _create_blackbody_node(
         tree_nodes: bpy.types.bpy_prop_collection,
-        configuration: HDRIConfiguration
+        configuration: SkyConfiguration
 ) -> bpy.types.ShaderNodeBlackbody:
     """
     Create a blackbody node with temperature from configuration.
 
     Args:
         tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
-        configuration (HDRIConfiguration): The configuration for HDRI settings.
+        configuration (SkyConfiguration): The configuration for HDRI settings.
 
     Returns:
         bpy.types.ShaderNodeBlackbody: The created blackbody node.

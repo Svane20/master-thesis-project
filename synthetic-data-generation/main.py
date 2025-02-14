@@ -6,11 +6,13 @@ from numpy.typing import NDArray
 import time
 import logging
 import platform
+from scipy.stats.qmc import Halton
 
 from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alpha_threshold
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
 from addons.installation import install_addons
 from configuration.configuration import Configuration, load_configuration
+from configuration.spawn_objects import SpawnObjectsConfiguration
 from engine.rendering import setup_rendering
 from environment.biomes import get_all_biomes_by_directory
 from environment.hdri import add_sky_to_scene
@@ -65,7 +67,7 @@ def apply_render_configuration(configuration: Configuration) -> None:
     )
 
 
-def initialize() -> Tuple[Configuration, Path, NDArray[np.float64]]:
+def initialize() -> Configuration:
     """
     Initialization of required elements:
 
@@ -75,11 +77,9 @@ def initialize() -> Tuple[Configuration, Path, NDArray[np.float64]]:
     - Prepare Blender scene
     - Add a light to the scene.
     - Set the alpha threshold for the scene.
-    - Generate the playground directory.
-    - Get the camera iterations.
 
     Returns:
-        Tuple[Path, NDArray[np.float64]]: The playground directory and camera iterations.
+        Configuration: The configuration for the Blender pipeline
     """
     # Handle configuration setup
     configuration = get_configuration()
@@ -93,18 +93,16 @@ def initialize() -> Tuple[Configuration, Path, NDArray[np.float64]]:
     # Apply the rendering setup
     apply_render_configuration(configuration)
 
+    # Create light
     create_random_light(
         light_name="Sun",
         seed=configuration.constants.seed,
     )
 
+    # Set the alpha threshold of the scene
     set_scene_alpha_threshold(alpha_threshold=0.5)
 
-    playground_directory = get_playground_directory_with_tag(configuration=configuration)
-
-    iterations = get_camera_iterations(seed=configuration.constants.seed)
-
-    return configuration, playground_directory, iterations
+    return configuration
 
 
 def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
@@ -114,17 +112,27 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
     Returns:
         NDArray[np.float32]: A height map (2D array) representing terrain.
     """
-    grass_biomes = get_all_biomes_by_directory(configuration.directories.biomes_directory)
+    terrain_configuration = configuration.terrain_configuration
+
+    # Get all biomes
+    tree_biomes = get_all_biomes_by_directory(
+        directory=terrain_configuration.trees_configuration.directory,
+        keywords=terrain_configuration.trees_configuration.keywords,
+    )
+    grass_biomes = get_all_biomes_by_directory(
+        directory=terrain_configuration.grass_configuration.directory,
+        keywords=terrain_configuration.grass_configuration.keywords
+    )
+    not_grass_biomes = get_all_biomes_by_directory(
+        directory=terrain_configuration.not_grass_configuration.directory,
+        keywords=terrain_configuration.not_grass_configuration.keywords
+    )
 
     # Create terrain and segmentation map
-    terrain_configuration = configuration.terrain_configuration
     height_map, segmentation_map = create_terrain_segmentation(
         world_size=int(terrain_configuration.world_size),
         image_size=terrain_configuration.image_size,
         noise_basis=terrain_configuration.noise_basis,
-        num_octaves=(1, 2),
-        H=(0.0, 0.0),
-        lacunarity=(0.5, 0.5),
         seed=configuration.constants.seed
     )
 
@@ -133,31 +141,52 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
 
     generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes=delatin_sub_meshes,
-        biomes_paths=grass_biomes,
+        tree_biomes_path=tree_biomes,
+        grass_biomes_path=grass_biomes,
+        not_grass_biomes_path=not_grass_biomes,
+        generate_trees=terrain_configuration.generate_trees,
         world_size=int(terrain_configuration.world_size),
+        seed=configuration.constants.seed
     )
 
     return height_map
 
 
-def spawn_objects_in_the_scene(configuration: Configuration, height_map: NDArray[np.float32]) -> None:
+def spawn_objects_in_the_scene(
+        configuration: SpawnObjectsConfiguration,
+        world_size: float,
+        height_map: NDArray[np.float32],
+        seed: int = None
+) -> None:
     """
     Spawn objects in the scene.
 
     Args:
         configuration (Configuration): The configuration for the scene.
+        world_size (float): The world size of the scene.
         height_map (NDArray[np.float32]): The terrain height map.
+        seed (int, optional): The seed for the random number generator.
     """
+    # Spawn objects on the terrain
+    for spawn_object in configuration.spawn_objects:
+        if not spawn_object.should_spawn:
+            continue
 
-    # Spawn House on the terrain
-    spawn_objects(
-        num_objects=1,
-        positions=np.array([[0, 0]]),
-        filepath=f"{configuration.directories.models_directory}/houses",
-        height_map=height_map,
-        world_size=configuration.terrain_configuration.world_size,
-        seed=configuration.constants.seed
-    )
+        if spawn_object.use_halton:
+            halton = Halton(d=2)
+            position = ((halton.random(n=30) - 0.5) * world_size).reshape(-1, 2)
+        else:
+            assert spawn_object.position is not None, "Spawn location is not set for spawn object"
+            position = np.array([spawn_object.position])
+
+        spawn_objects(
+            num_objects=spawn_object.num_objects,
+            positions=position,
+            filepath=spawn_object.directory,
+            height_map=height_map,
+            world_size=world_size,
+            seed=seed
+        )
 
     # Set backface culling for all materials
     use_backface_culling_on_materials()
@@ -173,22 +202,31 @@ def setup_the_sky(configuration: Configuration) -> None:
     add_sky_to_scene(configuration=configuration, seed=configuration.constants.seed)
 
 
-def setup_scene() -> Tuple[Configuration, Path, NDArray[np.float32], NDArray[np.float64]]:
+def setup_scene() -> Tuple[Configuration, NDArray[np.float32]]:
     """
     Initialize the scene.
 
+    - Generate the terrain
+    - Spawn objects in the scene.
+    - Generate the sky for the scene.
+
     Returns:
-        Tuple[Path, NDArray[np.float32], NDArray[np.float64]]: The playground directory, the height map and camera iterations.
+        Tuple[Path, NDArray[np.float32]]: The configuration and the height map.
     """
-    configuration, playground_directory, iterations = initialize()
+    configuration = initialize()
 
     height_map = setup_terrain(configuration)
 
-    spawn_objects_in_the_scene(configuration, height_map)
+    spawn_objects_in_the_scene(
+        configuration=configuration.spawn_objects_configuration,
+        world_size=configuration.terrain_configuration.world_size,
+        height_map=height_map,
+        seed=configuration.constants.seed
+    )
 
     setup_the_sky(configuration)
 
-    return configuration, playground_directory, height_map, iterations
+    return configuration, height_map
 
 
 def main() -> None:
@@ -200,9 +238,16 @@ def main() -> None:
     logging.info("Script execution started.")
 
     # Set up the scene
-    configuration, playground_directory, height_map, iterations = setup_scene()
+    configuration, height_map = setup_scene()
+
+    # Create output directory and set camera iterations
+    playground_directory = get_playground_directory_with_tag(configuration=configuration)
+    iterations = get_camera_iterations(
+        num_iterations=configuration.constants.num_iterations,
+        seed=configuration.constants.seed
+    )
     total_iterations = len(iterations)
-    logging.info(f"Total iterations: {total_iterations}")
+    logging.info(f"Total image generation iterations: {total_iterations}")
 
     # Track execution times for estimation
     elapsed_times = []
@@ -224,7 +269,7 @@ def main() -> None:
 
         # Save the Blender file
         if configuration.constants.save_blend_files:
-            save_as_blend_file(iteration=index, directory_path=f"{playground_directory}/blender_files")
+            save_as_blend_file(iteration=index, directory_path=str(playground_directory))
 
         # Render the image
         if configuration.constants.render_images:

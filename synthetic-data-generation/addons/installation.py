@@ -13,12 +13,14 @@ def install_addons(addons: List[AddonConfiguration]) -> None:
     logging.info("Starting addons installation process.")
 
     for addon in addons:
-        if not addon.install:
-            continue
+        if addon.plugin_path:
+            _install_addon(addon.plugin_title, addon.plugin_path)
 
-        _install_addon(addon.plugin_title, addon.plugin_path)
-        _add_asset_libraries(addon.library_paths)
-        _install_package(addon.package_path)
+        if addon.library_paths:
+            _add_asset_libraries(addon.library_paths)
+
+        if addon.package_path:
+            _install_package(addon.package_path)
 
     bpy.ops.scatter5.reload_biome_library()
     logging.info("Addons installation complete. Biome library reloaded.")

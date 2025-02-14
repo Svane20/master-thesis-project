@@ -60,8 +60,8 @@ def get_playground_directory_with_tag(configuration: Configuration) -> Path:
     Returns:
         Path: The path to the playground directory.
     """
-    current_time = datetime.now(timezone.utc).strftime("%H_%M_%d-%m-%Y")
-    directory = Path(configuration.directories.playground_directory) / current_time
+    current_time = datetime.now(timezone.utc).strftime("%H-%M_%d-%m-%Y")
+    directory = Path(configuration.constants.playground_directory) / current_time
     create_directory(directory)
 
     # Create subdirectories for blender files, images and masks
