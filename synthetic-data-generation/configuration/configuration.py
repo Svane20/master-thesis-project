@@ -8,9 +8,9 @@ import logging
 from configuration.addons import AddonConfiguration
 from configuration.camera import CameraConfiguration
 from configuration.constants import Constants
-from configuration.directories import Directories
-from configuration.hdri import HDRIConfiguration
+from configuration.sky import SkyConfiguration
 from configuration.render import RenderConfiguration
+from configuration.spawn_objects import SpawnObjectsConfiguration
 from configuration.terrain import TerrainConfiguration
 
 
@@ -21,19 +21,18 @@ class Configuration(BaseModel):
     Attributes:
         addons (List[AddonConfiguration]): A list of addon configurations.
         constants (List[Constant]): A list of constant configurations.
-        directories (List[Directories]): A list of directories configurations.
         render_configuration (RenderConfiguration): Render configuration.
         camera_configuration (CameraConfiguration): Camera configuration.
         terrain_configuration (TerrainConfiguration): Terrain configuration.
-        hdri_configuration (HDRIConfiguration): HDRI configuration.
+        sky_configuration (SkyConfiguration): HDRI configuration.
     """
     addons: List[AddonConfiguration]
     constants: Constants
-    directories: Directories
     render_configuration: RenderConfiguration
     camera_configuration: CameraConfiguration
     terrain_configuration: TerrainConfiguration
-    hdri_configuration: HDRIConfiguration
+    spawn_objects_configuration: SpawnObjectsConfiguration
+    sky_configuration: SkyConfiguration
 
 
 def load_configuration(path: Path) -> Union[Dict[str, Union[str, int, float, bool, dict]], None]:

@@ -12,6 +12,7 @@ from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alph
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
 from addons.installation import install_addons
 from configuration.configuration import Configuration, load_configuration
+from configuration.spawn_objects import SpawnObjectsConfiguration
 from engine.rendering import setup_rendering
 from environment.biomes import get_all_biomes_by_directory
 from environment.hdri import add_sky_to_scene
@@ -151,25 +152,31 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
     return height_map
 
 
-def spawn_objects_in_the_scene(configuration: Configuration, height_map: NDArray[np.float32]) -> None:
+def spawn_objects_in_the_scene(
+        configuration: SpawnObjectsConfiguration,
+        world_size: float,
+        height_map: NDArray[np.float32],
+        seed: int = None
+) -> None:
     """
     Spawn objects in the scene.
 
     Args:
         configuration (Configuration): The configuration for the scene.
+        world_size (float): The world size of the scene.
         height_map (NDArray[np.float32]): The terrain height map.
+        seed (int, optional): The seed for the random number generator.
     """
-    world_size = configuration.terrain_configuration.world_size
-
-    # Spawn House on the terrain
-    spawn_objects(
-        num_objects=1,
-        positions=np.array([[0, 0]]),
-        filepath=f"{configuration.directories.models_directory}/houses",
-        height_map=height_map,
-        world_size=world_size,
-        seed=configuration.constants.seed
-    )
+    # Spawn Houses on the terrain
+    if configuration.houses_configuration.should_spawn:
+        spawn_objects(
+            num_objects=configuration.houses_configuration.num_objects,
+            positions=np.array([configuration.houses_configuration.position]),
+            filepath=configuration.houses_configuration.directory,
+            height_map=height_map,
+            world_size=world_size,
+            seed=seed
+        )
 
     halton = Halton(d=2)
     halton_ = ((halton.random(n=30) - 0.5) * world_size).reshape(-1, 2)
@@ -203,7 +210,12 @@ def setup_scene() -> Tuple[Configuration, NDArray[np.float32]]:
 
     height_map = setup_terrain(configuration)
 
-    spawn_objects_in_the_scene(configuration, height_map)
+    spawn_objects_in_the_scene(
+        configuration=configuration.spawn_objects_configuration,
+        world_size=configuration.terrain_configuration.world_size,
+        height_map=height_map,
+        seed=configuration.constants.seed
+    )
 
     setup_the_sky(configuration)
 

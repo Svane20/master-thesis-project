@@ -18,18 +18,19 @@ class SunConfiguration(BaseModel):
     intensity: Dict[str, float]
 
 
-class HDRIConfiguration(BaseModel):
+class SkyConfiguration(BaseModel):
     """
     Configuration for HDRI settings in the scene.
 
     Attributes:
+        directory (str): The path to the HDRI directory.
         temperature (dict): A dictionary containing the 'min' and 'max' temperature values.
         strength (dict): A dictionary containing the 'min' and 'max' strength values for the HDRI.
         density (dict): A dictionary containing the 'min' and 'max' density values for the environment.
         sky_type (str): The type of sky to use in the scene.
         sun_configuration (SunConfiguration): Configuration settings for the sun.
     """
-    hdris_directory: str
+    directory: str
     temperature: Dict[str, int]
     strength: Dict[str, float]
     density: Dict[str, int]

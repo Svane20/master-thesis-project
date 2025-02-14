@@ -24,14 +24,11 @@
     }
   ],
   "constants": {
+    "playground_directory": "/home/kasv/master-thesis-project/synthetic-data-generation/playground",
     "save_blend_files": false,
     "render_images": true,
     "num_iterations": 8,
     "seed": null
-  },
-  "directories": {
-    "playground_directory": "/home/kasv/master-thesis-project/synthetic-data-generation/playground",
-    "models_directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/models"
   },
   "render_configuration": {
     "engine": "CYCLES",
@@ -137,8 +134,19 @@
       ]
     }
   },
-  "hdri_configuration": {
-    "hdris_directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/hdri",
+  "spawn_objects_configuration": {
+    "houses_configuration": {
+      "should_spawn": true,
+      "num_objects": 1,
+      "position": [
+        0,
+        0
+      ],
+      "directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/models/houses"
+    }
+  },
+  "sky_configuration": {
+    "directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/hdri/pure_skies",
     "temperature": {
       "min": 5000,
       "max": 6500
