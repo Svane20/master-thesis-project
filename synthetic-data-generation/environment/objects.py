@@ -31,7 +31,7 @@ def spawn_objects(
     """
     path = Path(filepath)
 
-    logging.info(f"Spawning {num_objects} objects on the terrain.")
+    logging.info(f"Spawning {num_objects} {path.name} on the terrain")
 
     # Ensure terrain dimensions match the expected format
     height, width = height_map.shape[:2]

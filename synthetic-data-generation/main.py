@@ -167,19 +167,26 @@ def spawn_objects_in_the_scene(
         height_map (NDArray[np.float32]): The terrain height map.
         seed (int, optional): The seed for the random number generator.
     """
-    # Spawn Houses on the terrain
-    if configuration.houses_configuration.should_spawn:
+    # Spawn objects on the terrain
+    for spawn_object in configuration.spawn_objects:
+        if not spawn_object.should_spawn:
+            continue
+
+        if spawn_object.use_halton:
+            halton = Halton(d=2)
+            position = ((halton.random(n=30) - 0.5) * world_size).reshape(-1, 2)
+        else:
+            assert spawn_object.position is not None, "Spawn location is not set for spawn object"
+            position = np.array([spawn_object.position])
+
         spawn_objects(
-            num_objects=configuration.houses_configuration.num_objects,
-            positions=np.array([configuration.houses_configuration.position]),
-            filepath=configuration.houses_configuration.directory,
+            num_objects=spawn_object.num_objects,
+            positions=position,
+            filepath=spawn_object.directory,
             height_map=height_map,
             world_size=world_size,
             seed=seed
         )
-
-    halton = Halton(d=2)
-    halton_ = ((halton.random(n=30) - 0.5) * world_size).reshape(-1, 2)
 
     # Set backface culling for all materials
     use_backface_culling_on_materials()

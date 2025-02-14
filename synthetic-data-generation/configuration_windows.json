@@ -135,15 +135,39 @@
     }
   },
   "spawn_objects_configuration": {
-    "houses_configuration": {
-      "should_spawn": true,
-      "num_objects": 1,
-      "position": [
-        0,
-        0
-      ],
-      "directory": "C:/Thesis/renderer/assets/models/houses"
-    }
+    "spawn_objects": [
+      {
+        "should_spawn": true,
+        "use_halton": false,
+        "num_objects": 1,
+        "position": [
+          0,
+          0
+        ],
+        "directory": "C:/Thesis/renderer/assets/models/houses"
+      },
+      {
+        "should_spawn": false,
+        "use_halton": true,
+        "num_objects": 5,
+        "position": null,
+        "directory": "C:/Thesis/renderer/assets/models/bushes"
+      },
+      {
+        "should_spawn": false,
+        "use_halton": true,
+        "num_objects": 5,
+        "position": null,
+        "directory": "C:/Thesis/renderer/assets/models/fences"
+      },
+      {
+        "should_spawn": true,
+        "use_halton": true,
+        "num_objects": 5,
+        "position": null,
+        "directory": "C:/Thesis/renderer/assets/models/hedges"
+      }
+    ]
   },
   "sky_configuration": {
     "directory": "C:/Thesis/renderer/assets/hdris/pure_skies",
