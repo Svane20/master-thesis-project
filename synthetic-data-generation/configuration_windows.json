@@ -146,7 +146,7 @@
     }
   },
   "sky_configuration": {
-    "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/hdri",
+    "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/hdri/pure_skies",
     "temperature": {
       "min": 5000,
       "max": 6500
