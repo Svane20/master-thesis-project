@@ -57,8 +57,10 @@ def convert_delatin_mesh_to_sub_meshes(
 def generate_mesh_objects_from_delation_sub_meshes(
         world_size: int,
         delatin_sub_meshes: Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]],
+        tree_biomes_path: List[str],
         grass_biomes_path: List[str],
         not_grass_biomes_path: List[str],
+        generate_trees: bool,
         grass_densities: Tuple[
             Tuple[float, float],
             Tuple[float, float],
@@ -70,17 +72,21 @@ def generate_mesh_objects_from_delation_sub_meshes(
             Tuple[float, float]
         ] = ((0.001, 0.025), (0.01, 0.5), (0.01, 0.5)),
         biome_label_indices: Tuple[int, int, int] = (255, 0, 0),
+        seed: int = None,
 ) -> None:
     """
     Generate mesh objects from Delatin sub-meshes, apply biomes, and delete the object after.
     Args:
         world_size (int, optional): The size of the world (terrain scaling).
         delatin_sub_meshes (Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]]): The Delatin sub-meshes (vertices and faces).
-        grass_biomes_path (List[str]): The grass biomes paths to be applied to the objects.
-        not_grass_biomes_path (List[str]): The not grass biomes paths to be applied to the objects.
+        tree_biomes_path (List[str]): The trees biomes path to be applied to the terrain sub-meshes.
+        grass_biomes_path (List[str]): The grass biomes paths to be applied to the terrain sub-meshes.
+        not_grass_biomes_path (List[str]): The not grass biomes paths to be applied to the terrain sub-meshes.
+        generate_trees (bool, optional): Whether to generate a tree or not.
         grass_densities (Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]], optional): The grass densities.
         tree_densities (Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]], optional): The tree densities.
         biome_label_indices (Tuple[int, int, int], optional): The biome label indices.
+        seed (int, optional): The random seed.
     Raises:
         ValueError: If sub-meshes or biomes are not provided.
     """
@@ -115,21 +121,30 @@ def generate_mesh_objects_from_delation_sub_meshes(
         bpy_mesh.from_pydata(vertices=vertices, edges=[], faces=faces)
         bpy_mesh.update()
         bpy_mesh.validate(verbose=True)
+
         logging.info(f"Created mesh '{bpy_mesh.name}' for object '{i}'.")
+
         # Create a new object and link it to the scene
         object_name = f"generated_mesh_{i}"
         mesh_object = bpy.data.objects.new(object_name, bpy_mesh)
         bpy.data.collections["Collection"].objects.link(mesh_object)
         bpy.context.view_layer.objects.active = mesh_object
+
         logging.info(f"Mesh object '{object_name}' added to the scene.")
+
         # Get object names after creation
         new_object_names = bpy.data.objects.keys()
+        unique_names = set(new_object_names) - set(existing_object_names)
 
-        logging.debug(f"Unique object names created: {set(new_object_names) - set(existing_object_names)}")
+        logging.debug(f"Unique object names created: {unique_names}")
 
         # Apply a random grass biome to the object
         if biomes_path_flag:
-            logging.info(f"Applying biomes to {len(set(new_object_names) - set(existing_object_names))} objects.")
+            logging.info(f"Applying biomes to {len(unique_names)} objects.")
+
+            if seed is not None:
+                np.random.seed(seed)
+                logging.info(f"Seed set to {seed}")
 
             for o_name in set(new_object_names) - set(existing_object_names):
                 bpy_object = get_object_by_name(o_name)
@@ -147,14 +162,15 @@ def generate_mesh_objects_from_delation_sub_meshes(
 
             logging.info(f"Applied grass biomes to object '{object_name}' with label index {biome_label_index}.")
 
-        # # Apply a random tree biome to the object
-        # apply_biomes_to_objects(
-        #     unique_object_names=set(new_object_names) - set(existing_object_names),
-        #     biome_paths=grass_biomes_path,
-        #     density=density_tree,
-        #     label_index=0,
-        # )
-        # logging.info(f"Applied tree biomes to object '{object_name}' with label index 0.")
+        if generate_trees:
+            # Apply a random tree biome to the object
+            apply_biomes_to_objects(
+                unique_object_names=set(new_object_names) - set(existing_object_names),
+                biome_paths=tree_biomes_path,
+                density=density_tree,
+                label_index=0,
+            )
+            logging.info(f"Applied tree biomes to object '{object_name}' with label index 0.")
 
         # Delete the object after applying the biome
         delete_object_by_selection(mesh_object)

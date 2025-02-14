@@ -117,6 +117,10 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
     terrain_configuration = configuration.terrain_configuration
 
     # Get all biomes
+    tree_biomes = get_all_biomes_by_directory(
+        directory=terrain_configuration.trees_configuration.directory,
+        keywords=terrain_configuration.trees_configuration.keywords,
+    )
     grass_biomes = get_all_biomes_by_directory(
         directory=terrain_configuration.grass_configuration.directory,
         keywords=terrain_configuration.grass_configuration.keywords
@@ -131,9 +135,6 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         world_size=int(terrain_configuration.world_size),
         image_size=terrain_configuration.image_size,
         noise_basis=terrain_configuration.noise_basis,
-        # num_octaves=(1, 2),
-        # H=(0.0, 0.0),
-        # lacunarity=(0.5, 0.5),
         seed=configuration.constants.seed
     )
 
@@ -142,9 +143,12 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
 
     generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes=delatin_sub_meshes,
+        tree_biomes_path=tree_biomes,
         grass_biomes_path=grass_biomes,
         not_grass_biomes_path=not_grass_biomes,
+        generate_trees=terrain_configuration.generate_trees,
         world_size=int(terrain_configuration.world_size),
+        seed=configuration.constants.seed
     )
 
     return height_map

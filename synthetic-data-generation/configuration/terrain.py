@@ -3,16 +3,37 @@ from typing import List
 
 
 class TreesConfiguration(BaseModel):
+    """
+    Configuration for grass generation in the scene
+
+    Attributes:
+        directory (str): The directory where the tree files are located
+        keywords (List[str]): The keywords get specific tree files
+    """
     directory: str
     keywords: List[str] | None
 
 
 class GrassConfiguration(BaseModel):
+    """
+    Configuration for grass generation in the scene
+
+    Attributes:
+        directory (str): The directory where the grass files are located
+        keywords (List[str]): The keywords get specific grass files
+    """
     directory: str
     keywords: List[str] | None
 
 
 class NotGrassConfiguration(BaseModel):
+    """
+    Configuration for non-grass (e.g. flowers, mulch) generation in the scene
+
+    Attributes:
+        directory (str): The directory where the grass files are located
+        keywords (List[str]): The keywords get specific grass files
+    """
     directory: str
     keywords: List[str] | None
 
@@ -24,12 +45,16 @@ class TerrainConfiguration(BaseModel):
     Attributes:
         world_size (float): The size of the terrain (world).
         image_size (int): The size of the image or terrain representation.
-        prob_of_trees (float): The probability of placing trees in the terrain (value between 0 and 1).
+        noise_basis (int): The size of the noise basis.
+        generate_trees (bool): Whether to generate trees.
+        trees_configuration (TreesConfiguration): The configuration of the trees.
+        grass_configuration (GrassConfiguration): The configuration of the grass.
+        not_grass_configuration (NotGrassConfiguration): The configuration of the not grass.
     """
     world_size: float
     image_size: int
     noise_basis: str
-    prob_of_trees: float
+    generate_trees: bool
     trees_configuration: TreesConfiguration
     grass_configuration: GrassConfiguration
     not_grass_configuration: NotGrassConfiguration

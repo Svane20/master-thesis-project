@@ -15,6 +15,18 @@ from configuration.terrain import TerrainConfiguration
 
 
 class Configuration(BaseModel):
+    """
+    The Base class for all configurations.
+
+    Attributes:
+        addons (List[AddonConfiguration]): A list of addon configurations.
+        constants (List[Constant]): A list of constant configurations.
+        directories (List[Directories]): A list of directories configurations.
+        render_configuration (RenderConfiguration): Render configuration.
+        camera_configuration (CameraConfiguration): Camera configuration.
+        terrain_configuration (TerrainConfiguration): Terrain configuration.
+        hdri_configuration (HDRIConfiguration): HDRI configuration.
+    """
     addons: List[AddonConfiguration]
     constants: Constants
     directories: Directories
