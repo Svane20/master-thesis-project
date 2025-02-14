@@ -109,7 +109,7 @@ def save_as_blend_file(directory_path: str, iteration: int = 0, allow_overwrite:
     logging.info(f"Saving blend file: '{filename}'")
 
     try:
-        directory_path = Path(directory_path)
+        directory_path = Path(directory_path) / "blender_files"
         output_path = _prepare_output_path(filename, directory_path, allow_overwrite)
 
         # Save the blend file

@@ -26,6 +26,7 @@
   "constants": {
     "save_blend_files": false,
     "render_images": true,
+    "num_iterations": 8,
     "seed": null
   },
   "directories": {
