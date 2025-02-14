@@ -142,11 +142,11 @@
         0,
         0
       ],
-      "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/models/houses"
+      "directory": "C:/Thesis/renderer/assets/models/houses"
     }
   },
   "sky_configuration": {
-    "directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/assets/hdri/pure_skies",
+    "directory": "C:/Thesis/renderer/assets/hdris/pure_skies",
     "temperature": {
       "min": 5000,
       "max": 6500

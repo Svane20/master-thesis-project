@@ -142,11 +142,11 @@
         0,
         0
       ],
-      "directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/models/houses"
+      "directory": "/home/kasv/blender_data/renderer/assets/models/houses"
     }
   },
   "sky_configuration": {
-    "directory": "/home/kasv/master-thesis-project/synthetic-data-generation/assets/hdri/pure_skies",
+    "directory": "/home/kasv/blender_data/renderer/assets/hdris/pure_skies",
     "temperature": {
       "min": 5000,
       "max": 6500
