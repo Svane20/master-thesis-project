@@ -123,10 +123,6 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         directory=terrain_configuration.grass_configuration.directory,
         keywords=terrain_configuration.grass_configuration.keywords
     )
-    not_grass_biomes = get_all_biomes_by_directory(
-        directory=terrain_configuration.not_grass_configuration.directory,
-        keywords=terrain_configuration.not_grass_configuration.keywords
-    )
 
     # Create terrain and segmentation map
     height_map, segmentation_map = create_terrain_segmentation(
@@ -143,7 +139,6 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         delatin_sub_meshes=delatin_sub_meshes,
         tree_biomes_path=tree_biomes,
         grass_biomes_path=grass_biomes,
-        not_grass_biomes_path=not_grass_biomes,
         generate_trees=terrain_configuration.generate_trees,
         world_size=int(terrain_configuration.world_size),
         seed=configuration.constants.seed

@@ -101,8 +101,13 @@ def move_rendered_images_to_playground(
     for image in rendered_images:
         try:
             if image_prefix in image.name:
-                filepath = _get_playground_file_path(directory, Constants.IMAGES_DIRNAME, image_prefix, iteration,
-                                                     file_extension)
+                filepath = _get_playground_file_path(
+                    directory,
+                    Constants.IMAGES_DIRNAME,
+                    image_prefix,
+                    iteration,
+                    file_extension
+                )
                 image.rename(filepath)
                 logging.info(f"Moved {image.name} to {filepath}")
             elif id_mask_prefix in image.name:
@@ -130,8 +135,11 @@ def move_rendered_images_to_playground(
             raise
 
 
-def cleanup_files(configuration: Configuration, remove_output_dir: bool = True,
-                  remove_temporary_dir: bool = True) -> None:
+def cleanup_files(
+        configuration: Configuration,
+        remove_output_dir: bool = True,
+        remove_temporary_dir: bool = True
+) -> None:
     """
     Clean up files from output, temporary, and Blender directories.
 
