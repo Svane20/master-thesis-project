@@ -5,8 +5,6 @@ from typing import List
 import random
 import logging
 
-from scipy.linalg import solve_lyapunov
-
 from configuration.configuration import Configuration
 from configuration.sky import SkyConfiguration, SunConfiguration
 from constants.file_extensions import FileExtension
@@ -18,23 +16,25 @@ class Constants:
     MAX: str = "max"
 
     # Shader node types
-    SHADER_NODE_ADD_SHADER: str = "ShaderNodeAddShader"
     SHADER_NODE_BACKGROUND: str = "ShaderNodeBackground"
     SHADER_NODE_BLACKBODY: str = "ShaderNodeBlackbody"
     SHADER_NODE_TEX_ENVIRONMENT: str = "ShaderNodeTexEnvironment"
     SHADER_NODE_TEX_SKY: str = "ShaderNodeTexSky"
     SHADER_NODE_VECTOR_MATH: str = "ShaderNodeVectorMath"
+    SHADER_NODE_MIX_SHADER: str = "ShaderNodeMixShader"
     SHADER_NODE_OUTPUT_WORLD: str = "ShaderNodeOutputWorld"
 
     # Node properties
+    NODE_TYPE_BACKGROUND: str = "BACKGROUND"
+    BACKGROUND: str = "Background"
     COLOR: str = "Color"
     STRENGTH: str = "Strength"
     TEMPERATURE: str = "Temperature"
     VECTOR: str = "Vector"
-    BACKGROUND: str = "Background"
-    SURFACE: str = "Surface"
-    SHADER: str = "Shader"
     MULTIPLY: str = "MULTIPLY"
+    SHADER: str = "Shader"
+    SURFACE: str = "Surface"
+    FAC: str = "Fac"
 
 
 def get_all_hdri_by_directory(directory: str) -> List[Path]:
@@ -354,19 +354,44 @@ def _setup_world_output(tree_nodes: bpy.types.bpy_prop_collection, node_tree: bp
         tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
         node_tree (bpy.types.ShaderNodeTree): The node tree to which the output shader will be added.
     """
-    logging.info("Setting up world output shader.")
+    logging.info("Setting up world output shader using Mix Shader.")
 
-    node_add = tree_nodes.new(type=Constants.SHADER_NODE_ADD_SHADER)
+    # Create a Mix Shader node instead of an Add Shader
+    mix_node = tree_nodes.new(type=Constants.SHADER_NODE_MIX_SHADER)
     links = node_tree.links
-    k = 0
 
+    # Find the two background nodes by checking the node type
+    bg_hdri = None
+    bg_sky = None
     for node in tree_nodes:
-        if Constants.BACKGROUND in node.name:
-            links.new(node.outputs[Constants.BACKGROUND], node_add.inputs[k])
-            k += 1
+        if node.type == Constants.NODE_TYPE_BACKGROUND:
+            if bg_hdri is None:
+                bg_hdri = node
+            else:
+                bg_sky = node
 
+    # Ensure both background nodes are found
+    if bg_hdri is None or bg_sky is None:
+        missing = []
+        if bg_hdri is None:
+            missing.append("bg_hdri")
+        if bg_sky is None:
+            missing.append("bg_sky")
+        logging.error(
+            f"Not enough background nodes found to set up the world output shader. Missing: {', '.join(missing)}.")
+        return
+
+    # Set a factor for mixing
+    mix_factor = 0.5
+    mix_node.inputs[Constants.FAC].default_value = mix_factor
+
+    # Link the two backgrounds to the Mix Shader
+    links.new(bg_hdri.outputs[Constants.BACKGROUND], mix_node.inputs[1])
+    links.new(bg_sky.outputs[Constants.BACKGROUND], mix_node.inputs[2])
+
+    # Create the World Output node and connect the Mix Shader output to it
     node_output = tree_nodes.new(type=Constants.SHADER_NODE_OUTPUT_WORLD)
-    links.new(node_add.outputs[Constants.SHADER], node_output.inputs[Constants.SURFACE])
+    links.new(mix_node.outputs[Constants.SHADER], node_output.inputs[Constants.SURFACE])
 
     logging.info("World output shader set up successfully.")
 

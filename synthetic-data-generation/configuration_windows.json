@@ -79,18 +79,18 @@
         "path": "IndexOB"
       },
       "id_mask_output_configuration": {
-        "title": "BiomeMask",
+        "title": "GrassMask",
         "use_node_format": false,
         "file_format": "PNG",
         "color_mode": "BW",
-        "path": "BiomeMask"
+        "path": "GrassMask"
       },
       "environment_output_configuration": {
-        "title": "HDRIMask",
+        "title": "SkyMask",
         "use_node_format": false,
         "file_format": "PNG",
         "color_mode": "RGBA",
-        "path": "HDRIMask"
+        "path": "SkyMask"
       }
     }
   },

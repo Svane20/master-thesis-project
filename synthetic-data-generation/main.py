@@ -129,7 +129,10 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         world_size=int(terrain_configuration.world_size),
         image_size=terrain_configuration.image_size,
         noise_basis=terrain_configuration.noise_basis,
-        seed=configuration.constants.seed
+        num_octaves=(1, 2),
+        H=(0.0, 0.0),
+        lacunarity=(0.5, 0.5),
+        seed=1 # Ensure we always generate the same terrain so we don't get white spots in the grass
     )
 
     delatin_mesh = create_delatin_mesh_from_height_map(height_map)
