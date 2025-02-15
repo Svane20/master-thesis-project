@@ -1,5 +1,3 @@
-from typing import Optional
-
 import pymatting
 
 from pathlib import Path
@@ -11,7 +9,7 @@ from constants import OUTPUT_DIRECTORY
 
 def replace_background(
         background_image_path: Path,
-        sky_foreground: np.ndarray,
+        foreground: np.ndarray,
         alpha_mask: np.ndarray,
         save_image: bool = True,
         save_dir: Path = OUTPUT_DIRECTORY
@@ -28,7 +26,7 @@ def replace_background(
 
     Args:
         background_image_path (Path): Path to the new sky image.
-        sky_foreground (np.ndarray): The refined extraction of the sky (and retained non-sky regions)
+        foreground (np.ndarray): The refined extraction of the sky (and retained non-sky regions)
                                      from the original image (shape: H x W x 3).
         alpha_mask (np.ndarray): Continuous alpha mask with values in [0, 1] (sky = 1).
         save_image (bool): Whether to save the blended image (default: True).
@@ -50,17 +48,17 @@ def replace_background(
     new_sky = cv2.cvtColor(new_sky_bgr, cv2.COLOR_BGR2RGB).astype(np.float64) / 255.0
 
     # Resize the new sky image to match the dimensions of the sky_foreground
-    new_sky = cv2.resize(new_sky, dsize=(sky_foreground.shape[1], sky_foreground.shape[0]))
+    new_sky = cv2.resize(new_sky, dsize=(foreground.shape[1], foreground.shape[0]))
 
     # If sky_foreground has an extra alpha channel, drop it (keep only RGB channels)
-    if sky_foreground.shape[2] == 4:
-        sky_foreground = sky_foreground[:, :, :3]
+    if foreground.shape[2] == 4:
+        foreground = foreground[:, :, :3]
 
     # Perform alpha compositing:
     #   For pixels where alpha_mask is 1 (sky), use the new sky.
     #   For pixels where alpha_mask is 0, keep the original sky_foreground.
     # With soft transitions handled by the continuous alpha_mask.
-    replaced_image = (1 - alpha_mask[:, :, None]) * sky_foreground + alpha_mask[:, :, None] * new_sky
+    replaced_image = (1 - alpha_mask[:, :, None]) * foreground + alpha_mask[:, :, None] * new_sky
 
     if save_image:
         save_dir.mkdir(parents=True, exist_ok=True)
