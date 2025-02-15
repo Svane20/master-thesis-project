@@ -59,7 +59,6 @@ def generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes: Dict[str, Tuple[NDArray[np.float32], NDArray[np.int32]]],
         tree_biomes_path: List[str],
         grass_biomes_path: List[str],
-        not_grass_biomes_path: List[str],
         generate_trees: bool,
         grass_densities: Tuple[
             Tuple[float, float],
@@ -104,7 +103,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
     ) in enumerate(
         zip(
             delatin_sub_meshes.values(),
-            (grass_biomes_path, not_grass_biomes_path, not_grass_biomes_path),
+            (grass_biomes_path, grass_biomes_path, grass_biomes_path),
             grass_densities,
             tree_densities,
             biome_label_indices
@@ -223,7 +222,7 @@ def _is_category(
     y_coords = vertices[:, 1].astype(int)
     logging.debug(f"Checking category {category_idx} for vertices.")
 
-    return np.asarray(segmentation_map[x_coords, y_coords, category_idx] == 255)
+    return np.asarray(segmentation_map[y_coords, x_coords, category_idx] == 255)
 
 
 def _classify_faces_by_z_value(

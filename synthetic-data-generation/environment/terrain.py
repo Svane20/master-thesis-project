@@ -138,7 +138,7 @@ def _generate_fractal_heightmap(
 
     # Resize the height map to the desired image size
     height_map = np.array(height_map)
-    height_map = Image.fromarray(height_map).resize((image_size,) * 2, Image.Resampling.BILINEAR)
+    height_map = Image.fromarray(height_map).resize((image_size,) * 2, Image.Resampling.NEAREST)
     height_map = np.array(height_map)
 
     # Normalize the height map to [0, 255]
