@@ -226,7 +226,6 @@ def _setup_id_mask_output(
         logging.error(f"Render Layers node does not contain an '{index_ob_title}' output for {id_mask_title}.")
 
 
-# Continuous alpha mask output
 def _setup_environment_mask_output(
         node_tree: bpy.types.CompositorNodeTree,
         output_file_node: bpy.types.CompositorNodeOutputFile,
@@ -240,20 +239,15 @@ def _setup_environment_mask_output(
       - White RGB channels (so the image appears white),
       - An alpha channel that continuously varies from 0 (foreground/geometry) to 1 (sky/HDri),
         with intermediate values for soft transitions.
-
-    This continuous mask can be used to train an AI model for soft matte predictions.
     """
-    import logging
-
     logging.debug("Setting up continuous environment alpha mask output.")
 
-    # Create and configure a new file slot (forcing RGBA output)
+    # Create and configure a new file slot for the environment output.
     output_file_node.file_slots.new(environment_output_configuration.title)
     file_slot = output_file_node.file_slots[environment_output_configuration.title]
     file_slot.use_node_format = environment_output_configuration.use_node_format
     file_slot.format.file_format = environment_output_configuration.file_format
-    # Ensure the output is RGBA so that the alpha channel is preserved.
-    file_slot.format.color_mode = "RGBA"
+    file_slot.format.color_mode = environment_output_configuration.color_mode
     file_slot.path = environment_output_configuration.path
 
     # Get the ENV output from the Render Layers node.
@@ -267,8 +261,7 @@ def _setup_environment_mask_output(
     env_to_gray.label = "Env to Gray"
     node_tree.links.new(env_output, env_to_gray.inputs["Image"])
 
-    # Optional: Use a Map Value node to stretch the grayscale range into [0,1].
-    # Adjust the size factor if the original values are too low.
+    # Use a Map Value node to stretch the grayscale range into [0,1].
     map_value = node_tree.nodes.new(type="CompositorNodeMapValue")
     map_value.label = "Map Value for ENV"
     map_value.offset = [0.0]  # No offset.
@@ -311,97 +304,3 @@ def _setup_environment_mask_output(
                         output_file_node.inputs[environment_output_configuration.title])
 
     logging.info(f"Continuous alpha mask output set up at '{environment_output_configuration.title}'.")
-
-# Discrete alpha mask output
-# def _setup_environment_mask_output(
-#         node_tree: bpy.types.CompositorNodeTree,
-#         output_file_node: bpy.types.CompositorNodeOutputFile,
-#         render_layers: bpy.types.CompositorNodeRLayers,
-#         environment_output_configuration: NodeOutputConfiguration
-# ) -> None:
-#     """
-#     Set up the environment mask output to generate a true alpha mask for the sky/HDri.
-#
-#     The resulting RGBA image has:
-#       - White RGB channels (so the image appears white),
-#       - An alpha channel encoding the mask:
-#           0.0 for foreground (geometry),
-#           0.5 for overlap,
-#           1.0 for background (sky/HDri).
-#
-#     A Map Value node scales the ENV pass output so that the discrete stops in the ColorRamp
-#     are effective. Adjust the scale factor and stop positions as needed.
-#     """
-#     import logging
-#
-#     logging.debug("Setting up environment mask output with true alpha channel.")
-#
-#     # Create and configure a new file slot (forcing RGBA output)
-#     output_file_node.file_slots.new(environment_output_configuration.title)
-#     file_slot = output_file_node.file_slots[environment_output_configuration.title]
-#     file_slot.use_node_format = environment_output_configuration.use_node_format
-#     file_slot.format.file_format = environment_output_configuration.file_format
-#     # Make sure to output in RGBA mode so that the alpha channel is preserved.
-#     file_slot.format.color_mode = "RGBA"
-#     file_slot.path = environment_output_configuration.path
-#
-#     # Get the ENV output from the Render Layers node.
-#     env_output = render_layers.outputs.get(Constants.ENV)
-#     if not env_output:
-#         logging.error("Render Layers node does not contain an 'Env' output.")
-#         return
-#
-#     # Convert the ENV (RGB) pass to grayscale.
-#     env_to_gray = node_tree.nodes.new(type="CompositorNodeRGBToBW")
-#     env_to_gray.label = "Env to Gray"
-#     node_tree.links.new(env_output, env_to_gray.inputs["Image"])
-#
-#     # Use a Map Value node to scale the grayscale values into a full [0, 1] range.
-#     # (Adjust the 'size' factor if the original values are too low.)
-#     map_value = node_tree.nodes.new(type="CompositorNodeMapValue")
-#     map_value.label = "Map Value for ENV"
-#     map_value.offset = [0.0]         # No offset.
-#     map_value.size = [5.0]           # Multiply values by 5 (tweak as needed).
-#     map_value.use_min = True
-#     map_value.min = [0.0]
-#     map_value.use_max = True
-#     map_value.max = [1.0]
-#     node_tree.links.new(env_to_gray.outputs["Val"], map_value.inputs["Value"])
-#
-#     # Create a ColorRamp node with CONSTANT interpolation to map the scaled values to discrete stops.
-#     color_ramp = node_tree.nodes.new(type="CompositorNodeValToRGB")
-#     color_ramp.label = "Alpha Mask Ramp"
-#     color_ramp.color_ramp.interpolation = 'CONSTANT'
-#
-#     # Set up stops:
-#     # If the scaled value is below the first threshold, output 0 (black).
-#     element0 = color_ramp.color_ramp.elements[0]
-#     element0.position = 0.0
-#     element0.color = (0, 0, 0, 1)
-#
-#     # Add a stop for the overlap region (mask = 0.5).
-#     element_mid = color_ramp.color_ramp.elements.new(0.5)
-#     element_mid.color = (0.5, 0.5, 0.5, 1)
-#
-#     # Add a stop for the sky/HDRI (mask = 1).
-#     element_high = color_ramp.color_ramp.elements.new(1.0)
-#     element_high.color = (1, 1, 1, 1)
-#
-#     # Link the scaled value into the ColorRamp.
-#     node_tree.links.new(map_value.outputs["Value"], color_ramp.inputs["Fac"])
-#
-#     # Use a Combine RGBA node:
-#     # - Set R, G, B channels to white,
-#     # - Use the ColorRamp output for the alpha channel.
-#     combine_rgba = node_tree.nodes.new(type="CompositorNodeCombRGBA")
-#     combine_rgba.label = "Combine RGBA for Alpha Mask"
-#     combine_rgba.inputs['R'].default_value = 1.0
-#     combine_rgba.inputs['G'].default_value = 1.0
-#     combine_rgba.inputs['B'].default_value = 1.0
-#     node_tree.links.new(color_ramp.outputs["Image"], combine_rgba.inputs['A'])
-#
-#     # Link the combined RGBA image to the file output node's input socket corresponding to the slot.
-#     node_tree.links.new(combine_rgba.outputs["Image"],
-#                         output_file_node.inputs[environment_output_configuration.title])
-#
-#     logging.info(f"Alpha mask output set up at '{environment_output_configuration.title}'.")
