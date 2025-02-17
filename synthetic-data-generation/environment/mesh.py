@@ -112,7 +112,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
     ) in enumerate(
         zip(
             delatin_sub_meshes.values(),
-            (grass_biomes_path, grass_biomes_path, grass_biomes_path),
+            (grass_biomes_path, grass_biomes_path, not_grass_biomes_path),
             grass_densities,
             tree_densities,
             biome_label_indices
