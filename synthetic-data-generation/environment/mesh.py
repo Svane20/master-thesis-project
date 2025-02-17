@@ -63,6 +63,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes: Dict[str, Tuple],
         tree_biomes_path: List[str],
         grass_biomes_path: List[str],
+        not_grass_biomes_path: List[str],
         generate_trees: bool,
         grass_densities: Tuple[
             Tuple[float, float],
@@ -84,6 +85,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
         delatin_sub_meshes (Dict[str, Tuple]:): The Delatin sub-meshes (vertices and faces).
         tree_biomes_path (List[str]): The trees biomes path to be applied to the terrain sub-meshes.
         grass_biomes_path (List[str]): The grass biomes paths to be applied to the terrain sub-meshes.
+        not_grass_biomes_path (List[str]): The not grass biomes paths to be applied to the terrain sub-meshes.
         generate_trees (bool, optional): Whether to generate a tree or not.
         grass_densities (Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]], optional): The grass densities.
         tree_densities (Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]], optional): The tree densities.
@@ -106,7 +108,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
     ) in enumerate(
         zip(
             delatin_sub_meshes.values(),
-            (grass_biomes_path, grass_biomes_path, grass_biomes_path),
+            (grass_biomes_path, not_grass_biomes_path, grass_biomes_path),
             grass_densities,
             tree_densities,
             biome_label_indices

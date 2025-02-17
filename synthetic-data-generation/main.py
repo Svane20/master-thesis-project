@@ -126,6 +126,10 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         directory=terrain_configuration.grass_configuration.directory,
         keywords=terrain_configuration.grass_configuration.keywords
     )
+    not_grass_biomes = get_all_biomes_by_directory(
+        directory=terrain_configuration.not_grass_configuration.directory,
+        keywords=terrain_configuration.not_grass_configuration.keywords
+    )
     texture_blend_files = get_all_textures_by_directory(
         directory=terrain_configuration.textures_configuration.directory,
         keywords=terrain_configuration.textures_configuration.keywords
@@ -136,10 +140,7 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         world_size=int(world_size),
         image_size=terrain_configuration.image_size,
         noise_basis=terrain_configuration.noise_basis,
-        num_octaves=(1, 2),
-        H=(0.0, 0.0),
-        lacunarity=(0.5, 0.5),
-        seed=1  # Ensure we always generate the same terrain so we don't get white spots in the grass
+        seed=configuration.constants.seed
     )
 
     delatin_mesh = create_delatin_mesh_from_height_map(height_map)
@@ -149,6 +150,7 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         delatin_sub_meshes=delatin_sub_meshes,
         tree_biomes_path=tree_biomes,
         grass_biomes_path=grass_biomes,
+        not_grass_biomes_path=not_grass_biomes,
         generate_trees=terrain_configuration.generate_trees,
         world_size=int(terrain_configuration.world_size),
         seed=configuration.constants.seed
