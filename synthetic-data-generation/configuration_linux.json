@@ -107,26 +107,22 @@
     "generate_trees": false,
     "trees_configuration": {
       "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Vegetation",
-      "keywords": null
+      "keywords": [
+        "coniferous",
+        "deciduous"
+      ]
     },
     "grass_configuration": {
       "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Grassblade",
       "keywords": [
         "clean_grass",
         "grass_golf",
-        "green_grass",
-        "natural_garden",
-        "wet_grass_01",
-        "wet_grass_02",
-        "wet_grass_03"
+        "green_grass"
       ]
     },
     "not_grass_configuration": {
       "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Grassblade",
       "keywords": [
-        "wild_natural",
-        "wild_natural_field",
-        "tall_grass",
         "rock",
         "flowers"
       ]
