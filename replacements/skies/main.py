@@ -7,8 +7,8 @@ from skies.replacement import replace_background
 
 if __name__ == "__main__":
     # Define the file paths
-    image_path = DATA_IMAGES_DIRECTORY / "Image_2.png"
-    alpha_mask_path = DATA_MASKS_DIRECTORY / "SkyMask_2.png"
+    image_path = DATA_IMAGES_DIRECTORY / "Image_1.png"
+    alpha_mask_path = DATA_MASKS_DIRECTORY / "SkyMask_1.png"
     new_sky_path = DATA_BACKGROUNDS_DIRECTORY / "new_sky.webp"
 
     # Ensure the files exist
