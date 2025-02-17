@@ -19,5 +19,5 @@ def get_all_textures_by_directory(directory: str, keywords: List[str] | None = N
     if keywords:
         paths = [path for path in paths if any(keyword in path for keyword in keywords)]
 
-    logging.info(f"Found {len(paths)} biomes in {directory}")
+    logging.info(f"Found {len(paths)} textures in {directory}")
     return paths

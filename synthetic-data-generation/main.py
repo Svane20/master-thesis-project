@@ -158,7 +158,7 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
     populate_meshes(
         delatin_mesh=delatin_mesh,
         delatin_sub_meshes=delatin_sub_meshes,
-        texture_path=texture_blend_files,
+        texture_paths=texture_blend_files,
         world_size=world_size,
     )
 

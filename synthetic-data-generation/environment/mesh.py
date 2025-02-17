@@ -182,7 +182,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
 def populate_meshes(
         delatin_mesh: Delatin,
         delatin_sub_meshes: Dict[str, Tuple],
-        texture_path: List[str],
+        texture_paths: List[str],
         world_size: float
 ) -> None:
     logging.info("Populating mesh objects.")
@@ -220,8 +220,8 @@ def populate_meshes(
     logging.info("Generated UV map for the initial mesh.")
 
     # Choose a random texture from available terrain textures
-    logging.info(f"Found {len(texture_path)} terrain textures.")
-    texture = str(random.choice(texture_path))
+    logging.info(f"Found {len(texture_paths)} textures")
+    texture = str(random.choice(texture_paths))
     texture_name = Path(texture).name
     logging.info(f"Selected random texture: {texture_name}")
 

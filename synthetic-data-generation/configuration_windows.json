@@ -128,7 +128,7 @@
       ]
     },
     "textures_configuration": {
-      "directory": "C:/Thesis/renderer/assets/terrain",
+      "directory": "C:/Thesis/renderer/assets/textures/terrain",
       "keywords": null
     }
   },
