@@ -126,6 +126,11 @@
         "rock",
         "flowers"
       ]
+    },
+    "textures_configuration": {
+      "directories": [
+        "/home/kasv/blender_data/renderer/assets/terrain"
+      ]
     }
   },
   "spawn_objects_configuration": {

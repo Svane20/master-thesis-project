@@ -38,6 +38,16 @@ class NotGrassConfiguration(BaseModel):
     keywords: List[str] | None
 
 
+class TexturesConfiguration(BaseModel):
+    """
+    Configuration for texture generation in the scene
+
+    Attributes:
+        directories (List[str]): The directories where the texture files are located
+    """
+    directories: List[str]
+
+
 class TerrainConfiguration(BaseModel):
     """
     Configuration for terrain generation in the scene.
@@ -58,3 +68,4 @@ class TerrainConfiguration(BaseModel):
     trees_configuration: TreesConfiguration
     grass_configuration: GrassConfiguration
     not_grass_configuration: NotGrassConfiguration
+    textures_configuration: TexturesConfiguration

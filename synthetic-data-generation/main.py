@@ -16,7 +16,8 @@ from configuration.spawn_objects import SpawnObjectsConfiguration
 from engine.rendering import setup_rendering
 from environment.biomes import get_all_biomes_by_directory
 from environment.hdri import add_sky_to_scene
-from environment.mesh import convert_delatin_mesh_to_sub_meshes, generate_mesh_objects_from_delation_sub_meshes
+from environment.mesh import convert_delatin_mesh_to_sub_meshes, generate_mesh_objects_from_delation_sub_meshes, \
+    populate_meshes
 from environment.objects import spawn_objects
 from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_height_map
 from scene.camera import get_camera_iterations, get_random_camera_location, update_camera_position
@@ -113,6 +114,7 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         NDArray[np.float32]: A height map (2D array) representing terrain.
     """
     terrain_configuration = configuration.terrain_configuration
+    world_size = terrain_configuration.world_size
 
     # Get all biomes
     tree_biomes = get_all_biomes_by_directory(
@@ -123,16 +125,22 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         directory=terrain_configuration.grass_configuration.directory,
         keywords=terrain_configuration.grass_configuration.keywords
     )
+    texture_blend_paths = [
+        file_path
+        for directory in terrain_configuration.textures_configuration.directories
+        for file_path in Path(directory).rglob("*.blend")
+        if str(file_path).endswith(".blend")
+    ]
 
     # Create terrain and segmentation map
     height_map, segmentation_map = create_terrain_segmentation(
-        world_size=int(terrain_configuration.world_size),
+        world_size=int(world_size),
         image_size=terrain_configuration.image_size,
         noise_basis=terrain_configuration.noise_basis,
         num_octaves=(1, 2),
         H=(0.0, 0.0),
         lacunarity=(0.5, 0.5),
-        seed=1 # Ensure we always generate the same terrain so we don't get white spots in the grass
+        seed=1  # Ensure we always generate the same terrain so we don't get white spots in the grass
     )
 
     delatin_mesh = create_delatin_mesh_from_height_map(height_map)
@@ -145,6 +153,14 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         generate_trees=terrain_configuration.generate_trees,
         world_size=int(terrain_configuration.world_size),
         seed=configuration.constants.seed
+    )
+
+    # Populate the terrain to fill empty spots in the terrain
+    populate_meshes(
+        delatin_mesh=delatin_mesh,
+        delatin_sub_meshes=delatin_sub_meshes,
+        texture_paths=texture_blend_paths,
+        world_size=world_size,
     )
 
     return height_map

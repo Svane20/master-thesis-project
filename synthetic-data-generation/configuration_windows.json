@@ -126,6 +126,11 @@
         "rock",
         "flowers"
       ]
+    },
+    "textures_configuration": {
+      "directories": [
+        "C:/Thesis/renderer/assets/terrain"
+      ]
     }
   },
   "spawn_objects_configuration": {
