@@ -99,6 +99,10 @@ def generate_mesh_objects_from_delation_sub_meshes(
     if not delatin_sub_meshes or not grass_biomes_path:
         raise ValueError("Sub-meshes or biome paths cannot be empty.")
 
+    if seed is not None:
+        np.random.seed(seed)
+        logging.info(f"Seed set to {seed}")
+
     for i, (
             (vertices, faces),
             biomes_path_flag,
@@ -108,7 +112,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
     ) in enumerate(
         zip(
             delatin_sub_meshes.values(),
-            (grass_biomes_path, not_grass_biomes_path, grass_biomes_path),
+            (grass_biomes_path, grass_biomes_path, grass_biomes_path),
             grass_densities,
             tree_densities,
             biome_label_indices
@@ -144,11 +148,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
 
         # Apply a random grass biome to the object
         if biomes_path_flag:
-            logging.info(f"Applying biomes to {len(unique_names)} objects.")
-
-            if seed is not None:
-                np.random.seed(seed)
-                logging.info(f"Seed set to {seed}")
+            logging.info(f"Applying grass biomes to {len(unique_names)} objects.")
 
             for o_name in set(new_object_names) - set(existing_object_names):
                 bpy_object = get_object_by_name(o_name)
@@ -222,7 +222,7 @@ def populate_meshes(
     logging.info("Generated UV map for the initial mesh.")
 
     # Choose a random texture from available terrain textures
-    logging.info(f"Found {len(texture_paths)} textures")
+    logging.debug(f"Found {len(texture_paths)} textures")
     texture = str(random.choice(texture_paths))
     texture_name = Path(texture).name
     logging.info(f"Selected random texture: {texture_name}")
