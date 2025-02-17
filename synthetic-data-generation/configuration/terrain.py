@@ -43,9 +43,11 @@ class TexturesConfiguration(BaseModel):
     Configuration for texture generation in the scene
 
     Attributes:
-        directories (List[str]): The directories where the texture files are located
+        directory (List[str]): The directory where the texture files are located
+        keywords (List[str]): The keywords get texture grass files
     """
-    directories: List[str]
+    directory: str
+    keywords: List[str] | None
 
 
 class TerrainConfiguration(BaseModel):

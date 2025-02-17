@@ -20,6 +20,7 @@ from environment.mesh import convert_delatin_mesh_to_sub_meshes, generate_mesh_o
     populate_meshes
 from environment.objects import spawn_objects
 from environment.terrain import create_terrain_segmentation, create_delatin_mesh_from_height_map
+from environment.texture import get_all_textures_by_directory
 from scene.camera import get_camera_iterations, get_random_camera_location, update_camera_position
 from scene.light import create_random_light
 from utils.utils import cleanup_files, get_playground_directory_with_tag, move_rendered_images_to_playground
@@ -125,12 +126,10 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         directory=terrain_configuration.grass_configuration.directory,
         keywords=terrain_configuration.grass_configuration.keywords
     )
-    texture_blend_paths = [
-        file_path
-        for directory in terrain_configuration.textures_configuration.directories
-        for file_path in Path(directory).rglob("*.blend")
-        if str(file_path).endswith(".blend")
-    ]
+    texture_blend_files = get_all_textures_by_directory(
+        directory=terrain_configuration.textures_configuration.directory,
+        keywords=terrain_configuration.textures_configuration.keywords
+    )
 
     # Create terrain and segmentation map
     height_map, segmentation_map = create_terrain_segmentation(
@@ -159,7 +158,7 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
     populate_meshes(
         delatin_mesh=delatin_mesh,
         delatin_sub_meshes=delatin_sub_meshes,
-        texture_paths=texture_blend_paths,
+        texture_path=texture_blend_files,
         world_size=world_size,
     )
 

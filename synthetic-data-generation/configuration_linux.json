@@ -128,9 +128,8 @@
       ]
     },
     "textures_configuration": {
-      "directories": [
-        "/home/kasv/blender_data/renderer/assets/terrain"
-      ]
+      "directory": "/home/kasv/blender_data/renderer/assets/terrain",
+      "keywords": null
     }
   },
   "spawn_objects_configuration": {

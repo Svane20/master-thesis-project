@@ -128,9 +128,8 @@
       ]
     },
     "textures_configuration": {
-      "directories": [
-        "C:/Thesis/renderer/assets/terrain"
-      ]
+      "directory": "C:/Thesis/renderer/assets/terrain",
+      "keywords": null
     }
   },
   "spawn_objects_configuration": {

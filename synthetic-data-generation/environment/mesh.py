@@ -182,7 +182,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
 def populate_meshes(
         delatin_mesh: Delatin,
         delatin_sub_meshes: Dict[str, Tuple],
-        texture_paths: List[str | Path],
+        texture_path: List[str],
         world_size: float
 ) -> None:
     logging.info("Populating mesh objects.")
@@ -195,10 +195,6 @@ def populate_meshes(
     max_val = np.max(vertices[:, :2])
     vertices[:, :2] = vertices[:, :2] / max_val * world_size - world_size / 2
     logging.debug("Scaled vertices to fit world size.")
-
-    # Filter texture paths for .blend files
-    terrain_textures = [f for f in texture_paths if str(f).endswith(".blend")]
-    logging.debug(f"Found {len(terrain_textures)} terrain textures.")
 
     # Create Blender mesh from delatin_mesh
     bpy_mesh = bpy.data.meshes.new("mesh")
@@ -224,7 +220,8 @@ def populate_meshes(
     logging.info("Generated UV map for the initial mesh.")
 
     # Choose a random texture from available terrain textures
-    texture = str(random.choice(terrain_textures))
+    logging.info(f"Found {len(texture_path)} terrain textures.")
+    texture = str(random.choice(texture_path))
     texture_name = Path(texture).name
     logging.info(f"Selected random texture: {texture_name}")
 
@@ -262,7 +259,6 @@ def populate_meshes(
             break
         except Exception as e:
             logging.error(f"Failed to append {texture}. Error: {e}")
-            # Depending on requirements, you may want to retry or break here
             break
 
     # Clear existing materials and add a new material slot
