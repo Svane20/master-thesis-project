@@ -24,7 +24,7 @@
     }
   ],
   "constants": {
-    "playground_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/playground",
+    "playground_directory": "D:/OneDrive/Master Thesis/datasets/raw/synthetic-data",
     "save_blend_files": false,
     "render_images": true,
     "num_iterations": 8,
@@ -48,7 +48,7 @@
       "feature_set": "SUPPORTED",
       "device": "GPU",
       "tile_size": 4096,
-      "samples": 1,
+      "samples": 128,
       "use_denoising": true,
       "denoising_use_gpu": true,
       "use_adaptive_sampling": true,
@@ -104,7 +104,7 @@
     "world_size": 100.0,
     "image_size": 2048,
     "noise_basis": "PERLIN_ORIGINAL",
-    "generate_trees": false,
+    "generate_trees": true,
     "trees_configuration": {
       "directory": "C:/Users/svane/AppData/Roaming/Blender Foundation/Blender/data/scatter library/_biomes_/Vegetation",
       "keywords": [
