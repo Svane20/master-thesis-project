@@ -24,7 +24,7 @@
     }
   ],
   "constants": {
-    "playground_directory": "/mnt/shared/synthetic-data",
+    "playground_directory": "/mnt/shared/datasets/raw/synthetic-data",
     "save_blend_files": false,
     "render_images": true,
     "num_iterations": 8,

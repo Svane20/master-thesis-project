@@ -1,3 +1,4 @@
 {
-  "dataset_path": "C:/Thesis/synthetic-data"
+  "source_directory": "D:/OneDrive/Master Thesis/datasets/raw/synthetic-data",
+  "destination_directory": "C:/Users/svane/Desktop/Thesis/master-thesis-project/dataset-converter/synthetic-data"
 }

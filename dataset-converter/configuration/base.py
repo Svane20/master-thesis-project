@@ -7,7 +7,15 @@ import platform
 
 
 class Configuration(BaseModel):
-    dataset_path: str
+    """
+    Configuration for the dataset conversion pipeline.
+
+    Attributes:
+        source_directory (str): The directory containing the source dataset.
+        destination_directory (str): The directory where the converted dataset will be saved.
+    """
+    source_directory: str
+    destination_directory: str
 
 
 def get_configurations() -> Configuration:
