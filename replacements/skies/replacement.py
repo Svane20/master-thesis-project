@@ -3,6 +3,7 @@ import pymatting
 from pathlib import Path
 import numpy as np
 import cv2
+import logging
 
 from constants import OUTPUT_DIRECTORY
 
@@ -64,7 +65,7 @@ def replace_background(
         save_dir.mkdir(parents=True, exist_ok=True)
         replaced_image_path = save_dir / "replaced.png"
         pymatting.save_image(str(replaced_image_path), replaced_image)
-        print(f"Replaced image saved to {replaced_image_path}")
+        logging.info(f"Replaced image saved to {replaced_image_path}")
 
     return replaced_image
 
@@ -114,6 +115,6 @@ def remove_background(
         image_with_alpha_uint8 = cv2.cvtColor(image_with_alpha_uint8, cv2.COLOR_RGBA2BGRA)
         cv2.imwrite(str(output_path), image_with_alpha_uint8)
 
-        print(f"Removed background image saved to {output_path}")
+        logging.info(f"Removed background image saved to {output_path}")
 
     return image_with_alpha

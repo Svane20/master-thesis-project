@@ -3,6 +3,7 @@ import pymatting
 from typing import Tuple
 from pathlib import Path
 import numpy as np
+import logging
 
 from constants import OUTPUT_DIRECTORY
 
@@ -58,7 +59,7 @@ def get_foreground_estimation(
         foreground_path = save_dir / "foreground.png"
         pymatting.save_image(str(foreground_path), image=foreground)
 
-        print(f"Foreground saved to {foreground_path}")
+        logging.info(f"Foreground saved to {foreground_path}")
 
     if save_background:
         save_dir.mkdir(parents=True, exist_ok=True)
@@ -66,6 +67,6 @@ def get_foreground_estimation(
         background_path = save_dir / "background.png"
         pymatting.save_image(str(background_path), image=background)
 
-        print(f"Background saved to {background_path}")
+        logging.info(f"Background saved to {background_path}")
 
     return foreground, background
