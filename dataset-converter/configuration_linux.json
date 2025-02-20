@@ -1,0 +1,4 @@
+{
+  "source_directory": "/mnt/shared/datasets/raw/synthetic-data",
+  "destination_directory": "/mnt/shared/datasets/processed/synthetic-data"
+}
