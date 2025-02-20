@@ -2,24 +2,24 @@
   "addons": [
     {
       "plugin_title": "Biome-Reader",
-      "plugin_path": "/home/kasv/blender_data/plugins/BiomeReaderPlugin.zip",
+      "plugin_path": "/mnt/shared/blender_data/plugins/BiomeReaderPlugin.zip",
       "package_path": null,
       "library_paths": [
-        "/home/kasv/blender_data/assets/data/plant_library"
+        "/mnt/shared/blender_data/assets/data/plant_library"
       ]
     },
     {
       "plugin_title": "Grassblade",
-      "plugin_path": "/home/kasv/blender_data/plugins/GrassbladePro.zip",
-      "package_path": "/home/kasv/blender_data/packages/GrassbladePro_v2.6.scatpack",
+      "plugin_path": "/mnt/shared/blender_data/plugins/GrassbladePro.zip",
+      "package_path": "/mnt/shared/blender_data/packages/GrassbladePro_v2.6.scatpack",
       "library_paths": null
     },
     {
       "plugin_title": "Vegetation",
-      "plugin_path": "/home/kasv/blender_data/plugins/Vegetation_V5.1_Addon.zip",
-      "package_path": "/home/kasv/blender_data/packages/Vegetation_v5.1fix2_Geoscatter_Biomes_Pro.scatpack",
+      "plugin_path": "/mnt/shared/blender_data/plugins/Vegetation_V5.1_Addon.zip",
+      "package_path": "/mnt/shared/blender_data/packages/Vegetation_v5.1fix2_Geoscatter_Biomes_Pro.scatpack",
       "library_paths": [
-        "/home/kasv/blender_data/assets/data/vegetation"
+        "/mnt/shared/blender_data/assets/data/vegetation"
       ]
     }
   ],
@@ -128,7 +128,7 @@
       ]
     },
     "textures_configuration": {
-      "directory": "/home/kasv/blender_data/renderer/assets/textures/terrain",
+      "directory": "/mnt/shared/blender_data/renderer/assets/textures/terrain",
       "keywords": null
     }
   },
@@ -142,33 +142,33 @@
           0,
           0
         ],
-        "directory": "/home/kasv/blender_data/renderer/assets/models/houses"
+        "directory": "/mnt/shared/blender_data/renderer/assets/models/houses"
       },
       {
         "should_spawn": false,
         "use_halton": true,
         "num_objects": 5,
         "position": null,
-        "directory": "/home/kasv/blender_data/renderer/assets/models/bushes"
+        "directory": "/mnt/shared/blender_data/renderer/assets/models/bushes"
       },
       {
         "should_spawn": false,
         "use_halton": true,
         "num_objects": 5,
         "position": null,
-        "directory": "/home/kasv/blender_data/renderer/assets/models/fences"
+        "directory": "/mnt/shared/blender_data/renderer/assets/models/fences"
       },
       {
         "should_spawn": true,
         "use_halton": true,
         "num_objects": 5,
         "position": null,
-        "directory": "/home/kasv/blender_data/renderer/assets/models/hedges"
+        "directory": "/mnt/shared/blender_data/renderer/assets/models/hedges"
       }
     ]
   },
   "sky_configuration": {
-    "directory": "/home/kasv/blender_data/renderer/assets/hdris/pure_skies",
+    "directory": "/mnt/shared/blender_data/renderer/assets/hdris/pure_skies",
     "temperature": {
       "min": 5000,
       "max": 6500
