@@ -24,7 +24,7 @@
     }
   ],
   "constants": {
-    "playground_directory": "/home/kasv/master-thesis-project/synthetic-data-generation/playground",
+    "playground_directory": "/mnt/shared/synthetic-data",
     "save_blend_files": false,
     "render_images": true,
     "num_iterations": 8,
@@ -32,7 +32,7 @@
   },
   "render_configuration": {
     "engine": "CYCLES",
-    "temp_folder": "/home/kasv/master-thesis-project/synthetic-data-generation/temp",
+    "temp_folder": "/home/kasv/temp",
     "resolution_percentage": 100,
     "file_format": "PNG",
     "use_border": true,
@@ -63,7 +63,7 @@
       "render_image": true,
       "render_object_index": false,
       "render_environment": true,
-      "output_path": "/home/kasv/master-thesis-project/synthetic-data-generation/output",
+      "output_path": "/home/kasv/output",
       "image_output_configuration": {
         "title": "Image",
         "use_node_format": false,
@@ -104,7 +104,7 @@
     "world_size": 100.0,
     "image_size": 2048,
     "noise_basis": "PERLIN_ORIGINAL",
-    "generate_trees": false,
+    "generate_trees": true,
     "trees_configuration": {
       "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Vegetation",
       "keywords": [

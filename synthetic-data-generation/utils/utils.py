@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from pathlib import Path
 import logging
+import shutil
 
 from configuration.configuration import Configuration
 from configuration.outputs import OutputsConfiguration
@@ -60,7 +61,7 @@ def get_playground_directory_with_tag(configuration: Configuration) -> Path:
     Returns:
         Path: The path to the playground directory.
     """
-    current_time = datetime.now(timezone.utc).strftime("%H-%M_%d-%m-%Y")
+    current_time = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
     directory = Path(configuration.constants.playground_directory) / current_time
     create_directory(directory)
 
@@ -108,7 +109,7 @@ def move_rendered_images_to_playground(
                     iteration,
                     file_extension
                 )
-                image.rename(filepath)
+                shutil.move(str(image), filepath)
                 logging.info(f"Moved {image.name} to {filepath}")
             elif id_mask_prefix in image.name:
                 filepath = _get_playground_file_path(
@@ -118,7 +119,7 @@ def move_rendered_images_to_playground(
                     iteration,
                     file_extension
                 )
-                image.rename(filepath)
+                shutil.move(str(image), filepath)
                 logging.info(f"Moved {image.name} to {filepath}")
             elif environment_prefix in image.name:
                 filepath = _get_playground_file_path(
@@ -128,7 +129,7 @@ def move_rendered_images_to_playground(
                     iteration,
                     file_extension
                 )
-                image.rename(filepath)
+                shutil.move(str(image), filepath)
                 logging.info(f"Moved {image.name} to {filepath}")
         except Exception as e:
             logging.error(f"Failed to move {image.name} to {directory}: {e}")
