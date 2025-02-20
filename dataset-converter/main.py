@@ -1,6 +1,7 @@
 from pathlib import Path
 from PIL import Image
 import logging
+from tqdm import tqdm
 
 from configuration.base import get_configurations
 from custom_logging.custom_logger import setup_logging
@@ -32,36 +33,65 @@ def flatten_dataset(source_dir: Path, dest_dir: Path) -> None:
         source_dir (Path): Path to the top-level synthetic data folder.
         dest_dir (Path): Path to the destination folder where the flat structure will be created.
     """
-    # Create destination directory
-    dest_dir.mkdir(parents=True, exist_ok=True)
+    logging.info("Starting dataset flattening...")
 
-    # Define destination subdirectories
+    # Create destination directory and subdirectories
+    dest_dir.mkdir(parents=True, exist_ok=True)
     images_dest = dest_dir / "images"
     masks_dest = dest_dir / "masks"
     images_dest.mkdir(parents=True, exist_ok=True)
     masks_dest.mkdir(parents=True, exist_ok=True)
 
-    # Iterate through each datetime folder in the source directory
+    # Pre-calculate total number of files (images + masks)
+    total_files = 0
     for folder in source_dir.iterdir():
         if folder.is_dir():
             images_folder = folder / "images"
             masks_folder = folder / "masks"
-
-            # Process images
             if images_folder.exists():
-                for image_file in images_folder.glob('*.png'):
-                    new_image_name = f"{folder.name}_{image_file.name}"
-                    dest_image_path = images_dest / new_image_name
-                    compress_png(image_file, dest_image_path)
-                    logging.info(f"Processed and copied {image_file} to {dest_image_path}")
-
-            # Process mask files
+                total_files += len(list(images_folder.glob('*.png')))
             if masks_folder.exists():
-                for mask_file in masks_folder.glob("*.png"):
-                    new_mask_name = f"{folder.name}_{mask_file.name}"
-                    dest_mask_path = masks_dest / new_mask_name
-                    compress_png(mask_file, dest_mask_path)
-                    logging.info(f"Processed and copied {mask_file} to {dest_mask_path}")
+                total_files += len(list(masks_folder.glob('*.png')))
+
+    logging.info(f"Total files to process: {total_files}")
+
+    # Process all files
+    with tqdm(total=total_files, desc="Processing all files") as pbar:
+        for folder in source_dir.iterdir():
+            if folder.is_dir():
+                logging.info(f"Processing folder: {folder.name}")
+                images_folder = folder / "images"
+                masks_folder = folder / "masks"
+
+                if images_folder.exists():
+                    image_files = list(images_folder.glob('*.png'))
+
+                    for image_file in image_files:
+                        new_image_name = f"{folder.name}_{image_file.name}"
+                        dest_image_path = images_dest / new_image_name
+
+                        if not dest_image_path.exists():
+                            compress_png(image_file, dest_image_path)
+
+                        pbar.update(1)
+                else:
+                    logging.info(f"No images folder found in {folder}")
+
+                if masks_folder.exists():
+                    mask_files = list(masks_folder.glob("*.png"))
+
+                    for mask_file in mask_files:
+                        new_mask_name = f"{folder.name}_{mask_file.name}"
+                        dest_mask_path = masks_dest / new_mask_name
+
+                        if not dest_mask_path.exists():
+                            compress_png(mask_file, dest_mask_path)
+
+                        pbar.update(1)
+                else:
+                    logging.info(f"No masks folder found in {folder}")
+
+    logging.info("Finished dataset flattening")
 
 
 if __name__ == '__main__':
