@@ -23,7 +23,7 @@ def main() -> None:
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_config(
         current_directory=root_directory,
-        configuration_path="unet/configuration/inference.yaml"
+        configuration_path="unet/configuration/inference_windows.yaml"
     )
 
     # Load the model
@@ -37,16 +37,16 @@ def main() -> None:
     )
 
     # Get test transforms
-    test_directory = root_directory / configuration.dataset.root / configuration.dataset.name / "test"
+    dataset_path = root_directory / configuration.dataset.root / configuration.dataset.name
     transforms = get_test_transforms(configuration.scratch.resolution)
 
     # Get an image from the test dataset
-    image_title = "cf89c3220bc4_03"
-    image_path = test_directory / "images" / f"{image_title}.jpg"
+    image_title = "2025-02-20_13-02-10"
+    image_path = dataset_path / "images" / f"{image_title}_Image_1.png"
     image = np.array(Image.open(image_path).convert("RGB"))
 
     # Get the mask path
-    mask_path = test_directory / "masks" / f"{image_title}_mask.gif"
+    mask_path = dataset_path / "masks" / f"{image_title}_SkyMask_1.png"
     mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
     mask = mask / 255.0  # Scale to [0, 1] range
 

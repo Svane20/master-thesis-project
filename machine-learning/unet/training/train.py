@@ -3,7 +3,7 @@ import torch
 from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
-from datasets.carvana.data_loaders import setup_data_loaders
+from datasets.synthetic.data_loaders import setup_data_loaders
 
 from training.trainer import Trainer
 from training.utils.train_utils import set_seeds
@@ -78,7 +78,7 @@ if __name__ == "__main__":
         "-c",
         "--config",
         type=str,
-        default="unet/configuration/training.yaml",
+        default="unet/configuration/training_windows.yaml",
         help="Path to the configuration file.",
     )
 

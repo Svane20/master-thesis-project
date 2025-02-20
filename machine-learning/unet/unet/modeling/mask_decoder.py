@@ -36,7 +36,7 @@ class MaskDecoder(nn.Module):
         up4 = self.up4(up3, down2)  # 128 + 128 -> 64
         up5 = self.up5(up4, down1)  # 64 + 64 -> 32
 
-        return torch.sigmoid(self.head(up5))  # 32 -> out_channels
+        return self.head(up5)  # 32 -> out_channels
 
 
 class MaskDecoderV0(nn.Module):
