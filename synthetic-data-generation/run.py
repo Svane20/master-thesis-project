@@ -29,7 +29,12 @@ def main():
         try:
             result = subprocess.run(["python", "main.py"], check=True)
         except subprocess.CalledProcessError as e:
-            logging.info(f"Error occurred during run {i + 1}: {e}")
+            # Check if the return code indicates a SIGKILL
+            if e.returncode == -9:
+                logging.error("Process was killed by SIGKILL. Terminating the script completely.")
+                sys.exit(1)  # or break out of the loop if appropriate
+            else:
+                logging.info(f"Error occurred during run {i + 1}: {e}")
         else:
             logging.info(f"Run {i + 1} completed successfully.")
 
