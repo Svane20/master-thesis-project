@@ -219,7 +219,7 @@ def setup_the_sky(configuration: Configuration) -> None:
     add_sky_to_scene(configuration=configuration, seed=configuration.constants.seed)
 
 
-def setup_scene(configuration: Configuration) -> Tuple[Configuration, NDArray[np.float32]]:
+def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
     """
     Initialize the scene.
 
@@ -246,7 +246,7 @@ def setup_scene(configuration: Configuration) -> Tuple[Configuration, NDArray[np
 
     setup_the_sky(configuration)
 
-    return configuration, height_map
+    return height_map
 
 
 def main() -> None:
