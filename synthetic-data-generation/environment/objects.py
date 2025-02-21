@@ -42,7 +42,7 @@ def spawn_objects(
 
     if seed is not None:
         random.seed(seed)
-        logging.info(f"Random seed set to {seed}")
+        logging.debug(f"Random seed set to {seed}")
 
     blend_objects_paths = list(path.rglob("*.blend"))
     if not blend_objects_paths:
@@ -53,15 +53,15 @@ def spawn_objects(
         blend_objects_paths = [path for path in blend_objects_paths if
                                any(keyword in path.name for keyword in keywords)]
 
-    logging.info(f"Found {len(blend_objects_paths)} .blend files in {path}")
+    logging.debug(f"Found {len(blend_objects_paths)} .blend files in {path}")
 
     for index in range(num_objects):
         random_object_path = random.choice(blend_objects_paths)
-        logging.info(f"Selected object file: {random_object_path}")
+        logging.debug(f"Selected object file: {random_object_path}")
 
         # Append the object to the scene
         collection_object = append_object(object_path=random_object_path)
-        logging.info(f"Appended object from {random_object_path}")
+        logging.debug(f"Appended object from {random_object_path}")
 
         for obj in collection_object.objects:
             if obj.parent is not None:
@@ -84,6 +84,8 @@ def spawn_objects(
             obj.rotation_euler = (0, 0, random.random() * np.pi * 2)
             obj.pass_index = 2
 
-            logging.info(
+            logging.debug(
                 f"Placed object '{obj.name}' at position ({x:.2f}, {y:.2f}, {h:.2f}) with rotation {obj.rotation_euler}."
             )
+
+    logging.info(f"Finished spawning {num_objects} {path.name} on the terrain")

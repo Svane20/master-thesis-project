@@ -86,6 +86,8 @@ def initialize(configuration: Configuration) -> Configuration:
     Returns:
         Configuration: The configuration for the Blender pipeline
     """
+    logging.info("Initializing the Blender pipeline...")
+
     # General cleanup function to handle all object and directory cleanups
     general_cleanup(configuration)
 
@@ -104,6 +106,8 @@ def initialize(configuration: Configuration) -> Configuration:
     # Set the alpha threshold of the scene
     set_scene_alpha_threshold(alpha_threshold=0.5)
 
+    logging.info("Blender pipeline initialization completed.")
+
     return configuration
 
 
@@ -116,6 +120,8 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
     """
     terrain_configuration = configuration.terrain_configuration
     world_size = terrain_configuration.world_size
+
+    logging.info("Setting up the terrain...")
 
     # Get all biomes
     tree_biomes = get_all_biomes_by_directory(
@@ -165,6 +171,8 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         world_size=world_size,
     )
 
+    logging.info("Terrain setup completed.")
+
     return height_map
 
 
@@ -183,6 +191,8 @@ def spawn_objects_in_the_scene(
         height_map (NDArray[np.float32]): The terrain height map.
         seed (int, optional): The seed for the random number generator.
     """
+    logging.info("Spawning objects in the scene...")
+
     # Spawn objects on the terrain
     for spawn_object in configuration.spawn_objects:
         if not spawn_object.should_spawn:
@@ -208,6 +218,8 @@ def spawn_objects_in_the_scene(
     # Set backface culling for all materials
     use_backface_culling_on_materials()
 
+    logging.info("Object spawning completed.")
+
 
 def setup_the_sky(configuration: Configuration) -> None:
     """
@@ -216,7 +228,11 @@ def setup_the_sky(configuration: Configuration) -> None:
     Args:
         configuration (Configuration): The configuration for the scene.
     """
+    logging.info("Setting up the sky...")
+
     add_sky_to_scene(configuration=configuration, seed=configuration.constants.seed)
+
+    logging.info("Sky setup completed.")
 
 
 def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
@@ -233,6 +249,8 @@ def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
     Returns:
         Tuple[Path, NDArray[np.float32]]: The configuration and the height map.
     """
+    logging.info("Setting up the scene...")
+
     initialize(configuration)
 
     height_map = setup_terrain(configuration)
@@ -245,6 +263,8 @@ def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
     )
 
     setup_the_sky(configuration)
+
+    logging.info("Scene setup completed.")
 
     return height_map
 

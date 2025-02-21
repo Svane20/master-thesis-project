@@ -153,7 +153,7 @@ def _setup_image_output(
     image_output = render_layers.outputs.get(image_title)
     if image_output:
         _ = node_tree.links.new(image_output, output_file_node.inputs[image_title])
-        logging.info(f"Linked {image_title} output to the file node.")
+        logging.debug(f"Linked {image_title} output to the file node.")
     else:
         logging.error(f"Render Layers node does not contain an '{image_title}' output.")
 
@@ -193,7 +193,7 @@ def _setup_object_index_output(
         _ = node_tree.links.new(index_ob_output, map_range_node_indexOB.inputs[Constants.VALUE])
         _ = node_tree.links.new(map_range_node_indexOB.outputs[Constants.VALUE],
                                 output_file_node.inputs[index_ob_title])
-        logging.info(f"Linked {index_ob_title} output to the file node.")
+        logging.debug(f"Linked {index_ob_title} output to the file node.")
     else:
         logging.error(f"Render Layers node does not contain an '{index_ob_title}' output.")
 
@@ -233,7 +233,7 @@ def _setup_id_mask_output(
     if id_mask_output:
         _ = node_tree.links.new(id_mask_output, id_mask_node.inputs[Constants.ID_VALUE])
         _ = node_tree.links.new(id_mask_node.outputs[Constants.ALPHA], output_file_node.inputs[id_mask_title])
-        logging.info(f"Linked {id_mask_title} output to the file node.")
+        logging.debug(f"Linked {id_mask_title} output to the file node.")
     else:
         logging.error(f"Render Layers node does not contain an '{index_ob_title}' output for {id_mask_title}.")
 

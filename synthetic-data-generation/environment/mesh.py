@@ -41,7 +41,7 @@ def convert_delatin_mesh_to_sub_meshes(
     # Classify faces into grass, texture, and beds based on Z values
     z_values_per_face = vertices[faces][:, :, 2]
     grass_faces, texture_faces, beds_faces = _classify_faces_by_z_value(faces, z_values_per_face)
-    logging.info(
+    logging.debug(
         f"Classified faces into categories: {len(grass_faces)} grass, {len(texture_faces)} texture, {len(beds_faces)} beds.")
 
     # Reset Z values in vertices to original
@@ -96,14 +96,14 @@ def generate_mesh_objects_from_delation_sub_meshes(
     Raises:
         ValueError: If sub-meshes or biomes are not provided.
     """
-    logging.info(f"Starting to generate {len(delatin_sub_meshes)} mesh objects from Delatin sub-meshes.")
+    logging.info(f"Starting to generate {len(delatin_sub_meshes)} mesh objects from Delatin sub-meshes...")
 
     if not delatin_sub_meshes or not grass_biomes_path:
         raise ValueError("Sub-meshes or biome paths cannot be empty.")
 
     if seed is not None:
         np.random.seed(seed)
-        logging.info(f"Seed set to {seed}")
+        logging.debug(f"Seed set to {seed}")
 
     for i, (
             (vertices, faces),
@@ -132,7 +132,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
         bpy_mesh.update()
         bpy_mesh.validate(verbose=True)
 
-        logging.info(f"Created mesh '{bpy_mesh.name}' for object '{i}'.")
+        logging.debug(f"Created mesh '{bpy_mesh.name}' for object '{i}'.")
 
         # Create a new object and link it to the scene
         object_name = f"generated_mesh_{i}"
@@ -140,7 +140,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
         bpy.data.collections["Collection"].objects.link(mesh_object)
         bpy.context.view_layer.objects.active = mesh_object
 
-        logging.info(f"Mesh object '{object_name}' added to the scene.")
+        logging.debug(f"Mesh object '{object_name}' added to the scene.")
 
         # Get object names after creation
         new_object_names = bpy.data.objects.keys()
@@ -150,7 +150,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
 
         # Apply a random grass biome to the object
         if biomes_path_flag:
-            logging.info(f"Applying grass biomes to {len(unique_names)} objects.")
+            logging.debug(f"Applying grass biomes to {len(unique_names)} objects.")
 
             for o_name in set(new_object_names) - set(existing_object_names):
                 bpy_object = get_object_by_name(o_name)
@@ -166,7 +166,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
                     label_index=biome_label_index,
                 )
 
-            logging.info(f"Applied grass biomes to object '{object_name}' with label index {biome_label_index}.")
+            logging.debug(f"Applied grass biomes to object '{object_name}' with label index {biome_label_index}.")
 
         if generate_trees and random.random() < tree_probability:
             # Apply a random tree biome to the object
@@ -176,11 +176,13 @@ def generate_mesh_objects_from_delation_sub_meshes(
                 density=density_tree,
                 label_index=0,
             )
-            logging.info(f"Applied tree biomes to object '{object_name}' with label index 0.")
+            logging.debug(f"Applied tree biomes to object '{object_name}' with label index 0.")
 
         # Delete the object after applying the biome
         delete_object_by_selection(mesh_object)
-        logging.info(f"Deleted object '{object_name}' after biome application.")
+        logging.debug(f"Deleted object '{object_name}' after biome application.")
+
+    logging.info(f"Finished generating {len(delatin_sub_meshes)} mesh objects from Delatin sub-meshes.")
 
 
 def populate_meshes(
@@ -189,7 +191,7 @@ def populate_meshes(
         texture_paths: List[str],
         world_size: float
 ) -> None:
-    logging.info("Populating mesh objects.")
+    logging.info("Populating mesh objects...")
 
     vertices = delatin_mesh.vertices
     faces = delatin_mesh.triangles
@@ -205,14 +207,14 @@ def populate_meshes(
     bpy_mesh.from_pydata(vertices, [], faces)
     bpy_mesh.update()
     bpy_mesh.validate()
-    logging.info("Created Blender mesh from delatin_mesh.")
+    logging.debug("Created Blender mesh from delatin_mesh.")
 
     # Create and link object
     obj = bpy.data.objects.new(f"label_this_object_{uuid4()}", bpy_mesh)
     bpy.data.collections["Collection"].objects.link(obj)
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
-    logging.info(f"Created and linked object {obj.name} to collection.")
+    logging.debug(f"Created and linked object {obj.name} to collection.")
 
     # Generate UV map for the mesh
     _generate_uv_map_for_planer_surface(
@@ -221,13 +223,13 @@ def populate_meshes(
         faces,
         name=f"uv_map_{uuid4()}"
     )
-    logging.info("Generated UV map for the initial mesh.")
+    logging.debug("Generated UV map for the initial mesh.")
 
     # Choose a random texture from available terrain textures
     logging.debug(f"Found {len(texture_paths)} textures")
     texture = str(random.choice(texture_paths))
     texture_name = Path(texture).name
-    logging.info(f"Selected random texture: {texture_name}")
+    logging.debug(f"Selected random texture: {texture_name}")
 
     # Determine texture resolution suffix and extract base name
     resolutions = ["_4k.blend", "_8k.blend", "_16k.blend"]
@@ -243,7 +245,7 @@ def populate_meshes(
 
     # Append material from texture
     materials_before_appending = bpy.data.materials.keys()
-    logging.info("Appending material from texture.")
+    logging.debug("Appending material from texture.")
 
     while True:
         try:
@@ -272,7 +274,7 @@ def populate_meshes(
     bpy.data.materials[chosen_material].use_backface_culling = True
     bpy.data.materials[chosen_material].show_transparent_back = True
     obj.active_material = bpy.data.materials[chosen_material]
-    logging.info(f"Assigned material '{chosen_material}' to object '{obj.name}'.")
+    logging.debug(f"Assigned material '{chosen_material}' to object '{obj.name}'.")
 
     # Update mapping scale based on mesh dimensions
     min_val, max_val = _min_max_vertices(vertices)
@@ -288,11 +290,11 @@ def populate_meshes(
             longest_dim,
             1,
         )
-        logging.info("Updated material mapping scale in EDIT mode.")
+        logging.debug("Updated material mapping scale in EDIT mode.")
     bpy.ops.object.mode_set(mode="OBJECT")
 
     # Adjust submesh vertices for proper rendering (hack)
-    logging.info("Adjusting submesh vertices for rendering hack.")
+    logging.debug("Adjusting submesh vertices for rendering hack.")
     submesh = list(delatin_sub_meshes.values())[0]
     submesh_vertices, submesh_faces = submesh
     submesh_vertices[:, 2] += 0.005
@@ -303,7 +305,7 @@ def populate_meshes(
     bpy_mesh.from_pydata(submesh_vertices, [], submesh_faces)
     bpy_mesh.update()
     bpy_mesh.validate()
-    logging.info("Created Blender mesh for submesh.")
+    logging.debug("Created Blender mesh for submesh.")
 
     # Generate UV map for the submesh
     _generate_uv_map_for_planer_surface(
@@ -312,7 +314,7 @@ def populate_meshes(
         submesh_faces,
         name=f"uv_map_{uuid4()}"
     )
-    logging.info("Generated UV map for submesh.")
+    logging.debug("Generated UV map for submesh.")
 
     # Create and link submesh object
     obj = bpy.data.objects.new(f"label_this_object_2_{uuid4()}", bpy_mesh)
@@ -320,14 +322,14 @@ def populate_meshes(
     bpy.context.view_layer.objects.active = obj
     obj.select_set(True)
 
-    logging.info(f"Created and linked submesh object {obj.name} to collection.")
+    logging.debug(f"Created and linked submesh object {obj.name} to collection.")
 
     # Assign the same material to the submesh object
     obj.data.materials.clear()
     bpy.ops.object.material_slot_add()
     obj.active_material = bpy.data.materials[chosen_material]
 
-    logging.info(f"Assigned material '{chosen_material}' to submesh object '{obj.name}'.")
+    logging.debug(f"Assigned material '{chosen_material}' to submesh object '{obj.name}'.")
 
     # Update mapping scale for the submesh
     min_val, max_val = _min_max_vertices(submesh_vertices)
@@ -344,12 +346,14 @@ def populate_meshes(
             longest_dim,
             1,
         )
-        logging.info("Updated submesh material mapping scale in EDIT mode.")
+        logging.debug("Updated submesh material mapping scale in EDIT mode.")
 
     bpy.ops.object.mode_set(mode="OBJECT")
 
     obj.pass_index = 255
-    logging.info(f"Set pass index for object '{obj.name}' to 255.")
+    logging.debug(f"Set pass index for object '{obj.name}' to 255.")
+
+    logging.info("Finished populating mesh objects.")
 
 
 def _assign_vertex_z_values(
@@ -454,7 +458,7 @@ def _create_trimesh_sub_mesh(
         return np.array([]), np.array([])  # Return empty arrays if no faces exist
 
     mesh = trimesh.Trimesh(vertices=vertices, faces=faces)
-    logging.info(f"Created trimesh sub-mesh with {len(faces)} faces.")
+    logging.debug(f"Created trimesh sub-mesh with {len(faces)} faces.")
 
     return np.array(mesh.vertices), np.array(mesh.faces)
 
@@ -479,7 +483,7 @@ def _generate_uv_map_for_planer_surface(
         faces: list[tuple],
         name: str = "UVMap",
 ) -> None:
-    logging.info(f"Generating UV map '{name}' for mesh.")
+    logging.debug(f"Generating UV map '{name}' for mesh.")
 
     min_val, max_val = _min_max_vertices(vertices)
 
@@ -500,7 +504,7 @@ def _generate_uv_map_for_planer_surface(
     uv_layer = bpy_mesh.uv_layers.new(name=name)
     uv_layer.data.foreach_set("uv", uvs)
 
-    logging.info(f"UV map '{name}' created with {len(uvs) // 2} coordinate pairs.")
+    logging.debug(f"UV map '{name}' created with {len(uvs) // 2} coordinate pairs.")
 
 
 def _min_max_vertices(vertices: list[tuple]) -> tuple:

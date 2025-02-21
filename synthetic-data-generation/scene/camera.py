@@ -27,7 +27,7 @@ def get_camera_iterations(
     """
     if seed is not None:
         np.random.seed(seed)
-        logging.info(f"Seed set to {seed}")
+        logging.debug(f"Seed set to {seed}")
 
     return np.linspace(start=start, stop=stop, num=num_iterations, endpoint=endpoint)
 
@@ -47,7 +47,7 @@ def get_random_camera_location(iteration: float, height_map: NDArray[np.float32]
     """
     if seed is not None:
         np.random.seed(seed)
-        logging.info(f"Seed set to {seed}")
+        logging.debug(f"Seed set to {seed}")
 
     # Get the terrain shape
     width, height = height_map.shape[:2]
@@ -102,13 +102,13 @@ def update_camera_position(
         logging.info(f"Updating camera location to {location}.")
         camera.location = location
     else:
-        logging.info("No location provided; using the current camera location.")
+        logging.debug("No location provided; using the current camera location.")
 
     if rotation is not None:
-        logging.info(f"Updating camera rotation to {rotation}.")
+        logging.debug(f"Updating camera rotation to {rotation}.")
         camera.rotation_euler = rotation
     else:
-        logging.info(f"No rotation provided; calculating rotation to focus on {focus_point}.")
+        logging.debug(f"No rotation provided; calculating rotation to focus on {focus_point}.")
         camera.rotation_euler = _calculate_rotation_to_focus(camera.location, focus_point)
 
     logging.info(

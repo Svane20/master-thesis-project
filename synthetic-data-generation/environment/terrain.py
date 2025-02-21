@@ -23,10 +23,10 @@ def create_delatin_mesh_from_height_map(height_map: NDArray[np.float32], seed: i
 
     if seed is not None:
         np.random.seed(seed)
-        logging.info(f"Seed set to {seed}")
+        logging.debug(f"Seed set to {seed}")
 
     width, height = height_map.shape
-    logging.info(f"Terrain shape: width={width}, height={height}")
+    logging.debug(f"Terrain shape: width={width}, height={height}")
 
     delatin = Delatin(height_map * np.random.uniform(low=1, high=2.5), width=width, height=height)
 
@@ -61,8 +61,6 @@ def create_terrain_segmentation(
     Returns:
         Tuple[NDArray[np.float32], NDArray[np.uint8]]: Normalized height map and segmentation map.
     """
-    logging.info("Generating terrain segmentation...")
-
     normalized_height_map = _generate_fractal_heightmap(
         world_size=world_size,
         image_size=image_size,
@@ -107,7 +105,7 @@ def _generate_fractal_heightmap(
 
     if seed is not None:
         np.random.seed(seed)
-        logging.info(f"Seed set to {seed}")
+        logging.debug(f"Seed set to {seed}")
 
     # Generate a grid of points
     grid = np.linspace(-world_size / 2, world_size / 2, 1000, endpoint=True)
@@ -119,7 +117,7 @@ def _generate_fractal_heightmap(
     lacunarity = np.random.uniform(*lacunarity)
     offset = np.random.randint(low=0.0, high=world_size // 2)
 
-    logging.info(f"Fractal noise parameters: num_octaves={num_octaves}, H={H}, lacunarity={lacunarity}, offset={offset}")
+    logging.debug(f"Fractal noise parameters: num_octaves={num_octaves}, H={H}, lacunarity={lacunarity}, offset={offset}")
 
     # Generate the height map using fractal noise
     height_map = []

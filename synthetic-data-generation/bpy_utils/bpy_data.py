@@ -39,14 +39,14 @@ def list_data_blocks_in_blend_file(blend_file: Path, key: BlendFilePropertyKey) 
         Exception: If there’s an error loading the blend file or if the key is not found.
     """
     data_blocks_dict = {}
-    logging.info(f"Attempting to load '{key.value}' from blend file: {blend_file}")
+    logging.debug(f"Attempting to load '{key.value}' from blend file: {blend_file}")
 
     try:
         with bpy.data.libraries.load(str(blend_file), link=False) as (data_from, data_to):
             if hasattr(data_from, key.value):
                 data_block = getattr(data_from, key.value)
                 data_blocks_dict = {item: [] for item in data_block}
-                logging.info(f"Loaded {key.value}: {list(data_blocks_dict.keys())} from blend_file: {blend_file}")
+                logging.debug(f"Loaded {key.value}: {list(data_blocks_dict.keys())} from blend_file: {blend_file}")
             else:
                 logging.warning(f"Blend file does not contain '{key.value}': {blend_file}")
     except Exception as e:
@@ -74,7 +74,7 @@ def set_scene_alpha_threshold(
     """
     try:
         bpy.data.scenes[scene_name].view_layers[view_layer_name].pass_alpha_threshold = alpha_threshold
-        logging.info(
+        logging.debug(
             f"Set alpha threshold to {alpha_threshold} for scene '{scene_name}' and view layer '{view_layer_name}'.")
     except KeyError as e:
         logging.error(f"Failed to set alpha threshold: {e}")
@@ -91,6 +91,10 @@ def use_backface_culling_on_materials(use_backface_culling: bool = True) -> None
     Logs:
         Logs each material's name and the updated backface culling status.
     """
+    logging.debug(f"Setting backface culling to {use_backface_culling} for all materials.")
+
     for material in bpy.data.materials:
         material.use_backface_culling = use_backface_culling
         logging.debug(f"Set backface culling to {use_backface_culling} for material: {material.name}")
+
+    logging.debug("Backface culling updated for all materials.")
