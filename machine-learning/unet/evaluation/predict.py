@@ -41,7 +41,7 @@ def main() -> None:
     transforms = get_test_transforms(configuration.scratch.resolution)
 
     # Get an image from the test dataset
-    image_title = "2025-02-20_13-02-10"
+    image_title = "2025-02-21_18-55-52"
     image_path = dataset_path / "images" / f"{image_title}_Image_1.png"
     image = np.array(Image.open(image_path).convert("RGB"))
 

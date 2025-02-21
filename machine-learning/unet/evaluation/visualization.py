@@ -71,7 +71,9 @@ def save_prediction(
     ax[0, 1].axis("off")
 
     # Display ground truth mask
-    ax[1, 0].imshow(gt_mask_resized, cmap="binary_r", vmin=0, vmax=1)
+    gt_mask_stretched = (gt_mask_resized - 0.93) / (1 - 0.93)
+    gt_mask_stretched = np.clip(gt_mask_stretched, 0, 1)
+    ax[1, 0].imshow(gt_mask_stretched, cmap="gray", vmin=0, vmax=1)
     ax[1, 0].set_title("Ground Truth Mask", fontsize=12)
     ax[1, 0].axis("off")
 

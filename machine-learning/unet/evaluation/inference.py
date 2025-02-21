@@ -151,10 +151,6 @@ def predict_image(
             outputs = model(image_tensor)
             outputs = torch.clamp(outputs, 0, 1)  # Clamp to [0, 1]
 
-            # Convert binary GT mask to alpha matte
-            alpha_gt_mask = _convert_binary_to_alpha_mask(mask_tensor.squeeze().cpu().numpy())
-            alpha_gt_mask = torch.tensor(alpha_gt_mask).unsqueeze(0).unsqueeze(0).to(device)  # Match shape
-
             # Calculate metrics
             metrics = compute_metrics(outputs, mask_tensor)
 
