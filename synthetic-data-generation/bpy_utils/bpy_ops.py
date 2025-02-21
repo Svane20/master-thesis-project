@@ -96,7 +96,7 @@ def render_image(configuration: RunConfiguration, write_still: bool = True) -> N
         else:
             bpy.ops.render.render(write_still=write_still)
 
-        logging.debug("Image rendered successfully.")
+        logging.info("Image rendered successfully.")
     except Exception as e:
         logging.error(f"Failed to render image: {e}")
         raise
@@ -134,7 +134,7 @@ def save_as_blend_file(
         else:
             bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
 
-        logging.debug(f"Blend file saved successfully: '{filename}'")
+        logging.info(f"Blend file saved successfully: '{filename}'")
     except Exception as e:
         logging.error(f"Failed to save blend file: {e}")
         raise
