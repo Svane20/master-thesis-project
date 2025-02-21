@@ -1,4 +1,4 @@
 {
-  "source_directory": "/mnt/shared/datasets/processed/synthetic-data",
+  "source_directory": "/mnt/shared/datasets/raw/synthetic-data",
   "seed": null
 }
