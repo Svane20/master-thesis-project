@@ -10,7 +10,7 @@ def install_addons(addons: List[AddonConfiguration]) -> None:
     """
     Installs the required addons and reloads the biome library in Blender.
     """
-    logging.info("Starting addons installation process.")
+    logging.info("Starting addons installation process...")
 
     for addon in addons:
         if addon.plugin_path:

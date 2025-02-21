@@ -79,8 +79,6 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
     sky_configuration = configuration.sky_configuration
     directory = configuration.sky_configuration.directory
 
-    logging.info("Adding sky to the scene...")
-
     logging.debug(f"Adding sky to the scene from directory: {directory}")
     hdri_paths = get_all_hdri_by_directory(
         directory=directory,
@@ -105,8 +103,6 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
     logging.info("Setting up world output shader...")
     _setup_world_output(tree_nodes, node_tree)
     logging.info("World output shader set up successfully.")
-
-    logging.info("Sky added to the scene successfully.")
 
 
 def _add_hdri(
