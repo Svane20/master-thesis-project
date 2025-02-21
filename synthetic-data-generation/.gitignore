@@ -3,5 +3,6 @@ playground
 temp
 
 nohup.out
+logs/
 run.log
 app.log
