@@ -69,7 +69,7 @@ def apply_render_configuration(configuration: Configuration) -> None:
     )
 
 
-def initialize() -> Configuration:
+def initialize(configuration: Configuration) -> Configuration:
     """
     Initialization of required elements:
 
@@ -80,12 +80,12 @@ def initialize() -> Configuration:
     - Add a light to the scene.
     - Set the alpha threshold for the scene.
 
+    Args:
+        configuration (Configuration): The configuration for the Blender pipeline
+
     Returns:
         Configuration: The configuration for the Blender pipeline
     """
-    # Handle configuration setup
-    configuration = get_configuration()
-
     # General cleanup function to handle all object and directory cleanups
     general_cleanup(configuration)
 
@@ -219,7 +219,7 @@ def setup_the_sky(configuration: Configuration) -> None:
     add_sky_to_scene(configuration=configuration, seed=configuration.constants.seed)
 
 
-def setup_scene() -> Tuple[Configuration, NDArray[np.float32]]:
+def setup_scene(configuration: Configuration) -> Tuple[Configuration, NDArray[np.float32]]:
     """
     Initialize the scene.
 
@@ -227,10 +227,13 @@ def setup_scene() -> Tuple[Configuration, NDArray[np.float32]]:
     - Spawn objects in the scene.
     - Generate the sky for the scene.
 
+    Args:
+        configuration (Configuration): The configuration for the Blender pipeline
+
     Returns:
         Tuple[Path, NDArray[np.float32]]: The configuration and the height map.
     """
-    configuration = initialize()
+    initialize(configuration)
 
     height_map = setup_terrain(configuration)
 
@@ -248,14 +251,22 @@ def setup_scene() -> Tuple[Configuration, NDArray[np.float32]]:
 
 def main() -> None:
     """The main function to render the images from multiple camera angles."""
-    setup_logging(__name__)
+    # Get configuration
+    configuration = get_configuration()
+
+    # Setup logging
+    setup_logging(
+        name=__name__,
+        log_path=configuration.run_configuration.app_path,
+        save_logs=configuration.run_configuration.save_logs,
+    )
 
     # Track the overall script execution time
     script_start_time = time.perf_counter()
     logging.info("Script execution started.")
 
     # Set up the scene
-    configuration, height_map = setup_scene()
+    height_map = setup_scene(configuration)
 
     # Create output directory and set camera iterations
     playground_directory = get_playground_directory_with_tag(configuration=configuration)

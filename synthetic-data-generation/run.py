@@ -15,7 +15,7 @@ def main():
     # Setup logging
     setup_logging(
         name=__name__,
-        log_path=configuration.run_configuration.log_path,
+        log_path=configuration.run_configuration.run_path,
         save_logs=configuration.run_configuration.save_logs
     )
 

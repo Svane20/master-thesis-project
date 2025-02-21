@@ -33,7 +33,8 @@
   "run_configuration": {
     "max_runs": 5,
     "delay": 5,
-    "log_path": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/logs/run.log",
+    "run_path": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/logs/run.log",
+    "app_path": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/logs/app.log",
     "save_logs": false
   },
   "render_configuration": {

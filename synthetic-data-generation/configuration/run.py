@@ -8,10 +8,12 @@ class RunConfiguration(BaseModel):
     Attributes:
         max_runs (int): The number of times to run the script.
         delay (int): The delay in seconds between runs.
-        log_path (str): The path to the log file.
+        run_path (str): Where the run logs should be stored.
+        app_path (str): Where the app logs should be stored.
         save_logs (bool): Whether to save logs to a file.
     """
     max_runs: int
     delay: int
-    log_path: str
+    run_path: str
+    app_path: str
     save_logs: bool = False

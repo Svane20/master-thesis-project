@@ -57,14 +57,14 @@ def load_configuration(path: Path) -> Union[Dict[str, Union[str, int, float, boo
     try:
         with path.open('r') as f:
             configuration = json.load(f)
-        logging.info(f"Configuration successfully loaded from {path}")
+        print(f"Configuration successfully loaded from {path}")
         return configuration
     except FileNotFoundError as e:
-        logging.error(f"Configuration file not found: {path}. Error: {e}")
+        print(f"Configuration file not found: {path}. Error: {e}")
         raise e
     except json.JSONDecodeError as e:
-        logging.error(f"Invalid JSON format in configuration file: {path}. Error: {e}")
+        print(f"Invalid JSON format in configuration file: {path}. Error: {e}")
         raise e
     except Exception as e:
-        logging.error(f"Failed to load configuration from {path}: {e}")
+        print(f"Failed to load configuration from {path}: {e}")
         raise e

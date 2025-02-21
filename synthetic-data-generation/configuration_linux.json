@@ -33,7 +33,8 @@
   "run_configuration": {
     "max_runs": 5,
     "delay": 5,
-    "log_path": "/home/kasv/logs/run.log",
+    "run_path": "/home/kasv/logs/run.log",
+    "app_path": "/home/kasv/logs/app.log",
     "save_logs": true
   },
   "render_configuration": {
