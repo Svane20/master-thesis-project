@@ -44,8 +44,9 @@ def main():
         elapsed_times.append(run_duration)
 
         # Log the duration of the current run
-        minutes, seconds = divmod(run_duration, 60)
-        logging.info(f"Run {i + 1} took {int(minutes)} minutes and {seconds:.2f} seconds.")
+        hours, remainder = divmod(run_duration, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        logging.info(f"Run {i + 1} took {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds.")
 
         # Wait before the next run (except after the final iteration)
         if i < max_runs - 1:
@@ -54,10 +55,11 @@ def main():
             remaining_runs = max_runs - i - 1
             # Estimated remaining time includes both average run time and delay per remaining run
             estimated_remaining_time = (average_run_time + delay) * remaining_runs
-            rem_minutes, rem_seconds = divmod(estimated_remaining_time, 60)
+            est_hours, est_remainder = divmod(estimated_remaining_time, 3600)
+            est_minutes, est_seconds = divmod(est_remainder, 60)
 
             logging.info(
-                f"Estimated time remaining: {int(rem_minutes)} minutes and {rem_seconds:.2f} seconds."
+                f"Estimated time remaining: {int(est_hours)} hours, {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
             )
             logging.info(f"Waiting {delay} seconds before the next run...\n")
 
@@ -65,10 +67,11 @@ def main():
 
     overall_end = time.time()
     total_time = overall_end - overall_start
-    total_minutes, total_seconds = divmod(total_time, 60)
+    total_hours, total_remainder = divmod(total_time, 3600)
+    total_minutes, total_seconds = divmod(total_remainder, 60)
 
     logging.info("All runs are complete.")
-    logging.info(f"Total execution time: {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
+    logging.info(f"Total execution time: {int(total_hours)} hours, {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
 
 
 if __name__ == "__main__":

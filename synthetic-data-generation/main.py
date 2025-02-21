@@ -315,10 +315,11 @@ def main() -> None:
         elapsed_time = end_time - start_time
         elapsed_times.append(elapsed_time)  # Store elapsed time for averaging
 
-        minutes, seconds = divmod(elapsed_time, 60)
+        hours, remainder = divmod(elapsed_time, 3600)
+        minutes, seconds = divmod(remainder, 60)
         logging.info(
             f"Image {current_iteration}/{total_iterations} rendered successfully "
-            f"(Execution time: {int(minutes)} minutes and {seconds:.2f} seconds)"
+            f"(Execution time: {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds)"
         )
 
         # Calculate remaining time estimate
@@ -326,10 +327,11 @@ def main() -> None:
             avg_time_per_iteration = sum(elapsed_times) / len(elapsed_times)
             remaining_iterations = total_iterations - current_iteration
             estimated_remaining_time = avg_time_per_iteration * remaining_iterations
-            est_minutes, est_seconds = divmod(estimated_remaining_time, 60)
+            est_hours, est_remainder = divmod(estimated_remaining_time, 3600)
+            est_minutes, est_seconds = divmod(est_remainder, 60)
 
             logging.info(
-                f"Estimated time remaining: {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
+                f"Estimated time remaining: {int(est_hours)} hours, {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
             )
 
     # Cleanup temporary files generated during rendering
@@ -339,8 +341,9 @@ def main() -> None:
     # Log the total execution time of the script
     script_end_time = time.perf_counter()
     total_elapsed_time = script_end_time - script_start_time
-    total_minutes, total_seconds = divmod(total_elapsed_time, 60)
-    logging.info(f"Script finished in {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
+    total_hours, total_remainder = divmod(total_elapsed_time, 3600)
+    total_minutes, total_seconds = divmod(total_remainder, 60)
+    logging.info(f"Script finished in {int(total_hours)} hours, {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
 
 
 if __name__ == "__main__":
