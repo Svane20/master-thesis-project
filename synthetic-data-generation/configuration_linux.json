@@ -32,7 +32,9 @@
   },
   "run_configuration": {
     "max_runs": 5,
-    "delay": 5
+    "delay": 5,
+    "log_path": "/home/kasv/logs/run.log",
+    "save_logs": true
   },
   "render_configuration": {
     "engine": "CYCLES",

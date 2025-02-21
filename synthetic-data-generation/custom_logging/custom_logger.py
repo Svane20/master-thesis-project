@@ -37,12 +37,14 @@ class CustomFormatter(logging.Formatter):
         return log_message
 
 
-def setup_logging(name: str) -> None:
+def setup_logging(name: str, log_path: str = None, save_logs: bool = False) -> None:
     """
     Setup logging for the logger object.
 
     Args:
         name (str): The name of the logger.
+        log_path (str): The path to the log file.
+        save_logs (bool): Whether to save logs to a file.
     """
     logger = logging.getLogger(name)
     logger.setLevel("INFO")
@@ -60,6 +62,17 @@ def setup_logging(name: str) -> None:
     console_handler.setFormatter(formatter)
     console_handler.setLevel("INFO")
     logger.addHandler(console_handler)
+
+    # Set up the file handler if saving logs is enabled
+    if save_logs:
+        if not log_path:
+            log_path = "run.log"
+            logger.warning(f"Log path not provided. Using default log path '{log_path}'.")
+
+        file_handler = logging.FileHandler(log_path)
+        file_handler.setFormatter(formatter)
+        file_handler.setLevel("INFO")
+        logger.addHandler(file_handler)
 
     # Set the logger as the root logger
     logging.root = logger

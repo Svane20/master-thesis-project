@@ -7,13 +7,17 @@ from main import get_configuration
 
 
 def main():
-    # Setup logging
-    setup_logging(__name__)
-
     # Load configuration
     configuration = get_configuration()
     max_runs = configuration.run_configuration.max_runs
     delay = configuration.run_configuration.delay
+
+    # Setup logging
+    setup_logging(
+        name=__name__,
+        log_path=configuration.run_configuration.log_path,
+        save_logs=configuration.run_configuration.save_logs
+    )
 
     overall_start = time.time()
     elapsed_times = []
