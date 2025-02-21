@@ -34,6 +34,9 @@ def main():
             if e.returncode == -9:
                 logging.error("Process was killed by SIGKILL. Terminating the script completely.")
                 sys.exit(1)  # or break out of the loop if appropriate
+            elif e.returncode == -11:
+                # Ignore segmentation fault errors
+                pass
             else:
                 logging.info(f"Error occurred during run {i + 1}: {e}")
         else:
@@ -71,7 +74,8 @@ def main():
     total_minutes, total_seconds = divmod(total_remainder, 60)
 
     logging.info("All runs are complete.")
-    logging.info(f"Total execution time: {int(total_hours)} hours, {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
+    logging.info(
+        f"Total execution time: {int(total_hours)} hours, {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
 
 
 if __name__ == "__main__":
