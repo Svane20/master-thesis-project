@@ -20,13 +20,25 @@ python main.py
 
 ## Running multiple runs after SSH connection is closed
 
-1. Run the following command:
+1. CD to the project directory:
 
-````bash
-nohup python main.py &
+````text
+cd master-thesis-project/synthetic-data-generation/
 ````
 
-2. When the SSH connection is re-established, run the following command:
+2. Activate the blender conda environment:
+
+````bash
+conda activate blender
+````
+
+3. Run the following command:
+
+````bash
+nohup python run.py &
+````
+
+4. When the SSH connection is re-established, run the following command:
 
 ````bash
 ps -ef | grep main.py
@@ -34,8 +46,14 @@ ps -ef | grep main.py
 
 OR 
 
-3. Check the logs in the `logs/run.log` file with the following command:
+5. Check the logs in the `logs/run.log` file with the following command:
 
 ````bash
 tail -f logs/run.log
+````
+
+6. Kill the process with the following command:
+
+````bash
+kill -9 <PID>
 ````
