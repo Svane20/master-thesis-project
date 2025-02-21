@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 
 
 class CustomFormatter(logging.Formatter):
@@ -69,6 +70,12 @@ def setup_logging(name: str, log_path: str = None, save_logs: bool = False) -> N
             log_path = "run.log"
             logger.warning(f"Log path not provided. Using default log path '{log_path}'.")
 
+        # Ensure the directory exists
+        log_dir = os.path.dirname(log_path)
+        if log_dir and not os.path.exists(log_dir):
+            os.makedirs(log_dir, exist_ok=True)
+
+        # Add the file handler
         file_handler = logging.FileHandler(log_path)
         file_handler.setFormatter(formatter)
         file_handler.setLevel("INFO")
