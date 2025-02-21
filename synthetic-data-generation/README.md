@@ -44,7 +44,7 @@ nohup python run.py &
 ps -ef | grep main.py
 ````
 
-OR 
+OR
 
 5. Check the logs in the `logs/run.log` file with the following command:
 
@@ -56,4 +56,18 @@ tail -f logs/run.log
 
 ````bash
 kill -9 <PID>
+````
+
+7. Run the following command to check if the process is killed:
+
+````bash
+ps -ef | grep main.py
+````
+
+## Clear memory Linux buff/cache
+
+1. Run the following command:
+
+````bash
+sudo sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"
 ````
