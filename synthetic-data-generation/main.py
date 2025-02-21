@@ -280,59 +280,64 @@ def main() -> None:
     # Track execution times for estimation
     elapsed_times = []
 
-    # Render images from multiple camera angles
-    for index, iteration in enumerate(iterations):
-        current_iteration = index + 1
-        logging.info(f"Rendering image {current_iteration}/{total_iterations}")
-        start_time = time.perf_counter()
+    try:
+        # Render images from multiple camera angles
+        for index, iteration in enumerate(iterations):
+            current_iteration = index + 1
+            logging.info(f"Rendering image {current_iteration}/{total_iterations}")
+            start_time = time.perf_counter()
 
-        location = get_random_camera_location(
-            iteration=iteration,
-            height_map=height_map,
-            world_size=int(configuration.terrain_configuration.world_size),
-            seed=configuration.constants.seed
-        )
-
-        update_camera_position(location=location)
-
-        # Save the Blender file
-        if configuration.constants.save_blend_files:
-            save_as_blend_file(iteration=index, directory_path=str(playground_directory))
-
-        # Render the image
-        if configuration.constants.render_images:
-            render_image(write_still=True)
-
-            # Rename the rendered image and mask(s)
-            move_rendered_images_to_playground(
-                configuration=configuration.render_configuration.outputs_configuration,
-                directory=playground_directory,
-                iteration=index
+            location = get_random_camera_location(
+                iteration=iteration,
+                height_map=height_map,
+                world_size=int(configuration.terrain_configuration.world_size),
+                seed=configuration.constants.seed
             )
 
-        # Log the elapsed time for rendering the current image
-        end_time = time.perf_counter()
-        elapsed_time = end_time - start_time
-        elapsed_times.append(elapsed_time)  # Store elapsed time for averaging
+            update_camera_position(location=location)
 
-        hours, remainder = divmod(elapsed_time, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        logging.info(
-            f"Image {current_iteration}/{total_iterations} rendered successfully "
-            f"(Execution time: {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds)"
-        )
+            # Save the Blender file
+            if configuration.constants.save_blend_files:
+                save_as_blend_file(iteration=index, directory_path=str(playground_directory))
 
-        # Calculate remaining time estimate
-        if elapsed_times:
-            avg_time_per_iteration = sum(elapsed_times) / len(elapsed_times)
-            remaining_iterations = total_iterations - current_iteration
-            estimated_remaining_time = avg_time_per_iteration * remaining_iterations
-            est_hours, est_remainder = divmod(estimated_remaining_time, 3600)
-            est_minutes, est_seconds = divmod(est_remainder, 60)
+            # Render the image
+            if configuration.constants.render_images:
+                render_image(write_still=True)
 
+                # Rename the rendered image and mask(s)
+                move_rendered_images_to_playground(
+                    configuration=configuration.render_configuration.outputs_configuration,
+                    directory=playground_directory,
+                    iteration=index
+                )
+
+            # Log the elapsed time for rendering the current image
+            end_time = time.perf_counter()
+            elapsed_time = end_time - start_time
+            elapsed_times.append(elapsed_time)  # Store elapsed time for averaging
+
+            hours, remainder = divmod(elapsed_time, 3600)
+            minutes, seconds = divmod(remainder, 60)
             logging.info(
-                f"Estimated time remaining: {int(est_hours)} hours, {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
+                f"Image {current_iteration}/{total_iterations} rendered successfully "
+                f"(Execution time: {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds)"
             )
+
+            # Calculate remaining time estimate
+            if elapsed_times:
+                avg_time_per_iteration = sum(elapsed_times) / len(elapsed_times)
+                remaining_iterations = total_iterations - current_iteration
+                estimated_remaining_time = avg_time_per_iteration * remaining_iterations
+                est_hours, est_remainder = divmod(estimated_remaining_time, 3600)
+                est_minutes, est_seconds = divmod(est_remainder, 60)
+
+                logging.info(
+                    f"Estimated time remaining: {int(est_hours)} hours, {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
+                )
+    except KeyboardInterrupt:
+        logging.error("Keyboard interrupt detected. Terminating the script.")
+    except Exception as e:
+        logging.error(f"An error occurred during the script execution: {e}")
 
     # Cleanup temporary files generated during rendering
     cleanup_files(configuration)
@@ -343,7 +348,9 @@ def main() -> None:
     total_elapsed_time = script_end_time - script_start_time
     total_hours, total_remainder = divmod(total_elapsed_time, 3600)
     total_minutes, total_seconds = divmod(total_remainder, 60)
-    logging.info(f"Script finished in {int(total_hours)} hours, {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
+    logging.info(
+        f"Script finished in {int(total_hours)} hours, {int(total_minutes)} minutes and {total_seconds:.2f} seconds."
+    )
 
 
 if __name__ == "__main__":
