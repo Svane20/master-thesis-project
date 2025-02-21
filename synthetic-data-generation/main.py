@@ -200,6 +200,7 @@ def spawn_objects_in_the_scene(
             filepath=spawn_object.directory,
             height_map=height_map,
             world_size=world_size,
+            keywords=spawn_object.keywords,
             seed=seed
         )
 

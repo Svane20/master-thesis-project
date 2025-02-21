@@ -12,12 +12,14 @@ class SpawnObject(BaseModel):
         num_objects (int): Number of objects to spawn
         position (List[int]): The positions to spawn the objects in
         directory (str): The directory where to find objects to spawn
+        keywords (List[str]): The keywords to find specific objects to spawn
     """
     should_spawn: bool
     use_halton: bool
     num_objects: int
     position: List[int] | None
     directory: str
+    keywords: List[str] | None
 
 
 class SpawnObjectsConfiguration(BaseModel):

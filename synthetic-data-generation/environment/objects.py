@@ -3,6 +3,7 @@ import numpy as np
 from numpy.typing import NDArray
 import random
 import logging
+from typing import List
 
 from bpy_utils.bpy_ops import append_object
 
@@ -13,6 +14,7 @@ def spawn_objects(
         filepath: str,
         height_map: NDArray[np.float32],
         world_size: float,
+        keywords: List[str] | None = None,
         seed: int = None
 ) -> None:
     """
@@ -24,6 +26,7 @@ def spawn_objects(
         filepath (str): The directory path containing .blend files for objects.
         height_map (NDArray[np.float32]): The terrain height map.
         world_size (float): The size of the world (terrain scale).
+        keywords (List[str], optional): A list of keywords to filter object files. Default is None.
         seed (int, optional): Random seed for reproducibility. Default is None.
 
     Raises:
@@ -45,6 +48,10 @@ def spawn_objects(
     if not blend_objects_paths:
         logging.error(f"No .blend files found in directory {path}")
         raise FileNotFoundError(f"No .blend files found in directory {path}")
+
+    if keywords:
+        blend_objects_paths = [path for path in blend_objects_paths if
+                               any(keyword in path.name for keyword in keywords)]
 
     logging.info(f"Found {len(blend_objects_paths)} .blend files in {path}")
 

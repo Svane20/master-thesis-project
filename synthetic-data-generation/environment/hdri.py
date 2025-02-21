@@ -37,12 +37,13 @@ class Constants:
     FAC: str = "Fac"
 
 
-def get_all_hdri_by_directory(directory: str) -> List[Path]:
+def get_all_hdri_by_directory(directory: str, keywords: List[str] | None = None) -> List[Path]:
     """
     Retrieve all HDRI files in the specified directory.
 
     Args:
         directory (Path): The directory to search for HDRI files.
+        keywords (List[str], optional): A list of keywords to filter HDRI files. Defaults to None.
 
     Returns:
         List[Path]: A list of HDRI file paths.
@@ -55,6 +56,9 @@ def get_all_hdri_by_directory(directory: str) -> List[Path]:
     hdri_files = []
     for ext in Constants.HDRI_EXTENSIONS:
         hdri_files += list(directory.glob(f"*{ext}"))
+
+    if keywords:
+        hdri_files = [path for path in hdri_files if any(keyword in path.stem for keyword in keywords)]
 
     if not hdri_files:
         logging.error(f"No HDRI files found in {directory}")
@@ -76,7 +80,10 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
     directory = configuration.sky_configuration.directory
 
     logging.info(f"Adding sky to the scene from directory: {directory}")
-    hdri_paths = get_all_hdri_by_directory(directory)
+    hdri_paths = get_all_hdri_by_directory(
+        directory=directory,
+        keywords=sky_configuration.keywords
+    )
     random_hdri_path = random.choice(hdri_paths)
     logging.info(f"Selected HDRI file: {random_hdri_path}")
 
