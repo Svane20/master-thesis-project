@@ -8,6 +8,7 @@ import logging
 from configuration.addons import AddonConfiguration
 from configuration.camera import CameraConfiguration
 from configuration.constants import Constants
+from configuration.run import RunConfiguration
 from configuration.sky import SkyConfiguration
 from configuration.render import RenderConfiguration
 from configuration.spawn_objects import SpawnObjectsConfiguration
@@ -28,6 +29,7 @@ class Configuration(BaseModel):
     """
     addons: List[AddonConfiguration]
     constants: Constants
+    run_configuration: RunConfiguration
     render_configuration: RenderConfiguration
     camera_configuration: CameraConfiguration
     terrain_configuration: TerrainConfiguration

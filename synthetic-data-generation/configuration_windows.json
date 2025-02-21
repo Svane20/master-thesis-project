@@ -30,6 +30,10 @@
     "num_iterations": 8,
     "seed": null
   },
+  "run_configuration": {
+    "max_runs": 5,
+    "delay": 5
+  },
   "render_configuration": {
     "engine": "CYCLES",
     "temp_folder": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/temp",

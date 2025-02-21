@@ -30,6 +30,10 @@
     "num_iterations": 8,
     "seed": null
   },
+  "run_configuration": {
+    "max_runs": 10,
+    "delay": 5
+  },
   "render_configuration": {
     "engine": "CYCLES",
     "temp_folder": "/home/kasv/temp",

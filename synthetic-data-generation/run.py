@@ -3,22 +3,24 @@ import time
 import logging
 
 from custom_logging.custom_logger import setup_logging
-
-# Configuration
-MAX_RUNS = 5  # Number of times to run the script
-DELAY = 5  # Delay in seconds between runs
+from main import get_configuration
 
 
 def main():
     # Setup logging
     setup_logging(__name__)
 
+    # Load configuration
+    configuration = get_configuration()
+    max_runs = configuration.run_configuration.max_runs
+    delay = configuration.run_configuration.delay
+
     overall_start = time.time()
     elapsed_times = []
 
-    for i in range(MAX_RUNS):
+    for i in range(max_runs):
         run_start = time.time()
-        logging.info(f"Starting run {i + 1} of {MAX_RUNS}...")
+        logging.info(f"Starting run {i + 1} of {max_runs}...")
 
         try:
             result = subprocess.run(["python", "main.py"], check=True)
@@ -36,20 +38,20 @@ def main():
         logging.info(f"Run {i + 1} took {int(minutes)} minutes and {seconds:.2f} seconds.")
 
         # Wait before the next run (except after the final iteration)
-        if i < MAX_RUNS - 1:
+        if i < max_runs - 1:
             # Average duration of runs so far (not including the delay)
             average_run_time = sum(elapsed_times) / len(elapsed_times)
-            remaining_runs = MAX_RUNS - i - 1
+            remaining_runs = max_runs - i - 1
             # Estimated remaining time includes both average run time and delay per remaining run
-            estimated_remaining_time = (average_run_time + DELAY) * remaining_runs
+            estimated_remaining_time = (average_run_time + delay) * remaining_runs
             rem_minutes, rem_seconds = divmod(estimated_remaining_time, 60)
 
             logging.info(
                 f"Estimated time remaining: {int(rem_minutes)} minutes and {rem_seconds:.2f} seconds."
             )
-            logging.info(f"Waiting {DELAY} seconds before the next run...\n")
+            logging.info(f"Waiting {delay} seconds before the next run...\n")
 
-            time.sleep(DELAY)
+            time.sleep(delay)
 
     overall_end = time.time()
     total_time = overall_end - overall_start
