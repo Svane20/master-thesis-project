@@ -5,4 +5,5 @@ temp
 nohup.out
 logs/
 run.log
+blender.log
 app.log
