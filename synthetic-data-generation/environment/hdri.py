@@ -85,7 +85,7 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
         keywords=sky_configuration.keywords
     )
     random_hdri_path = random.choice(hdri_paths)
-    logging.debug(f"Selected HDRI file: {random_hdri_path}")
+    logging.info(f"Selected HDRI file: {random_hdri_path}")
 
     node_tree = bpy.context.scene.world.node_tree
     tree_nodes = node_tree.nodes

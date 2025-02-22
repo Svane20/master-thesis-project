@@ -57,7 +57,7 @@ def spawn_objects(
 
     for index in range(num_objects):
         random_object_path = random.choice(blend_objects_paths)
-        logging.debug(f"Selected object file: {random_object_path}")
+        logging.info(f"Selected object file: {random_object_path}")
 
         # Append the object to the scene
         collection_object = append_object(object_path=random_object_path)
