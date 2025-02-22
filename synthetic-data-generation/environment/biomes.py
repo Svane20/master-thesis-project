@@ -117,7 +117,7 @@ def apply_biome(
         scattered_object.pass_index = label_index
         logging.debug(f"Assigned pass index {label_index} to object '{scattered_object.name}'.")
 
-    logging.info(f"Biome '{biome_path}' applied to object '{bpy_object.name}' successfully.")
+    logging.info(f"Biome applied to object '{bpy_object.name}' successfully.")
 
 
 def get_object_by_name(name: Union[str, bpy.types.Object]) -> Union[bpy.types.Object, None]:

@@ -64,7 +64,7 @@ def append_object(object_path: Path) -> bpy.types.Collection:
             filename=collection_name
         )
 
-        logging.info(f"Successfully appended collection: '{collection_name}'")
+        logging.debug(f"Successfully appended collection: '{collection_name}'")
 
         return bpy.data.collections[collection_name]
 
