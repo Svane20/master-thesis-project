@@ -153,6 +153,8 @@ def cleanup_files(
         remove_output_dir (bool, optional): Whether to remove files in the output directory. Defaults to True.
         remove_temporary_dir (bool, optional): Whether to remove files in the temporary directory. Defaults to True.
     """
+    logging.info("Cleaning up files from previous runs...")
+
     if remove_output_dir:
         output_directory = Path(configuration.render_configuration.outputs_configuration.output_path)
         logging.info(f"Cleaning up output directory: {output_directory}")
@@ -162,6 +164,8 @@ def cleanup_files(
         temp_directory = Path(configuration.render_configuration.temp_folder)
         logging.info(f"Cleaning up temporary directory: {temp_directory}")
         remove_temporary_files(directory=temp_directory)
+
+    logging.info("Finished cleaning up files.")
 
 
 def remove_temporary_files(
@@ -185,15 +189,15 @@ def remove_temporary_files(
 
     try:
         if image_name is None:
-            logging.info(f"Deleting all temporary files with extension {extension} in {directory}")
+            logging.debug(f"Deleting all temporary files with extension {extension} in {directory}")
             temp_files = directory.glob(f"*.{extension}")
         else:
-            logging.info(f"Deleting temporary files with name {image_name}.{extension} in {directory}")
+            logging.debug(f"Deleting temporary files with name {image_name}.{extension} in {directory}")
             temp_files = directory.glob(f"{image_name}.{extension}")
 
         for temp_file in temp_files:
             temp_file.unlink()
-            logging.info(f"Deleted temporary file: {temp_file}")
+            logging.debug(f"Deleted temporary file: {temp_file}")
     except Exception as e:
         logging.error(f"Failed to delete files in {directory}: {e}")
         raise
