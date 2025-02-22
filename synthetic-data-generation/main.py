@@ -360,8 +360,8 @@ def main() -> None:
                 )
     except KeyboardInterrupt:
         logging.error("Keyboard interrupt detected. Terminating the script.")
-    except Exception as e:
-        logging.error(f"An error occurred during the script execution: {e}")
+    except Exception:
+        logging.exception("An error occurred during the script execution")
 
     # Cleanup temporary files generated during rendering
     cleanup_files(configuration)
