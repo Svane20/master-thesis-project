@@ -365,8 +365,6 @@ def main() -> None:
     except Exception:
         logging.exception("An error occurred during the script execution")
 
-    logging.info("Script execution completed.")
-
     # Cleanup temporary files generated during rendering
     logging.info("Removing temporary files generated during the execution...")
     cleanup_files(configuration)
