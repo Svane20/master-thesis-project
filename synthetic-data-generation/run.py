@@ -15,18 +15,20 @@ def delete_logs_from_previous_runs(log_path: str) -> None:
     Args:
         log_path (str): The path to the log file.
     """
-    log_directory = os.path.dirname(log_path)
-    log_files = [f for f in os.listdir(log_directory) if f.endswith(".log")]
-
     logging.info("Deleting log files from previous runs...")
 
+    log_directory = os.path.dirname(log_path)
+    if not os.path.exists(log_directory):
+        logging.info("Log directory does not exist. No log files to delete.")
+        return
+
+    log_files = [f for f in os.listdir(log_directory) if f.endswith(".log")]
     if not log_files:
         logging.info("No log files found from previous runs.")
         return
 
     for log_file in log_files:
         os.remove(os.path.join(log_directory, log_file))
-        logging.info(f"Deleted log file: {log_file}")
 
     logging.info("Deleted all log files from previous runs.")
 
