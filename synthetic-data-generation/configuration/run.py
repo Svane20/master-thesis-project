@@ -9,13 +9,11 @@ class RunConfiguration(BaseModel):
         max_runs (int): The number of times to run the script.
         delay (int): The delay in seconds between runs.
         run_path (str): Where the run logs should be stored.
-        blender_path (str): Where the blender logs should be stored.
         app_path (str): Where the app logs should be stored.
         save_logs (bool): Whether to save logs to a file.
     """
     max_runs: int
     delay: int
     run_path: str
-    blender_path: str
     app_path: str
     save_logs: bool = False

@@ -318,15 +318,11 @@ def main() -> None:
 
             # Save the Blender file
             if configuration.constants.save_blend_files:
-                save_as_blend_file(
-                    configuration=configuration.run_configuration,
-                    directory_path=str(playground_directory),
-                    iteration=index,
-                )
+                save_as_blend_file(directory_path=str(playground_directory), iteration=index)
 
             # Render the image
             if configuration.constants.render_images:
-                render_image(configuration=configuration.run_configuration, write_still=True)
+                render_image(write_still=True)
 
                 # Rename the rendered image and mask(s)
                 move_rendered_images_to_playground(

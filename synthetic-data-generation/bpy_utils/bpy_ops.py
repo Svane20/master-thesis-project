@@ -4,9 +4,7 @@ from typing import Tuple
 import logging
 
 from bpy_utils.bpy_data import list_data_blocks_in_blend_file, BlendFilePropertyKey
-from configuration.run import RunConfiguration
 from constants.file_extensions import FileExtension
-from custom_logging.custom_logger import capture_blender_output
 
 logger = logging.getLogger(__name__)
 
@@ -75,12 +73,11 @@ def append_object(object_path: Path) -> bpy.types.Collection:
         raise
 
 
-def render_image(configuration: RunConfiguration, write_still: bool = True) -> None:
+def render_image(write_still: bool = True) -> None:
     """
     Renders the current Blender scene as an image.
 
     Args:
-        configuration (RunConfiguration): The configuration object.
         write_still (bool): Whether to write the rendered image to disk. Defaults to True.
 
     Raises:
@@ -90,11 +87,7 @@ def render_image(configuration: RunConfiguration, write_still: bool = True) -> N
         logging.info("Rendering image...")
 
         # Render the image
-        if configuration.save_logs:
-            with capture_blender_output(logger=logger, log_path=configuration.blender_path):
-                bpy.ops.render.render(write_still=write_still)
-        else:
-            bpy.ops.render.render(write_still=write_still)
+        bpy.ops.render.render(write_still=write_still)
 
         logging.info("Image rendered successfully.")
     except Exception as e:
@@ -103,7 +96,6 @@ def render_image(configuration: RunConfiguration, write_still: bool = True) -> N
 
 
 def save_as_blend_file(
-        configuration: RunConfiguration,
         directory_path: str,
         iteration: int,
         allow_overwrite: bool = True
@@ -112,7 +104,6 @@ def save_as_blend_file(
     Saves the current Blender scene as a .blend file.
 
     Args:
-        configuration (RunConfiguration): The configuration object.
         directory_path (Path): The directory path to save the .blend file.
         iteration (int): The current iteration number.
         allow_overwrite (bool): Whether to allow overwriting an existing file. Defaults to True.
@@ -128,11 +119,7 @@ def save_as_blend_file(
         output_path = _prepare_output_path(filename, directory_path, allow_overwrite)
 
         # Save the blend file
-        if configuration.save_logs:
-            with capture_blender_output(logger=logger, log_path=configuration.blender_path):
-                bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
-        else:
-            bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
+        bpy.ops.wm.save_as_mainfile(filepath=str(output_path))
 
         logging.info(f"Blend file saved successfully: '{filename}'")
     except Exception as e:
