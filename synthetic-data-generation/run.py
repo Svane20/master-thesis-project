@@ -2,9 +2,33 @@ import subprocess
 import time
 import sys
 import logging
+import os
 
 from custom_logging.custom_logger import setup_logging
 from main import get_configuration
+
+
+def delete_logs_from_previous_runs(log_path: str) -> None:
+    """
+    Delete the log files from previous runs.
+
+    Args:
+        log_path (str): The path to the log file.
+    """
+    log_directory = os.path.dirname(log_path)
+    log_files = [f for f in os.listdir(log_directory) if f.endswith(".log")]
+
+    logging.info("Deleting log files from previous runs...")
+
+    if not log_files:
+        logging.info("No log files found from previous runs.")
+        return
+
+    for log_file in log_files:
+        os.remove(os.path.join(log_directory, log_file))
+        logging.info(f"Deleted log file: {log_file}")
+
+    logging.info("Deleted all log files from previous runs.")
 
 
 def main():
@@ -20,6 +44,10 @@ def main():
         save_logs=configuration.run_configuration.save_logs
     )
 
+    # Delete log files from previous runs
+    delete_logs_from_previous_runs(log_path=configuration.run_configuration.run_path)
+
+    # Time tracking
     overall_start = time.time()
     elapsed_times = []
 

@@ -129,10 +129,6 @@ def setup_logging(name: str, log_path: str = None, save_logs: bool = False) -> N
     console_handler.setLevel("INFO")
     logger.addHandler(console_handler)
 
-    # Delete the log file if it already exists
-    if os.path.exists(log_path):
-        os.remove(log_path)
-
     # Set up the file handler if saving logs is enabled
     if save_logs:
         if not log_path:
