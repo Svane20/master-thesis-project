@@ -99,6 +99,8 @@ def move_rendered_images_to_playground(
     id_mask_prefix = configuration.id_mask_output_configuration.title
     environment_prefix = configuration.environment_output_configuration.title
 
+    logging.info("Moving rendered images and masks...")
+
     for image in rendered_images:
         try:
             if image_prefix in image.name:
@@ -134,6 +136,8 @@ def move_rendered_images_to_playground(
         except Exception as e:
             logging.error(f"Failed to move {image.name} to {directory}: {e}")
             raise
+
+    logging.info("Finished moving images and masks.")
 
 
 def cleanup_files(

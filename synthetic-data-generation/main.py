@@ -324,12 +324,12 @@ def main() -> None:
             if configuration.constants.render_images:
                 render_image(write_still=True)
 
-                # Rename the rendered image and mask(s)
-                move_rendered_images_to_playground(
-                    configuration=configuration.render_configuration.outputs_configuration,
-                    directory=playground_directory,
-                    iteration=index
-                )
+            # Move rendered images to the playground directory
+            move_rendered_images_to_playground(
+                configuration=configuration.render_configuration.outputs_configuration,
+                directory=playground_directory,
+                iteration=index
+            )
 
             # Log the elapsed time for rendering the current image
             end_time = time.perf_counter()
