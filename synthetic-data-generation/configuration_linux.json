@@ -33,9 +33,9 @@
   "run_configuration": {
     "max_runs": 5,
     "delay": 5,
-    "run_path": "/home/kasv/logs/run.log",
-    "blender_path": "/home/kasv/logs/blender.log",
-    "app_path": "/home/kasv/logs/app.log",
+    "run_path": "/home/kasv/logs/blender-synthetic-run.log",
+    "blender_path": "/home/kasv/logs/blender-render.log",
+    "app_path": "/home/kasv/logs/blender-app-run.log",
     "save_logs": true
   },
   "render_configuration": {
