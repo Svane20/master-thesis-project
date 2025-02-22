@@ -37,7 +37,13 @@ def clear_cube() -> None:
 
 def general_cleanup(configuration: Configuration) -> None:
     """Perform all necessary cleanups."""
+
+    # Remove temporary files from previous run(s)
+    logging.info("Removing temporary files from previous run...")
     cleanup_files(configuration)
+    logging.info("Removed temporary files.")
+
+    # Remove the existing cube in the Blender Scene
     clear_cube()
 
 
@@ -359,9 +365,12 @@ def main() -> None:
     except Exception:
         logging.exception("An error occurred during the script execution")
 
+    logging.info("Script execution completed.")
+
     # Cleanup temporary files generated during rendering
+    logging.info("Removing temporary files generated during the execution...")
     cleanup_files(configuration)
-    logging.info("Temporary files cleaned up.")
+    logging.info("Removed temporary files.")
 
     # Log the total execution time of the script
     script_end_time = time.perf_counter()

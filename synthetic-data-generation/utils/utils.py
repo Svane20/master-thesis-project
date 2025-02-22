@@ -153,8 +153,6 @@ def cleanup_files(
         remove_output_dir (bool, optional): Whether to remove files in the output directory. Defaults to True.
         remove_temporary_dir (bool, optional): Whether to remove files in the temporary directory. Defaults to True.
     """
-    logging.info("Cleaning up files from previous runs...")
-
     if remove_output_dir:
         output_directory = Path(configuration.render_configuration.outputs_configuration.output_path)
         logging.info(f"Cleaning up output directory: {output_directory}")
@@ -164,8 +162,6 @@ def cleanup_files(
         temp_directory = Path(configuration.render_configuration.temp_folder)
         logging.info(f"Cleaning up temporary directory: {temp_directory}")
         remove_temporary_files(directory=temp_directory)
-
-    logging.info("Finished cleaning up files.")
 
 
 def remove_temporary_files(
