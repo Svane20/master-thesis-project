@@ -39,10 +39,10 @@ def main() -> None:
     )
 
     # Create data loader
-    test_directory = root_directory / configuration.dataset.root / configuration.dataset.name / "val"
+    val_directory = root_directory / configuration.dataset.root / configuration.dataset.name / "val"
     transforms = get_val_transforms(configuration.scratch.resolution)
     data_loader = create_data_loader(
-        directory=test_directory,
+        directory=val_directory,
         transforms=transforms,
         batch_size=configuration.dataset.batch_size,
         pin_memory=configuration.dataset.pin_memory,
