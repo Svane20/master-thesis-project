@@ -50,9 +50,6 @@ def get_foreground_estimation(
     # This inversion aligns the alpha mask with pymatting’s expectation for foreground extraction.
     inverted_alpha_mask = 1 - alpha_mask
 
-    print(f"Shape of alpha mask: {alpha_mask.shape}")
-    print(f"Shape of image: {image.shape}")
-
     # Estimate the foreground and background
     foreground, background = pymatting.estimate_foreground_ml(image=image, alpha=inverted_alpha_mask, return_background=True)
 
