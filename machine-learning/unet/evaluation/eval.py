@@ -42,9 +42,9 @@ def main() -> None:
         transforms=transforms,
         batch_size=configuration.dataset.batch_size,
         pin_memory=configuration.dataset.pin_memory,
-        num_workers=configuration.dataset.test.num_workers,
-        shuffle=configuration.dataset.test.shuffle,
-        drop_last=configuration.dataset.test.drop_last,
+        num_workers=configuration.dataset.val.num_workers,
+        shuffle=configuration.dataset.val.shuffle,
+        drop_last=configuration.dataset.val.drop_last,
     )
 
     # Model evaluation

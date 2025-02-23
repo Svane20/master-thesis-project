@@ -9,7 +9,7 @@ from numpy import ndarray
 import atexit
 import functools
 
-from configuration.training.root import LoggingConfig, WandbConfig
+from configuration.training.root import TrainConfig
 from training.utils.train_utils import makedir
 
 
@@ -28,22 +28,22 @@ Scalar = Union[Tensor, ndarray, int, float]
 
 
 class WandbLogger:
-    def __init__(self, configuration: WandbConfig, wandb_configuration: WeightAndBiasesConfig):
-        self.configuration = configuration
-        self.enabled = configuration.enabled
+    def __init__(self, configuration: TrainConfig):
+        wandb_configuration = configuration.logging.wandb
+        self.enabled = wandb_configuration.enabled
 
         if not self.enabled:
             self.run = None
             return
 
         self.run = wandb.init(
-            project=configuration.project,
-            entity=configuration.entity,
-            tags=configuration.tags,
-            notes=configuration.notes,
-            group=configuration.group,
-            job_type=configuration.job_type,
-            config=wandb_configuration.model_dump()
+            project=wandb_configuration.project,
+            entity=wandb_configuration.entity,
+            tags=wandb_configuration.tags,
+            notes=wandb_configuration.notes,
+            group=wandb_configuration.group,
+            job_type=wandb_configuration.job_type,
+            config=configuration.asdict(),
         )
 
     def log(self, name: str, payload: Scalar, step: int) -> None:
@@ -85,10 +85,8 @@ class WandbLogger:
 
 
 class Logger:
-    def __init__(self, logging_configuration: LoggingConfig, wandb_configuration: WeightAndBiasesConfig):
-        configuration = logging_configuration.wandb
-
-        self.wandb_logger = WandbLogger(configuration, wandb_configuration)
+    def __init__(self, train_config: TrainConfig):
+        self.wandb_logger = WandbLogger(train_config)
 
     def log(self, name: str, payload: Scalar, step: int) -> None:
         """

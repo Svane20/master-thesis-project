@@ -12,7 +12,7 @@ dataset:
     num_workers: 8
     shuffle: true
     drop_last: true
-  test:
+  val:
     num_workers: 8
     shuffle: false
     drop_last: false

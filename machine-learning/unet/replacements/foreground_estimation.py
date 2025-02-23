@@ -1,4 +1,3 @@
-import cv2
 import pymatting
 
 from typing import Tuple
@@ -43,18 +42,10 @@ def get_foreground_estimation(
     #    - The sky (which was 1) becomes 0 (treated as background).
     #
     # This inversion aligns the alpha mask with pymatting’s expectation for foreground extraction.
-    alpha_mask = 1 - alpha_mask
-
-    # Resize the image to match the alpha mask
-    image = cv2.resize(image, (alpha_mask.shape[1], alpha_mask.shape[0]))
-
-    print(f"Alpha mask shape: {alpha_mask.shape}")
-    print(f"Image shape: {image.shape}")
+    inverted_alpha_mask = 1 - alpha_mask
 
     # Estimate the foreground and background
-    foreground, background = pymatting.estimate_foreground_ml(image=image, alpha=alpha_mask, return_background=True)
-
-    print(f"Foreground shape: {foreground.shape}")
+    foreground, background = pymatting.estimate_foreground_ml(image=image, alpha=inverted_alpha_mask, return_background=True)
 
     if save_foreground:
         save_dir.mkdir(parents=True, exist_ok=True)

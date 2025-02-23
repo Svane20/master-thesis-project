@@ -1,3 +1,4 @@
+import logging
 from typing import Dict
 
 from PIL import Image
@@ -91,4 +92,4 @@ def save_prediction(
     plt.show()
     plt.close(fig)
 
-    print(f"Prediction saved to {prediction_path}")
+    logging.info(f"Prediction saved to {prediction_path}")

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 from typing import Optional, Dict
 
 
@@ -6,3 +6,9 @@ from typing import Optional, Dict
 class CriterionConfig:
     name: str
     weight_dict: Optional[Dict[str, float]]
+
+    def asdict(self):
+        return {
+            "name": self.name,
+            "weight_dict": self.weight_dict
+        }

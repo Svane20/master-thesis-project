@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 import torch
 
@@ -44,17 +43,30 @@ def main() -> None:
     transforms = get_val_transforms(configuration.scratch.resolution)
 
     # Get an image from the test dataset
-    image_title = "2025-02-21_17-12-27"
-    image_path = dataset_path / "val" / "images" / f"{image_title}_Image_4.png"
+    image_title = "2025-02-21_14-32-40"
+    image_path = dataset_path / "val" / "images" / f"{image_title}_Image_7.png"
     image = np.array(Image.open(image_path).convert("RGB"))
 
     # Get the mask path
-    mask_path = dataset_path / "val" / "masks" / f"{image_title}_SkyMask_4.png"
+    mask_path = dataset_path / "val" / "masks" / f"{image_title}_SkyMask_7.png"
     mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
     mask = mask / 255.0  # Scale to [0, 1] range
 
     # Predict the mask
     predicted_mask, metrics = predict_image(image=image, mask=mask, model=model, transform=transforms, device=device)
+
+    # Normalize the alpha mask to [0, 1]
+    if predicted_mask.shape[2] == 4:
+        # Extract the alpha channel properly.
+        predicted_mask = predicted_mask[..., 3].astype(np.float64) / 255.0
+    else:
+        # If there’s no fourth channel, assume the mask is the output.
+        predicted_mask = np.squeeze(predicted_mask, axis=0)
+
+    # Upscale the predicted mask to the original image size
+    predicted_mask = np.array(Image.fromarray((predicted_mask * 255).astype(np.uint8)).resize((image.shape[1], image.shape[0]))).astype(np.float32) / 255.0
+
+    # Save the prediction
     save_prediction(
         image=image,
         predicted_mask=predicted_mask,
@@ -63,30 +75,22 @@ def main() -> None:
         directory=predictions_directory
     )
 
-    # Normalize the alpha mask to [0, 1]
-    if predicted_mask.shape[2] == 4:
-        # The alpha channel is the 4th channel (index 3).
-        alpha_mask = predicted_mask[..., 3].astype(np.float64) / 255.0
-
-    # Remove the alpha channel
-    alpha_mask = np.squeeze(predicted_mask, axis=0)
-
+    # Get the foreground estimation
     foreground, _ = get_foreground_estimation(
         image_path,
-        alpha_mask=alpha_mask,
+        alpha_mask=predicted_mask,
         save_dir=predictions_directory,
         save_foreground=True,
     )
 
+    # Replace the background with a new sky
     new_sky_path = Path(
         "C:\\Users\\svane\\Desktop\\Thesis\\master-thesis-project\\machine-learning\\unet\\replacements\\skies\\new_sky.webp"
     )
-
-    # Perform sky replacement
     replace_background(
         new_sky_path,
         foreground,
-        alpha_mask,
+        predicted_mask,
         save_dir=predictions_directory,
         save_image=True,
     )

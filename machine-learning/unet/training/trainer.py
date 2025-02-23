@@ -15,7 +15,7 @@ from training.early_stopping import EarlyStopping
 from training.optimizers import construct_optimizer, GradientClipper
 from training.schedulers import SchedulerWrapper
 from training.utils.checkpoint_utils import load_state_dict_into_model
-from training.utils.logger import setup_logging, Logger, WeightAndBiasesConfig
+from training.utils.logger import setup_logging, Logger
 from training.utils.train_utils import get_amp_type, get_resume_checkpoint, DurationMeter, makedir, AverageMeter, \
     MemMeter, Phase, ProgressMeter, Meter, human_readable_time
 
@@ -295,7 +295,8 @@ class Trainer:
 
         return metrics, losses
 
-    def _validate_one_epoch(self, data_loader: torch.utils.data.DataLoader) -> Tuple[Dict[str, float], Dict[str, float]]:
+    def _validate_one_epoch(self, data_loader: torch.utils.data.DataLoader) -> Tuple[
+        Dict[str, float], Dict[str, float]]:
         """
         Validate the model for one epoch.
 
@@ -560,7 +561,7 @@ class Trainer:
         Args:
             model (nn.Module): Model to train.
         """
-        logging.info("Setting up components: Model, criterion, optimizer, scheduler, scaler.")
+        logging.info("Setting up components: model, criterion, optimizer, scheduler, scaler.")
 
         # Iterations
         self.epoch = 0
@@ -600,7 +601,7 @@ class Trainer:
         self.meters = self._setup_meters()
         self.best_meter_values = {}
 
-        logging.info("Finished setting up components: Model, criterion, optimizer, scheduler, scaler")
+        logging.info("Finished setting up components: model, criterion, optimizer, scheduler, scaler")
 
     def _setup_meters(self) -> Dict[str, Any]:
         """
@@ -630,15 +631,7 @@ class Trainer:
         Returns:
             Logger: Logger for training.
         """
-        wandb_config = WeightAndBiasesConfig(
-            epochs=self.train_config.max_epochs,
-            learning_rate=self.optimizer_config.lr,
-            learning_rate_decay=self.optimizer_config.weight_decay,
-            seed=self.train_config.seed,
-            device=self.train_config.accelerator,
-        )
-
-        return Logger(self.logging_config, wandb_config)
+        return Logger(self.train_config)
 
     def _move_to_device(self, compile_model: bool = True) -> None:
         """
