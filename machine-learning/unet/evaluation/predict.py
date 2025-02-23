@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import torch
 
@@ -8,6 +9,8 @@ from datasets.transforms import get_val_transforms
 from evaluation.inference import predict_image
 from evaluation.utils.configuration import load_config
 from evaluation.visualization import save_prediction
+from replacements.foreground_estimation import get_foreground_estimation
+from replacements.replacement import replace_background
 from training.utils.logger import setup_logging
 from unet.build_model import build_unet_model
 
@@ -41,12 +44,12 @@ def main() -> None:
     transforms = get_val_transforms(configuration.scratch.resolution)
 
     # Get an image from the test dataset
-    image_title = "2025-02-22_13-10-40"
-    image_path = dataset_path / "val" / "images" / f"{image_title}_Image_3.png"
+    image_title = "2025-02-21_17-12-27"
+    image_path = dataset_path / "val" / "images" / f"{image_title}_Image_4.png"
     image = np.array(Image.open(image_path).convert("RGB"))
 
     # Get the mask path
-    mask_path = dataset_path / "val" / "masks" / f"{image_title}_SkyMask_3.png"
+    mask_path = dataset_path / "val" / "masks" / f"{image_title}_SkyMask_4.png"
     mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
     mask = mask / 255.0  # Scale to [0, 1] range
 
@@ -58,6 +61,34 @@ def main() -> None:
         gt_mask=mask,
         metrics=metrics,
         directory=predictions_directory
+    )
+
+    # Normalize the alpha mask to [0, 1]
+    if predicted_mask.shape[2] == 4:
+        # The alpha channel is the 4th channel (index 3).
+        alpha_mask = predicted_mask[..., 3].astype(np.float64) / 255.0
+
+    # Remove the alpha channel
+    alpha_mask = np.squeeze(predicted_mask, axis=0)
+
+    foreground, _ = get_foreground_estimation(
+        image_path,
+        alpha_mask=alpha_mask,
+        save_dir=predictions_directory,
+        save_foreground=True,
+    )
+
+    new_sky_path = Path(
+        "C:\\Users\\svane\\Desktop\\Thesis\\master-thesis-project\\machine-learning\\unet\\replacements\\skies\\new_sky.webp"
+    )
+
+    # Perform sky replacement
+    replace_background(
+        new_sky_path,
+        foreground,
+        alpha_mask,
+        save_dir=predictions_directory,
+        save_image=True,
     )
 
 

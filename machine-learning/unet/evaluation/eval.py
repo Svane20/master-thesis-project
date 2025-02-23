@@ -1,12 +1,8 @@
 import torch
 
 from pathlib import Path
-import os
-
-from torch.utils.data import DataLoader
 
 from datasets.synthetic.data_loaders import create_data_loader
-from datasets.synthetic.synthetic_dataset import SyntheticDataset
 from datasets.transforms import get_val_transforms
 
 from evaluation.inference import evaluate_model

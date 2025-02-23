@@ -1,3 +1,4 @@
+import cv2
 import pymatting
 
 from typing import Tuple
@@ -5,15 +6,13 @@ from pathlib import Path
 import numpy as np
 import logging
 
-from constants import OUTPUT_DIRECTORY
-
 
 def get_foreground_estimation(
         image_path: Path,
         alpha_mask: np.ndarray,
+        save_dir: Path,
         save_foreground: bool = False,
         save_background: bool = False,
-        save_dir: Path = OUTPUT_DIRECTORY
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Estimate the foreground and background of an image.
@@ -21,19 +20,15 @@ def get_foreground_estimation(
     Args:
         image_path (Path): Path to the image.
         alpha_mask (numpy.ndarray): Alpha mask with values between 0 and 1.
+        save_dir (Path): Directory to save the foreground and background images.
         save_foreground (bool): Whether to save the foreground image. Default is True.
         save_background (bool): Whether to save the background image. Default is True.
-        save_dir (Path): Directory to save the foreground and background images. Default is "output".
 
     Returns:
         numpy.ndarray: Foreground image.
         numpy.ndarray: Background image.
 
     """
-    # Check if the image exists
-    if not image_path.exists():
-        raise FileNotFoundError(f"Image not found: {image_path}")
-
     # Load the image
     image = pymatting.load_image(str(image_path))
 
@@ -50,11 +45,16 @@ def get_foreground_estimation(
     # This inversion aligns the alpha mask with pymatting’s expectation for foreground extraction.
     alpha_mask = 1 - alpha_mask
 
-    print(f"Shape of alpha mask: {alpha_mask.shape}")
-    print(f"Shape of image: {image.shape}")
+    # Resize the image to match the alpha mask
+    image = cv2.resize(image, (alpha_mask.shape[1], alpha_mask.shape[0]))
+
+    print(f"Alpha mask shape: {alpha_mask.shape}")
+    print(f"Image shape: {image.shape}")
 
     # Estimate the foreground and background
     foreground, background = pymatting.estimate_foreground_ml(image=image, alpha=alpha_mask, return_background=True)
+
+    print(f"Foreground shape: {foreground.shape}")
 
     if save_foreground:
         save_dir.mkdir(parents=True, exist_ok=True)

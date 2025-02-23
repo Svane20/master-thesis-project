@@ -44,12 +44,14 @@ def save_prediction(
     # Create the directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
 
+    alpha_mask = predicted_mask.copy()
+
     # Ensure the predicted mask has the correct shape
-    if predicted_mask.ndim == 3 and predicted_mask.shape[0] == 1:
-        predicted_mask = predicted_mask.squeeze(0)
+    if alpha_mask.ndim == 3 and alpha_mask.shape[0] == 1:
+        alpha_mask = alpha_mask.squeeze(0)
 
     # Resize all images to match the predicted mask dimensions
-    target_shape = predicted_mask.shape
+    target_shape = alpha_mask.shape
     image_resized = resize_to_match(image, target_shape)
     gt_mask_resized = resize_to_match(gt_mask, target_shape)
 
@@ -78,7 +80,7 @@ def save_prediction(
     ax[1, 0].axis("off")
 
     # Display predicted mask
-    ax[1, 1].imshow(predicted_mask, cmap="binary_r", vmin=0, vmax=1)
+    ax[1, 1].imshow(alpha_mask, cmap="binary_r", vmin=0, vmax=1)
     ax[1, 1].set_title("Predicted Mask", fontsize=12)
     ax[1, 1].axis("off")
 
