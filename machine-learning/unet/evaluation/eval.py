@@ -5,6 +5,7 @@ import os
 
 from torch.utils.data import DataLoader
 
+from datasets.synthetic.data_loaders import create_data_loader
 from datasets.synthetic.synthetic_dataset import SyntheticDataset
 from datasets.transforms import get_val_transforms
 
@@ -37,32 +38,17 @@ def main() -> None:
         mode="eval"
     )
 
-    # Validation transforms
-    val_transforms = get_val_transforms(configuration.scratch.resolution)
-
-    # Load the validation dataset
-    dataset_path = root_directory / configuration.dataset.root / configuration.dataset.name
-    images_directory = dataset_path / "images"
-    masks_directory = dataset_path / "masks"
-    all_files = sorted(os.listdir(images_directory))
-    split_index = int(len(all_files) * 0.8)
-    val_files = all_files[split_index:]
-
-    val_dataset = SyntheticDataset(
-        image_directory=images_directory,
-        mask_directory=masks_directory,
-        transforms=val_transforms,
-        file_list=val_files
-    )
-
-    data_loader = DataLoader(
-        val_dataset,
+    # Create data loader
+    test_directory = root_directory / configuration.dataset.root / configuration.dataset.name / "test"
+    transforms = get_val_transforms(configuration.scratch.resolution)
+    data_loader = create_data_loader(
+        directory=test_directory,
+        transforms=transforms,
         batch_size=configuration.dataset.batch_size,
-        shuffle=configuration.dataset.test.shuffle,
-        num_workers=max(1, configuration.dataset.test.num_workers),
-        persistent_workers=True,
         pin_memory=configuration.dataset.pin_memory,
-        drop_last=configuration.dataset.test.drop_last
+        num_workers=configuration.dataset.test.num_workers,
+        shuffle=configuration.dataset.test.shuffle,
+        drop_last=configuration.dataset.test.drop_last,
     )
 
     # Model evaluation
