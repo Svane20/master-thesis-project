@@ -3,6 +3,8 @@ from PIL import Image
 import logging
 from tqdm import tqdm
 import random
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import os
 
 from configuration.base import get_configurations
 from custom_logging.custom_logger import setup_logging
@@ -22,10 +24,10 @@ def compress_png(source_file: Path, dest_file: Path) -> None:
         img.save(dest_file, format="PNG", optimize=True, compress_level=9)
 
 
-def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: float = 0.8) -> None:
+def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: float = 0.8, max_workers: int = 2) -> None:
     """
     Flatten versioned synthetic data into train and validation directories,
-    compressing PNG files with lossless compression.
+    moving PNG files.
 
     Creates train/val splits based on the given train_ratio (default: 80% train, 20% val).
     The directory structure in dest_dir will be:
@@ -42,6 +44,7 @@ def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: flo
         source_dir (Path): Path to the top-level synthetic data folder.
         dest_dir (Path): Path to the destination folder where the flat structure will be created.
         train_ratio (float): Proportion of samples to be used for training.
+        max_workers (int): Maximum number of parallel workers.
     """
     logging.info("Starting dataset flattening and splitting...")
 
@@ -91,38 +94,35 @@ def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: flo
 
     logging.info(f"Train samples: {len(train_samples)}, Validation samples: {len(val_samples)}")
 
-    # Process training samples
-    with tqdm(total=len(train_samples), desc="Processing training samples") as pbar:
-        for sample_id in train_samples:
-            sample = samples[sample_id]
-            if "image" in sample:
-                dest_image_path = train_images_dest / sample_id
-                if not dest_image_path.exists():
-                    compress_png(sample["image"], dest_image_path)
-            if "mask" in sample:
-                dest_mask_path = train_masks_dest / sample_id.replace("Image_", "SkyMask_", 1)
-                if not dest_mask_path.exists():
-                    compress_png(sample["mask"], dest_mask_path)
-            pbar.update(1)
+    # Helper function to process a split in parallel
+    def process_split(sample_ids, images_dest, masks_dest, split_desc):
+        tasks = []
+        with ProcessPoolExecutor(max_workers=max_workers) as executor:
+            for sample_id in sample_ids:
+                sample = samples[sample_id]
+                if "image" in sample:
+                    dest_image_path = images_dest / sample_id
+                    if not dest_image_path.exists():
+                        tasks.append(executor.submit(compress_png, sample["image"], dest_image_path))
+                if "mask" in sample:
+                    dest_mask_path = masks_dest / sample_id.replace("Image_", "SkyMask_", 1)
+                    if not dest_mask_path.exists():
+                        tasks.append(executor.submit(compress_png, sample["mask"], dest_mask_path))
+            with tqdm(total=len(tasks), desc=split_desc) as pbar:
+                for future in as_completed(tasks):
+                    future.result()  # Propagate exceptions if any
+                    pbar.update(1)
 
-    # Process validation samples
-    with tqdm(total=len(val_samples), desc="Processing validation samples") as pbar:
-        for sample_id in val_samples:
-            sample = samples[sample_id]
-            if "image" in sample:
-                dest_image_path = val_images_dest / sample_id
-                if not dest_image_path.exists():
-                    compress_png(sample["image"], dest_image_path)
-            if "mask" in sample:
-                dest_mask_path = val_masks_dest / sample_id.replace("Image_", "SkyMask_", 1)
-                if not dest_mask_path.exists():
-                    compress_png(sample["mask"], dest_mask_path)
-            pbar.update(1)
+    # Process training samples in parallel
+    process_split(train_samples, train_images_dest, train_masks_dest, "Processing training samples")
+
+    # Process validation samples in parallel
+    process_split(val_samples, val_images_dest, val_masks_dest, "Processing validation samples")
 
     logging.info("Finished dataset flattening and splitting")
 
 
-def validate_dataset_split(split_dir: Path) -> None:
+def validate_dataset_split(split_dir: Path) -> bool:
     """
     Validate that every image in the split (e.g., val or test) has an associated mask.
     The association is determined by the naming convention:
@@ -140,7 +140,6 @@ def validate_dataset_split(split_dir: Path) -> None:
     valid = True
 
     for image_path in images_dir.glob("*.png"):
-        # Derive the expected mask name by replacing "Image_" with "SkyMask_"
         expected_mask_name = image_path.name.replace("Image_", "SkyMask_", 1)
         expected_mask_path = masks_dir / expected_mask_name
         if not expected_mask_path.exists():
@@ -150,7 +149,9 @@ def validate_dataset_split(split_dir: Path) -> None:
     if valid:
         logging.info(f"All images in {split_dir} have associated masks.")
     else:
-        logging.info(f"Validation failed for {split_dir}.")
+        logging.error(f"Validation failed for {split_dir}.")
+
+    return valid
 
 
 if __name__ == '__main__':
@@ -165,9 +166,18 @@ if __name__ == '__main__':
     destination_directory = Path(configuration.destination_directory)
 
     # Flatten and split dataset (80% train, 20% val)
-    flatten_and_split_dataset(source_directory, destination_directory)
+    max_workers = os.cpu_count() // 2
+    flatten_and_split_dataset(
+        source_directory,
+        destination_directory,
+        train_ratio=configuration.train_ratio,
+        max_workers=max_workers
+    )
 
     # Validate the train and validation splits
     for split in ["train", "val"]:
         split_dir = destination_directory / split
-        validate_dataset_split(split_dir)
+        if validate_dataset_split(split_dir):
+            logging.info(f"{split.capitalize()} split is complete and valid.")
+        else:
+            logging.error(f"There were issues with the {split} split.")

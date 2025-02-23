@@ -13,9 +13,11 @@ class Configuration(BaseModel):
     Attributes:
         source_directory (str): The directory containing the source dataset.
         destination_directory (str): The directory where the converted dataset will be saved.
+        train_ratio (float): The ratio of the dataset to be used for training.
     """
     source_directory: str
     destination_directory: str
+    train_ratio: float
 
 
 def get_configurations() -> Configuration:
