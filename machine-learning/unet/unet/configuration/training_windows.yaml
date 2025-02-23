@@ -39,7 +39,7 @@ training:
   # Optimizer configuration
   optimizer:
     name: "AdamW"
-    lr: 1.0e-4
+    lr: 3e-4
     weight_decay: 1.0e-6
     amp:
       enabled: true
@@ -54,7 +54,6 @@ training:
     name: "CosineAnnealingLR"
     enabled: true
     parameters:
-      t_max: 90 # 80-90% of max_epochs
       eta_min: 1.0e-5
 
   # Early stopping configuration

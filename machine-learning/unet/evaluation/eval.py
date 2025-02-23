@@ -6,7 +6,7 @@ import os
 from torch.utils.data import DataLoader
 
 from datasets.synthetic.synthetic_dataset import SyntheticDataset
-from datasets.transforms import get_test_transforms
+from datasets.transforms import get_val_transforms
 
 from evaluation.inference import evaluate_model
 from evaluation.utils.configuration import load_config
@@ -38,7 +38,7 @@ def main() -> None:
     )
 
     # Validation transforms
-    val_transforms = get_test_transforms(configuration.scratch.resolution)
+    val_transforms = get_val_transforms(configuration.scratch.resolution)
 
     # Load the validation dataset
     dataset_path = root_directory / configuration.dataset.root / configuration.dataset.name

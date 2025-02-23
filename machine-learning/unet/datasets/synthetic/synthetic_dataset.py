@@ -6,7 +6,7 @@ import numpy as np
 import os
 from PIL import Image
 from pathlib import Path
-from typing import List, Tuple, Optional
+from typing import Tuple, Optional
 
 
 class SyntheticDataset(Dataset):
@@ -24,16 +24,11 @@ class SyntheticDataset(Dataset):
             image_directory: Path,
             mask_directory: Path,
             transforms: Optional[Compose] = None,
-            file_list: Optional[List[str]] = None,
     ) -> None:
         self.image_directory = image_directory
         self.mask_directory = mask_directory
         self.transforms = transforms
-
-        if file_list is not None:
-            self.images = file_list
-        else:
-            self.images = os.listdir(image_directory)
+        self.images = os.listdir(image_directory)
 
 
     def __len__(self) -> int:

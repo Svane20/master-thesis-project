@@ -4,7 +4,7 @@ import torch
 from pathlib import Path
 from PIL import Image
 
-from datasets.transforms import get_test_transforms
+from datasets.transforms import get_val_transforms
 from evaluation.inference import predict_image
 from evaluation.utils.configuration import load_config
 from evaluation.visualization import save_prediction
@@ -38,7 +38,7 @@ def main() -> None:
 
     # Get test transforms
     dataset_path = root_directory / configuration.dataset.root / configuration.dataset.name
-    transforms = get_test_transforms(configuration.scratch.resolution)
+    transforms = get_val_transforms(configuration.scratch.resolution)
 
     # Get an image from the test dataset
     image_title = "2025-02-21_18-55-52"

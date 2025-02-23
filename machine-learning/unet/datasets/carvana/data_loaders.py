@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Tuple
 
 from datasets.carvana.carvana_dataset import CarvanaDataset
-from datasets.transforms import get_train_transforms, get_test_transforms
+from datasets.transforms import get_train_transforms, get_val_transforms
 
 from configuration.dataset import DatasetConfig
 from configuration.scratch import ScratchConfig
@@ -27,7 +27,7 @@ def setup_data_loaders(
     """
     # Get train and test transforms
     transforms = get_train_transforms(scratch_config.resolution)
-    target_transforms = get_test_transforms(scratch_config.resolution)
+    target_transforms = get_val_transforms(scratch_config.resolution)
 
     # Construct data filepaths
     current_directory = Path(__file__).resolve().parent.parent.parent

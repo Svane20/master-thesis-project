@@ -3,11 +3,9 @@ from torch.utils.data import DataLoader, Dataset
 import albumentations as A
 from pathlib import Path
 from typing import Tuple
-import os
-import random
 
 from datasets.synthetic.synthetic_dataset import SyntheticDataset
-from datasets.transforms import get_train_transforms, get_test_transforms
+from datasets.transforms import get_train_transforms, get_val_transforms
 
 from configuration.dataset import DatasetConfig
 from configuration.scratch import ScratchConfig
@@ -25,58 +23,78 @@ def setup_data_loaders(
         dataset_config (DatasetConfig): Configuration for the dataset.
 
     Returns:
-        Tuple[DataLoader[Dataset], DataLoader[Dataset]]: Train and test data loaders.
+        Tuple[DataLoader[Dataset], DataLoader[Dataset]]: Train and validation data loaders.
     """
-    # Get transforms for training and validation
-    train_transforms = get_train_transforms(scratch_config.resolution)
-    val_transforms = get_test_transforms(scratch_config.resolution)
+    # Get train and test transforms
+    transforms = get_train_transforms(scratch_config.resolution)
+    target_transforms = get_val_transforms(scratch_config.resolution)
 
     # Construct data filepaths
     current_directory = Path(__file__).resolve().parent.parent.parent
-    dataset_path = current_directory / dataset_config.root / dataset_config.name
-    images_directory = dataset_path / "images"
-    masks_directory = dataset_path / "masks"
+    train_directory = current_directory / dataset_config.root / dataset_config.name / "train"
+    val_directory = current_directory / dataset_config.root / dataset_config.name / "val"
 
-    # Get the list of all image files and shuffle them for randomness.
-    all_files = sorted(os.listdir(images_directory))
-
-    # Compute the split index (80% training, 20% validation)
-    split_index = int(len(all_files) * 0.8)
-    train_files = all_files[:split_index]
-    val_files = all_files[split_index:]
-
-    # Create dataset instances for training and validation.
-    train_dataset = SyntheticDataset(
-        image_directory=images_directory,
-        mask_directory=masks_directory,
-        transforms=train_transforms,
-        file_list=train_files
-    )
-    val_dataset = SyntheticDataset(
-        image_directory=images_directory,
-        mask_directory=masks_directory,
-        transforms=val_transforms,
-        file_list=val_files
-    )
-
-    # Create data loaders.
-    train_data_loader = DataLoader(
-        train_dataset,
+    # Create the data loaders
+    train_data_loader = create_data_loader(
+        directory=train_directory,
+        transforms=transforms,
         batch_size=dataset_config.batch_size,
+        pin_memory=dataset_config.pin_memory,
+        num_workers=dataset_config.train.num_workers,
         shuffle=dataset_config.train.shuffle,
-        num_workers=max(1, dataset_config.train.num_workers),
-        persistent_workers=True,
-        pin_memory=dataset_config.pin_memory,
-        drop_last=dataset_config.train.drop_last
+        drop_last=dataset_config.train.drop_last,
     )
-    val_data_loader = DataLoader(
-        val_dataset,
+    val_data_loader = create_data_loader(
+        directory=val_directory,
+        transforms=target_transforms,
         batch_size=dataset_config.batch_size,
-        shuffle=dataset_config.test.shuffle,
-        num_workers=max(1, dataset_config.test.num_workers),
-        persistent_workers=True,
         pin_memory=dataset_config.pin_memory,
-        drop_last=dataset_config.test.drop_last
+        num_workers=dataset_config.test.num_workers,
+        shuffle=dataset_config.test.shuffle,
+        drop_last=dataset_config.test.drop_last,
     )
 
     return train_data_loader, val_data_loader
+
+
+def create_data_loader(
+        directory: Path,
+        transforms: A.Compose,
+        batch_size: int,
+        num_workers: int,
+        pin_memory: bool,
+        shuffle: bool,
+        drop_last: bool,
+) -> DataLoader[Dataset]:
+    """
+    Create a data loader for the training data.
+
+    Args:
+        directory (Path): Path to the training data directory.
+        batch_size (int): Batch size for the data loader
+        num_workers (int): Number of workers to use for data loading.
+        shuffle (bool): Whether to shuffle the data.
+        pin_memory (bool): Whether to pin memory for faster data loading.
+        drop_last (bool): Whether to drop the last incomplete batch.
+        transforms (albumentations.Compose): Transforms to apply to the image data.
+
+    Returns:
+        DataLoader[Dataset]: Data loader for the training data
+    """
+    dataset = SyntheticDataset(
+        image_directory=directory / "images",
+        mask_directory=directory / "masks",
+        transforms=transforms,
+    )
+
+    workers = max(1, num_workers)
+
+    return DataLoader(
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        num_workers=workers,
+        persistent_workers=True,
+        pin_memory=pin_memory,
+        drop_last=drop_last
+    )

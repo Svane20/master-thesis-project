@@ -12,7 +12,7 @@ from datetime import timedelta
 
 class Phase:
     TRAIN = "train"
-    TEST = "test"
+    VAL = "val"
 
 
 class AverageMeter:

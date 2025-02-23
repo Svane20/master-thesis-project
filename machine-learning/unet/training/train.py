@@ -39,13 +39,13 @@ def _setup_run(config: Config) -> None:
     model = build_unet_model_for_train(model_config)
 
     # Set up the data loaders
-    train_data_loader, test_data_loader = setup_data_loaders(scratch_config, dataset_config)
+    train_data_loader, val_data_loader = setup_data_loaders(scratch_config, dataset_config)
 
     # Set up the trainer
     trainer = Trainer(
         model=model,
         train_data_loader=train_data_loader,
-        test_data_loader=test_data_loader,
+        val_data_loader=val_data_loader,
         training_config=training_config,
     )
 
