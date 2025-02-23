@@ -41,12 +41,12 @@ def main() -> None:
     transforms = get_val_transforms(configuration.scratch.resolution)
 
     # Get an image from the test dataset
-    image_title = "2025-02-21_18-55-52"
-    image_path = dataset_path / "images" / f"{image_title}_Image_1.png"
+    image_title = "2025-02-22_13-10-40"
+    image_path = dataset_path / "val" / "images" / f"{image_title}_Image_3.png"
     image = np.array(Image.open(image_path).convert("RGB"))
 
     # Get the mask path
-    mask_path = dataset_path / "masks" / f"{image_title}_SkyMask_1.png"
+    mask_path = dataset_path / "val" / "masks" / f"{image_title}_SkyMask_3.png"
     mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
     mask = mask / 255.0  # Scale to [0, 1] range
 
