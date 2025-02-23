@@ -40,7 +40,7 @@ training:
   optimizer:
     name: "AdamW"
     lr: 3e-4
-    weight_decay: 1.0e-6
+    weight_decay: 1.0e-7
     amp:
       enabled: true
       amp_dtype: float16
@@ -54,7 +54,7 @@ training:
     name: "CosineAnnealingLR"
     enabled: true
     parameters:
-      eta_min: 1.0e-5
+      eta_min: 1.0e-7
 
   # Early stopping configuration
   early_stopping:
