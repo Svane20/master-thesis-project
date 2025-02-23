@@ -33,10 +33,10 @@ def setup_rendering(
     render: bpy.types.RenderSettings = scene.render
 
     render.engine = render_configuration.engine
-    logging.info(f"Render engine set to: {render.engine}")
+    logging.debug(f"Render engine set to: {render.engine}")
 
     render.filepath = get_temporary_file_path(render_configuration)
-    logging.info(f"Render output path: {render.filepath}")
+    logging.debug(f"Render output path: {render.filepath}")
 
     _setup_camera(render, camera_configuration)
     _setup_render(render, render_configuration)
@@ -67,7 +67,7 @@ def _setup_camera(render: bpy.types.RenderSettings, camera_configuration: Camera
     logging.debug("Setting up camera resolution.")
     render.resolution_x = camera_configuration.image_width
     render.resolution_y = camera_configuration.image_height
-    logging.info(f"Camera resolution set to: {render.resolution_x}x{render.resolution_y}")
+    logging.debug(f"Camera resolution set to: {render.resolution_x}x{render.resolution_y}")
 
 
 def _setup_render(render: bpy.types.RenderSettings, render_configuration: RenderConfiguration) -> None:

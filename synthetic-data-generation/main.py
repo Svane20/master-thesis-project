@@ -37,7 +37,13 @@ def clear_cube() -> None:
 
 def general_cleanup(configuration: Configuration) -> None:
     """Perform all necessary cleanups."""
+
+    # Remove temporary files from previous run(s)
+    logging.info("Removing temporary files from previous run...")
     cleanup_files(configuration)
+    logging.info("Removed temporary files.")
+
+    # Remove the existing cube in the Blender Scene
     clear_cube()
 
 
@@ -69,7 +75,7 @@ def apply_render_configuration(configuration: Configuration) -> None:
     )
 
 
-def initialize() -> Configuration:
+def initialize(configuration: Configuration) -> Configuration:
     """
     Initialization of required elements:
 
@@ -80,11 +86,13 @@ def initialize() -> Configuration:
     - Add a light to the scene.
     - Set the alpha threshold for the scene.
 
+    Args:
+        configuration (Configuration): The configuration for the Blender pipeline
+
     Returns:
         Configuration: The configuration for the Blender pipeline
     """
-    # Handle configuration setup
-    configuration = get_configuration()
+    logging.info("Initializing the Blender pipeline...")
 
     # General cleanup function to handle all object and directory cleanups
     general_cleanup(configuration)
@@ -104,6 +112,8 @@ def initialize() -> Configuration:
     # Set the alpha threshold of the scene
     set_scene_alpha_threshold(alpha_threshold=0.5)
 
+    logging.info("Blender pipeline initialization completed.")
+
     return configuration
 
 
@@ -116,6 +126,8 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
     """
     terrain_configuration = configuration.terrain_configuration
     world_size = terrain_configuration.world_size
+
+    logging.info("Setting up the terrain...")
 
     # Get all biomes
     tree_biomes = get_all_biomes_by_directory(
@@ -152,6 +164,7 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         grass_biomes_path=grass_biomes,
         not_grass_biomes_path=not_grass_biomes,
         generate_trees=terrain_configuration.generate_trees,
+        tree_probability=terrain_configuration.tree_probability,
         world_size=int(terrain_configuration.world_size),
         seed=configuration.constants.seed
     )
@@ -163,6 +176,8 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         texture_paths=texture_blend_files,
         world_size=world_size,
     )
+
+    logging.info("Terrain setup completed.")
 
     return height_map
 
@@ -182,6 +197,8 @@ def spawn_objects_in_the_scene(
         height_map (NDArray[np.float32]): The terrain height map.
         seed (int, optional): The seed for the random number generator.
     """
+    logging.info("Spawning objects in the scene...")
+
     # Spawn objects on the terrain
     for spawn_object in configuration.spawn_objects:
         if not spawn_object.should_spawn:
@@ -200,11 +217,14 @@ def spawn_objects_in_the_scene(
             filepath=spawn_object.directory,
             height_map=height_map,
             world_size=world_size,
+            keywords=spawn_object.keywords,
             seed=seed
         )
 
     # Set backface culling for all materials
     use_backface_culling_on_materials()
+
+    logging.info("Object spawning completed.")
 
 
 def setup_the_sky(configuration: Configuration) -> None:
@@ -214,10 +234,14 @@ def setup_the_sky(configuration: Configuration) -> None:
     Args:
         configuration (Configuration): The configuration for the scene.
     """
+    logging.info("Setting up the sky...")
+
     add_sky_to_scene(configuration=configuration, seed=configuration.constants.seed)
 
+    logging.info("Sky setup completed.")
 
-def setup_scene() -> Tuple[Configuration, NDArray[np.float32]]:
+
+def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
     """
     Initialize the scene.
 
@@ -225,10 +249,15 @@ def setup_scene() -> Tuple[Configuration, NDArray[np.float32]]:
     - Spawn objects in the scene.
     - Generate the sky for the scene.
 
+    Args:
+        configuration (Configuration): The configuration for the Blender pipeline
+
     Returns:
         Tuple[Path, NDArray[np.float32]]: The configuration and the height map.
     """
-    configuration = initialize()
+    logging.info("Setting up the scene...")
+
+    initialize(configuration)
 
     height_map = setup_terrain(configuration)
 
@@ -241,19 +270,29 @@ def setup_scene() -> Tuple[Configuration, NDArray[np.float32]]:
 
     setup_the_sky(configuration)
 
-    return configuration, height_map
+    logging.info("Scene setup completed.")
+
+    return height_map
 
 
 def main() -> None:
     """The main function to render the images from multiple camera angles."""
-    setup_logging(__name__)
+    # Get configuration
+    configuration = get_configuration()
+
+    # Setup logging
+    setup_logging(
+        name=__name__,
+        log_path=configuration.run_configuration.app_path,
+        save_logs=configuration.run_configuration.save_logs,
+    )
 
     # Track the overall script execution time
     script_start_time = time.perf_counter()
     logging.info("Script execution started.")
 
     # Set up the scene
-    configuration, height_map = setup_scene()
+    height_map = setup_scene(configuration)
 
     # Create output directory and set camera iterations
     playground_directory = get_playground_directory_with_tag(configuration=configuration)
@@ -267,67 +306,78 @@ def main() -> None:
     # Track execution times for estimation
     elapsed_times = []
 
-    # Render images from multiple camera angles
-    for index, iteration in enumerate(iterations):
-        current_iteration = index + 1
-        logging.info(f"Rendering image {current_iteration}/{total_iterations}")
-        start_time = time.perf_counter()
+    try:
+        # Render images from multiple camera angles
+        for index, iteration in enumerate(iterations):
+            current_iteration = index + 1
+            logging.info(f"Rendering image {current_iteration}/{total_iterations}")
+            start_time = time.perf_counter()
 
-        location = get_random_camera_location(
-            iteration=iteration,
-            height_map=height_map,
-            world_size=int(configuration.terrain_configuration.world_size),
-            seed=configuration.constants.seed
-        )
+            location = get_random_camera_location(
+                iteration=iteration,
+                height_map=height_map,
+                world_size=int(configuration.terrain_configuration.world_size),
+                seed=configuration.constants.seed
+            )
 
-        update_camera_position(location=location)
+            update_camera_position(location=location)
 
-        # Save the Blender file
-        if configuration.constants.save_blend_files:
-            save_as_blend_file(iteration=index, directory_path=str(playground_directory))
+            # Save the Blender file
+            if configuration.constants.save_blend_files:
+                save_as_blend_file(directory_path=str(playground_directory), iteration=index)
 
-        # Render the image
-        if configuration.constants.render_images:
-            render_image(write_still=True)
+            # Render the image
+            if configuration.constants.render_images:
+                render_image(write_still=True)
 
-            # Rename the rendered image and mask(s)
+            # Move rendered images to the playground directory
             move_rendered_images_to_playground(
                 configuration=configuration.render_configuration.outputs_configuration,
                 directory=playground_directory,
                 iteration=index
             )
 
-        # Log the elapsed time for rendering the current image
-        end_time = time.perf_counter()
-        elapsed_time = end_time - start_time
-        elapsed_times.append(elapsed_time)  # Store elapsed time for averaging
+            # Log the elapsed time for rendering the current image
+            end_time = time.perf_counter()
+            elapsed_time = end_time - start_time
+            elapsed_times.append(elapsed_time)  # Store elapsed time for averaging
 
-        minutes, seconds = divmod(elapsed_time, 60)
-        logging.info(
-            f"Image {current_iteration}/{total_iterations} rendered successfully "
-            f"(Execution time: {int(minutes)} minutes and {seconds:.2f} seconds)"
-        )
-
-        # Calculate remaining time estimate
-        if elapsed_times:
-            avg_time_per_iteration = sum(elapsed_times) / len(elapsed_times)
-            remaining_iterations = total_iterations - current_iteration
-            estimated_remaining_time = avg_time_per_iteration * remaining_iterations
-            est_minutes, est_seconds = divmod(estimated_remaining_time, 60)
-
+            hours, remainder = divmod(elapsed_time, 3600)
+            minutes, seconds = divmod(remainder, 60)
             logging.info(
-                f"Estimated time remaining: {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
+                f"Image {current_iteration}/{total_iterations} rendered successfully "
+                f"(Execution time: {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds)"
             )
 
+            # Calculate remaining time estimate
+            if elapsed_times:
+                avg_time_per_iteration = sum(elapsed_times) / len(elapsed_times)
+                remaining_iterations = total_iterations - current_iteration
+                estimated_remaining_time = avg_time_per_iteration * remaining_iterations
+                est_hours, est_remainder = divmod(estimated_remaining_time, 3600)
+                est_minutes, est_seconds = divmod(est_remainder, 60)
+
+                logging.info(
+                    f"Estimated time remaining: {int(est_hours)} hours, {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
+                )
+    except KeyboardInterrupt:
+        logging.error("Keyboard interrupt detected. Terminating the script.")
+    except Exception:
+        logging.exception("An error occurred during the script execution")
+
     # Cleanup temporary files generated during rendering
+    logging.info("Removing temporary files generated during the execution...")
     cleanup_files(configuration)
-    logging.info("Temporary files cleaned up.")
+    logging.info("Removed temporary files.")
 
     # Log the total execution time of the script
     script_end_time = time.perf_counter()
     total_elapsed_time = script_end_time - script_start_time
-    total_minutes, total_seconds = divmod(total_elapsed_time, 60)
-    logging.info(f"Script finished in {int(total_minutes)} minutes and {total_seconds:.2f} seconds.")
+    total_hours, total_remainder = divmod(total_elapsed_time, 3600)
+    total_minutes, total_seconds = divmod(total_remainder, 60)
+    logging.info(
+        f"Script finished in {int(total_hours)} hours, {int(total_minutes)} minutes and {total_seconds:.2f} seconds."
+    )
 
 
 if __name__ == "__main__":

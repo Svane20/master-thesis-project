@@ -99,6 +99,8 @@ def move_rendered_images_to_playground(
     id_mask_prefix = configuration.id_mask_output_configuration.title
     environment_prefix = configuration.environment_output_configuration.title
 
+    logging.info("Moving rendered images and masks...")
+
     for image in rendered_images:
         try:
             if image_prefix in image.name:
@@ -134,6 +136,8 @@ def move_rendered_images_to_playground(
         except Exception as e:
             logging.error(f"Failed to move {image.name} to {directory}: {e}")
             raise
+
+    logging.info("Finished moving images and masks.")
 
 
 def cleanup_files(
@@ -181,15 +185,15 @@ def remove_temporary_files(
 
     try:
         if image_name is None:
-            logging.info(f"Deleting all temporary files with extension {extension} in {directory}")
+            logging.debug(f"Deleting all temporary files with extension {extension} in {directory}")
             temp_files = directory.glob(f"*.{extension}")
         else:
-            logging.info(f"Deleting temporary files with name {image_name}.{extension} in {directory}")
+            logging.debug(f"Deleting temporary files with name {image_name}.{extension} in {directory}")
             temp_files = directory.glob(f"{image_name}.{extension}")
 
         for temp_file in temp_files:
             temp_file.unlink()
-            logging.info(f"Deleted temporary file: {temp_file}")
+            logging.debug(f"Deleted temporary file: {temp_file}")
     except Exception as e:
         logging.error(f"Failed to delete files in {directory}: {e}")
         raise

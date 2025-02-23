@@ -37,12 +37,13 @@ class Constants:
     FAC: str = "Fac"
 
 
-def get_all_hdri_by_directory(directory: str) -> List[Path]:
+def get_all_hdri_by_directory(directory: str, keywords: List[str] | None = None) -> List[Path]:
     """
     Retrieve all HDRI files in the specified directory.
 
     Args:
         directory (Path): The directory to search for HDRI files.
+        keywords (List[str], optional): A list of keywords to filter HDRI files. Defaults to None.
 
     Returns:
         List[Path]: A list of HDRI file paths.
@@ -56,11 +57,14 @@ def get_all_hdri_by_directory(directory: str) -> List[Path]:
     for ext in Constants.HDRI_EXTENSIONS:
         hdri_files += list(directory.glob(f"*{ext}"))
 
+    if keywords:
+        hdri_files = [path for path in hdri_files if any(keyword in path.stem for keyword in keywords)]
+
     if not hdri_files:
         logging.error(f"No HDRI files found in {directory}")
         raise FileNotFoundError(f"No HDRI files found in {directory}")
 
-    logging.info(f"Found {len(hdri_files)} HDRI files in {directory}")
+    logging.debug(f"Found {len(hdri_files)} HDRI files in {directory}")
     return hdri_files
 
 
@@ -75,8 +79,11 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
     sky_configuration = configuration.sky_configuration
     directory = configuration.sky_configuration.directory
 
-    logging.info(f"Adding sky to the scene from directory: {directory}")
-    hdri_paths = get_all_hdri_by_directory(directory)
+    logging.debug(f"Adding sky to the scene from directory: {directory}")
+    hdri_paths = get_all_hdri_by_directory(
+        directory=directory,
+        keywords=sky_configuration.keywords
+    )
     random_hdri_path = random.choice(hdri_paths)
     logging.info(f"Selected HDRI file: {random_hdri_path}")
 
@@ -85,14 +92,17 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
     logging.debug("Clearing existing nodes from the world node tree.")
     tree_nodes.clear()
 
-    logging.debug("Adding HDRI to the scene.")
+    logging.info("Adding HDRI to the scene...")
     _add_hdri(sky_configuration, random_hdri_path, tree_nodes, node_tree)
+    logging.info("HDRI added to the scene successfully.")
 
-    logging.debug("Adding procedural sky texture to the scene.")
+    logging.info("Adding procedural sky texture to the scene...")
     _add_sky_texture(sky_configuration, tree_nodes, node_tree, seed)
+    logging.info("Procedural sky texture added to the scene successfully.")
 
-    logging.debug("Setting up world output shader.")
+    logging.info("Setting up world output shader...")
     _setup_world_output(tree_nodes, node_tree)
+    logging.info("World output shader set up successfully.")
 
 
 def _add_hdri(
@@ -110,7 +120,7 @@ def _add_hdri(
         tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
         node_tree (bpy.types.ShaderNodeTree): The node tree to which the HDRI nodes will be added.
     """
-    logging.info(f"Adding HDRI node for {path}")
+    logging.debug(f"Adding HDRI node for {path}")
 
     node_background = _create_background_node(tree_nodes, configuration)
     node_environment = _create_environment_node(tree_nodes, path)
@@ -135,10 +145,10 @@ def _add_sky_texture(
         node_tree (bpy.types.ShaderNodeTree): The node tree to which the sky texture nodes will be added.
         seed (int, optional): Random seed for reproducibility. Defaults to None.
     """
-    logging.info("Adding procedural sky texture.")
+    logging.debug("Adding procedural sky texture.")
     if seed is not None:
         random.seed(seed)
-        logging.info(f"Seed set to {seed}")
+        logging.debug(f"Seed set to {seed}")
 
     sun_config = configuration.sun_configuration
 
@@ -228,7 +238,7 @@ def _link_sky_texture_nodes(
     links = node_tree.links
     links.new(node_sky.outputs[Constants.COLOR], node_background.inputs[Constants.COLOR])
 
-    logging.info("Linked sky texture nodes successfully.")
+    logging.debug("Linked sky texture nodes successfully.")
 
 
 def _create_background_node(
@@ -343,7 +353,7 @@ def _link_hdri_nodes(
     links.new(node_blackbody.outputs[Constants.COLOR], node_multiply.inputs[0])
     links.new(node_environment.outputs[Constants.COLOR], node_multiply.inputs[1])
 
-    logging.info("Linked HDRI nodes successfully.")
+    logging.debug("Linked HDRI nodes successfully.")
 
 
 def _setup_world_output(tree_nodes: bpy.types.bpy_prop_collection, node_tree: bpy.types.ShaderNodeTree) -> None:
@@ -354,7 +364,7 @@ def _setup_world_output(tree_nodes: bpy.types.bpy_prop_collection, node_tree: bp
         tree_nodes (bpy.types.bpy_prop_collection): The tree nodes of the scene.
         node_tree (bpy.types.ShaderNodeTree): The node tree to which the output shader will be added.
     """
-    logging.info("Setting up world output shader using Mix Shader.")
+    logging.debug("Setting up world output shader using Mix Shader.")
 
     # Create a Mix Shader node instead of an Add Shader
     mix_node = tree_nodes.new(type=Constants.SHADER_NODE_MIX_SHADER)
@@ -393,7 +403,7 @@ def _setup_world_output(tree_nodes: bpy.types.bpy_prop_collection, node_tree: bp
     node_output = tree_nodes.new(type=Constants.SHADER_NODE_OUTPUT_WORLD)
     links.new(mix_node.outputs[Constants.SHADER], node_output.inputs[Constants.SURFACE])
 
-    logging.info("World output shader set up successfully.")
+    logging.debug("World output shader set up successfully.")
 
 
 def _clamp(value: float, min_value: float, max_value: float) -> float:

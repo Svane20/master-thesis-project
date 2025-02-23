@@ -13,31 +13,89 @@ from skies.foreground_estimation import get_foreground_estimation
 from skies.replacement import replace_background
 
 
-def get_random_image_and_alpha_matte(config: Configuration):
-    # Directories
-    source_directory = Path(config.source_directory)
-    images_directory = source_directory / "images"
-    masks_directory = source_directory / "masks"
+def is_valid_alpha_matte(mask_path: Path) -> bool:
+    """
+    Check if the mask at mask_path is a valid continuous alpha matte.
+    For our purposes, a valid matte should have an alpha channel with values normalized between 0 and 1,
+    and it should span a significant range (e.g., minimum below 0.1 and maximum above 0.9).
+    """
+    mask_image = cv2.imread(str(mask_path), cv2.IMREAD_UNCHANGED)
+    if mask_image is None:
+        logging.error("Could not load mask: %s", mask_path)
+        return False
 
-    # List all image files
+    # Verify the mask has 4 channels (RGBA).
+    if len(mask_image.shape) < 3 or mask_image.shape[2] != 4:
+        logging.error("Mask does not have 4 channels: %s", mask_path)
+        return False
+
+    # Extract the alpha channel (the 4th channel).
+    alpha_channel = mask_image[..., 3].astype(np.float64) / 255.0
+
+    # Get the minimum and maximum alpha values.
+    min_alpha = np.min(alpha_channel)
+    max_alpha = np.max(alpha_channel)
+
+    # Check if the alpha matte spans a significant range.
+    if min_alpha < 0.1 and max_alpha > 0.9:
+        return True
+    else:
+        logging.warning("Alpha matte does not span full range: min %f, max %f", min_alpha, max_alpha)
+        return False
+
+
+def get_random_image_and_alpha_matte(config: Configuration):
+    # Start at the source directory.
+    source_directory = Path(config.source_directory)
+
+    # Find datetime folders (subdirectories) inside the source directory.
+    datetime_folders = [d for d in source_directory.iterdir() if d.is_dir()]
+    if not datetime_folders:
+        logging.error("No datetime folders found in source directory: %s", source_directory)
+        raise FileNotFoundError(f"No datetime folders found in source directory: {source_directory}")
+
+    # For this example, we'll just choose the first (or you could sort or randomly pick).
+    chosen_datetime_folder = random.choice(datetime_folders)
+    logging.info("Chosen datetime folder: %s", chosen_datetime_folder)
+
+    # Now build the paths for images and masks inside the chosen datetime folder.
+    images_directory = chosen_datetime_folder / "images"
+    masks_directory = chosen_datetime_folder / "masks"
+
+    # List all image files in the images directory.
     image_files = list(images_directory.glob("*.png"))
     if not image_files:
         logging.error("No image files found in directory: %s", images_directory)
         raise FileNotFoundError(f"No image files found in directory: {images_directory}")
 
-    # Choose a random image
-    random_image = random.choice(image_files)
-    logging.info("Chosen image: %s", random_image)
+    valid_pairs = []
+    for image_file in image_files:
+        # Derive the corresponding mask file name by replacing '_Image_' with '_SkyMask_'
+        mask_filename = image_file.name.replace("Image_", "SkyMask_")
+        mask_path = masks_directory / mask_filename
+        if mask_path.exists() and is_valid_alpha_matte(mask_path):
+            valid_pairs.append((image_file, mask_path))
+        else:
+            logging.warning("Skipping %s because its corresponding mask is missing or invalid.", image_file)
 
-    # Derive the corresponding mask file name by replacing '_Image_' with '_SkyMask_'
-    mask_filename = random_image.name.replace("_Image_", "_SkyMask_")
-    mask_path = masks_directory / mask_filename
+    if not valid_pairs:
+        raise FileNotFoundError("No valid image and alpha matte pairs found in the source directory.")
 
-    if not mask_path.exists():
-        logging.error("Corresponding mask file not found for image %s: expected %s", random_image, mask_path)
-        raise FileNotFoundError(f"Corresponding mask file not found for image {random_image}: expected {mask_path}")
+    chosen_pair = random.choice(valid_pairs)
 
-    return random_image, mask_path
+    logging.info(f"Chosen image: {chosen_pair[0]}")
+    logging.info(f"Chosen mask: {chosen_pair[1]}")
+
+    # Save the chosen image and mask
+    chosen_image_path = OUTPUT_DIRECTORY / "chosen_image.png"
+    pymatting.save_image(str(chosen_image_path), image=cv2.imread(str(chosen_pair[0]), cv2.IMREAD_UNCHANGED))
+    logging.info(f"Image saved to {chosen_image_path}")
+
+    chosen_mask_path = OUTPUT_DIRECTORY / "chosen_mask.png"
+    pymatting.save_image(str(chosen_mask_path), image=cv2.imread(str(chosen_pair[1]), cv2.IMREAD_UNCHANGED))
+    logging.info(f"Mask saved to {chosen_mask_path}")
+
+    return chosen_pair
 
 
 if __name__ == "__main__":
@@ -79,13 +137,6 @@ if __name__ == "__main__":
     else:
         # Fallback: if the image is not RGBA, assume it's grayscale.
         alpha_mask = alpha_image.astype(np.float64) / 255.0
-
-    # Save the original image with the alpha mask
-    save_dir = OUTPUT_DIRECTORY
-
-    pymatting.save_image(str(save_dir / "_image.png"), image=image_bgr)
-    pymatting.save_image(str(save_dir / "alpha_matte.png"), image=alpha_image)
-
 
     # Perform foreground estimation to get the foreground and background images
     foreground, _ = get_foreground_estimation(

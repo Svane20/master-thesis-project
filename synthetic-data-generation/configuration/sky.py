@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Dict
+from typing import List
 
 
 class SunConfiguration(BaseModel):
@@ -31,6 +32,7 @@ class SkyConfiguration(BaseModel):
         sun_configuration (SunConfiguration): Configuration settings for the sun.
     """
     directory: str
+    keywords: List[str] | None
     temperature: Dict[str, int]
     strength: Dict[str, float]
     density: Dict[str, int]

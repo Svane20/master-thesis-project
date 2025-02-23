@@ -6,6 +6,8 @@ import logging
 from bpy_utils.bpy_data import list_data_blocks_in_blend_file, BlendFilePropertyKey
 from constants.file_extensions import FileExtension
 
+logger = logging.getLogger(__name__)
+
 
 def delete_object_by_selection(obj: bpy.types.Object) -> None:
     """
@@ -18,12 +20,12 @@ def delete_object_by_selection(obj: bpy.types.Object) -> None:
         RuntimeError: If the object fails to delete.
     """
     try:
-        logging.info(f"Deleting object: '{obj.name}'")
+        logging.debug(f"Deleting object: '{obj.name}'")
 
         obj.select_set(True)
         bpy.ops.object.delete()
 
-        logging.info(f"Successfully deleted object: '{obj.name}'")
+        logging.debug(f"Successfully deleted object: '{obj.name}'")
     except Exception as e:
         logging.error(f"Failed to delete object: {e}")
         raise
@@ -53,7 +55,7 @@ def append_object(object_path: Path) -> bpy.types.Collection:
         # Construct filepaths
         file_path, collection_path = _build_append_paths(object_path, collection_name)
 
-        logging.info(f"Appending object '{collection_name}' from collection '{collection_path}'")
+        logging.debug(f"Appending object '{collection_name}' from collection '{collection_path}'")
 
         # Append the object from the collection
         bpy.ops.wm.append(
@@ -62,7 +64,7 @@ def append_object(object_path: Path) -> bpy.types.Collection:
             filename=collection_name
         )
 
-        logging.info(f"Successfully appended collection: '{collection_name}'")
+        logging.debug(f"Successfully appended collection: '{collection_name}'")
 
         return bpy.data.collections[collection_name]
 
@@ -93,13 +95,17 @@ def render_image(write_still: bool = True) -> None:
         raise
 
 
-def save_as_blend_file(directory_path: str, iteration: int = 0, allow_overwrite: bool = True) -> None:
+def save_as_blend_file(
+        directory_path: str,
+        iteration: int,
+        allow_overwrite: bool = True
+) -> None:
     """
     Saves the current Blender scene as a .blend file.
 
     Args:
-        iteration (int): The current iteration number. Defaults to 0.
         directory_path (Path): The directory path to save the .blend file.
+        iteration (int): The current iteration number.
         allow_overwrite (bool): Whether to allow overwriting an existing file. Defaults to True.
 
     Raises:

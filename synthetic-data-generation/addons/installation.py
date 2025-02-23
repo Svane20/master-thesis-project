@@ -10,7 +10,7 @@ def install_addons(addons: List[AddonConfiguration]) -> None:
     """
     Installs the required addons and reloads the biome library in Blender.
     """
-    logging.info("Starting addons installation process.")
+    logging.info("Starting addons installation process...")
 
     for addon in addons:
         if addon.plugin_path:
@@ -34,13 +34,13 @@ def _install_addon(title: str, filepath: str) -> None:
         title (str): The name of the addon.
         filepath (Path): The path to the addon file.
     """
-    logging.info(f"Installing {title} addon from {filepath}")
+    logging.debug(f"Installing {title} addon from {filepath}")
 
     try:
         bpy.ops.preferences.addon_install(filepath=filepath, overwrite=False)
         bpy.ops.preferences.addon_enable(module=title)
         bpy.ops.preferences.addon_refresh()
-        logging.info(f"{title} addon installed and enabled successfully.")
+        logging.debug(f"{title} addon installed and enabled successfully.")
     except Exception as e:
         logging.error(f"Failed to install {title} addon: {e}")
 
@@ -55,11 +55,11 @@ def _install_package(filepath: str) -> None:
     """
     path = Path(filepath)
     title = path.name
-    logging.info(f"Installing {title} package from {filepath}")
+    logging.debug(f"Installing {title} package from {filepath}")
 
     try:
         bpy.ops.scatter5.install_package(filepath=filepath, popup_menu=False)
-        logging.info(f"{title} package installed successfully.")
+        logging.debug(f"{title} package installed successfully.")
     except Exception as e:
         logging.error(f"Failed to install {title} package: {e}")
 
@@ -76,11 +76,11 @@ def _add_asset_libraries(directories: List[str]) -> None:
         dir_name = path.name
 
         if dir_name not in bpy.context.preferences.filepaths.asset_libraries.keys():
-            logging.info(f"Adding asset library {path.name} from {directory}")
+            logging.debug(f"Adding asset library {path.name} from {directory}")
             try:
                 bpy.ops.preferences.asset_library_add(directory=directory)
-                logging.info(f"Asset library {dir_name} added successfully.")
+                logging.debug(f"Asset library {dir_name} added successfully.")
             except Exception as e:
                 logging.error(f"Failed to add asset library {dir_name}: {e}")
         else:
-            logging.info(f"Asset library {dir_name} already exists.")
+            logging.debug(f"Asset library {dir_name} already exists.")
