@@ -1,3 +1,4 @@
+import logging
 from typing import Dict
 
 from PIL import Image
@@ -44,12 +45,14 @@ def save_prediction(
     # Create the directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
 
+    alpha_mask = predicted_mask.copy()
+
     # Ensure the predicted mask has the correct shape
-    if predicted_mask.ndim == 3 and predicted_mask.shape[0] == 1:
-        predicted_mask = predicted_mask.squeeze(0)
+    if alpha_mask.ndim == 3 and alpha_mask.shape[0] == 1:
+        alpha_mask = alpha_mask.squeeze(0)
 
     # Resize all images to match the predicted mask dimensions
-    target_shape = predicted_mask.shape
+    target_shape = alpha_mask.shape
     image_resized = resize_to_match(image, target_shape)
     gt_mask_resized = resize_to_match(gt_mask, target_shape)
 
@@ -71,12 +74,14 @@ def save_prediction(
     ax[0, 1].axis("off")
 
     # Display ground truth mask
-    ax[1, 0].imshow(gt_mask_resized, cmap="binary_r", vmin=0, vmax=1)
+    gt_mask_stretched = (gt_mask_resized - 0.93) / (1 - 0.93)
+    gt_mask_stretched = np.clip(gt_mask_stretched, 0, 1)
+    ax[1, 0].imshow(gt_mask_stretched, cmap="gray", vmin=0, vmax=1)
     ax[1, 0].set_title("Ground Truth Mask", fontsize=12)
     ax[1, 0].axis("off")
 
     # Display predicted mask
-    ax[1, 1].imshow(predicted_mask, cmap="binary_r", vmin=0, vmax=1)
+    ax[1, 1].imshow(alpha_mask, cmap="binary_r", vmin=0, vmax=1)
     ax[1, 1].set_title("Predicted Mask", fontsize=12)
     ax[1, 1].axis("off")
 
@@ -87,4 +92,4 @@ def save_prediction(
     plt.show()
     plt.close(fig)
 
-    print(f"Prediction saved to {prediction_path}")
+    logging.info(f"Prediction saved to {prediction_path}")

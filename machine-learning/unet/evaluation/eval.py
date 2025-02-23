@@ -2,8 +2,8 @@ import torch
 
 from pathlib import Path
 
-from datasets.carvana.data_loaders import create_data_loader
-from datasets.transforms import get_test_transforms
+from datasets.synthetic.data_loaders import create_data_loader
+from datasets.transforms import get_val_transforms
 
 from evaluation.inference import evaluate_model
 from evaluation.utils.configuration import load_config
@@ -21,7 +21,7 @@ def main() -> None:
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_config(
         current_directory=root_directory,
-        configuration_path="unet/configuration/inference.yaml"
+        configuration_path="unet/configuration/inference_windows.yaml"
     )
 
     # Load the model
@@ -35,16 +35,16 @@ def main() -> None:
     )
 
     # Create data loader
-    test_directory = root_directory / configuration.dataset.root / configuration.dataset.name / "test"
-    transforms = get_test_transforms(configuration.scratch.resolution)
+    val_directory = root_directory / configuration.dataset.root / configuration.dataset.name / "val"
+    transforms = get_val_transforms(configuration.scratch.resolution)
     data_loader = create_data_loader(
-        directory=test_directory,
+        directory=val_directory,
         transforms=transforms,
         batch_size=configuration.dataset.batch_size,
         pin_memory=configuration.dataset.pin_memory,
-        num_workers=configuration.dataset.test.num_workers,
-        shuffle=configuration.dataset.test.shuffle,
-        drop_last=configuration.dataset.test.drop_last,
+        num_workers=configuration.dataset.val.num_workers,
+        shuffle=configuration.dataset.val.shuffle,
+        drop_last=configuration.dataset.val.drop_last,
     )
 
     # Model evaluation

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 from typing import Optional, List
 
 from configuration.training.criterion import CriterionConfig
@@ -25,6 +25,16 @@ class EarlyStoppingConfig:
     min_delta: float
     monitor: str
     mode: str
+
+    def asdict(self):
+        return {
+            "enabled": self.enabled,
+            "verbose": self.verbose,
+            "patience": self.patience,
+            "min_delta": self.min_delta,
+            "monitor": self.monitor,
+            "mode": self.mode
+        }
 
 
 @dataclass
@@ -56,3 +66,15 @@ class TrainConfig:
     early_stopping: EarlyStoppingConfig
     logging: LoggingConfig
     checkpoint: CheckpointConfig
+
+    def asdict(self):
+        return {
+            "max_epochs": self.max_epochs,
+            "warmup_epochs": self.warmup_epochs,
+            "accelerator": self.accelerator,
+            "seed": self.seed,
+            "criterion": self.criterion.asdict(),
+            "optimizer": self.optimizer.asdict(),
+            "scheduler": self.scheduler.asdict(),
+            "early_stopping": self.early_stopping.asdict(),
+        }

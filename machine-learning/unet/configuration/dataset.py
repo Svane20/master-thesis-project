@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 
 
 @dataclass
@@ -15,4 +15,4 @@ class DatasetConfig:
     batch_size: int
     pin_memory: bool
     train: DatasetLoaderConfig
-    test: DatasetLoaderConfig
+    val: DatasetLoaderConfig

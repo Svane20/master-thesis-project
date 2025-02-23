@@ -30,30 +30,30 @@ def get_train_transforms(resolution: int) -> A.Compose:
 
         # Normalize and convert to tensor
         A.Normalize(
-            mean=(0.485, 0.456, 0.406),
-            std=(0.229, 0.224, 0.225),
+            mean=(0.5, 0.5, 0.5),
+            std=(0.5, 0.5, 0.5),
         ),
         ToTensorV2(),
     ])
 
 
-def get_test_transforms(resolution: int) -> A.Compose:
+def get_val_transforms(resolution: int) -> A.Compose:
     """
-    Get the test transforms.
+    Get the validation transforms.
 
     Args:
         resolution (int): Resolution of the image.
 
     Returns:
-        albumentations.Compose: Test transforms.
+        albumentations.Compose: Validation transforms.
     """
     return A.Compose([
         A.Resize(resolution, resolution),
 
         # Normalize and convert to tensor
         A.Normalize(
-            mean=(0.485, 0.456, 0.406),
-            std=(0.229, 0.224, 0.225),
+            mean=(0.5, 0.5, 0.5),
+            std=(0.5, 0.5, 0.5),
         ),
         ToTensorV2(),
     ])

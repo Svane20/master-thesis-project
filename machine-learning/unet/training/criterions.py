@@ -136,9 +136,6 @@ class MattingLoss(nn.Module):
         self.boundary_loss.zero_()
         self.core_loss.zero_()
 
-        # Convert predictions to probabilities
-        pred = torch.sigmoid(pred)
-
         # Compute losses
         losses = self._forward(pred, gt)
 

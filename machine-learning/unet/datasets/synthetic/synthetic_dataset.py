@@ -9,9 +9,9 @@ from pathlib import Path
 from typing import Tuple, Optional
 
 
-class CarvanaDataset(Dataset):
+class SyntheticDataset(Dataset):
     """
-    Load Carvana dataset.
+    Load Synthetic dataset.
 
     Args:
         image_directory (pathlib.Path): Path to the images' directory.
@@ -27,10 +27,9 @@ class CarvanaDataset(Dataset):
     ) -> None:
         self.image_directory = image_directory
         self.mask_directory = mask_directory
-
         self.transforms = transforms
-
         self.images = os.listdir(image_directory)
+
 
     def __len__(self) -> int:
         """
@@ -52,28 +51,41 @@ class CarvanaDataset(Dataset):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: Image and mask tensors.
         """
-        image_path = os.path.join(self.image_directory, self.images[index])
-        mask_path = os.path.join(self.mask_directory, self.images[index].replace(".jpg", "_mask.gif"))
-
         # Load the image
-        image = np.array(Image.open(image_path).convert("RGB"))
+        image_filename = self.images[index]
+        image_path = os.path.join(self.image_directory, image_filename)
 
         # Load the mask
-        mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
+        mask_filename = image_filename.replace("Image", "SkyMask")
+        mask_path = os.path.join(self.mask_directory, mask_filename)
 
-        # Convert binary mask -> alpha mask [0, 1]
-        mask = mask / 255.0
+        # Load the image and convert to RGB
+        image = np.array(Image.open(image_path).convert("RGB"))
 
+        # Load the mask as an RGBA image, then extract the alpha channel.
+        mask_rgba = np.array(Image.open(mask_path).convert("RGBA"), dtype=np.float32)
+        mask = mask_rgba[..., 3]  # extract alpha channel
+        mask = mask / 255.0        # normalize to [0, 1]
+
+        # Apply transforms if provided.
         if self.transforms:
             augmented = self.transforms(image=image, mask=mask)
             image = augmented['image']
             mask = augmented['mask']
 
-        # Add channel dimension to the mask
-        if mask.ndim == 2:
+        # Convert the image (HWC) to tensor (CHW)
+        if isinstance(image, np.ndarray):
+            image = torch.from_numpy(image).permute(2, 0, 1).float()
+
+        # Ensure mask has an explicit channel dimension.
+        if isinstance(mask, np.ndarray):
+            if mask.ndim == 2:
+                mask = np.expand_dims(mask, axis=0)
+            mask = torch.from_numpy(mask).float()
+        elif isinstance(mask, torch.Tensor) and mask.ndim == 2:
             mask = mask.unsqueeze(0)
 
-        # Ensure the mask is in the range [0, 1]
+        # Clamp the mask values to [0, 1]
         mask = mask.clamp(0, 1)
 
         return image, mask

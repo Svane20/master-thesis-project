@@ -4,7 +4,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR, StepL
 
 from typing import Optional, cast, Literal
 
-from configuration.training.scheduler import SchedulerConfig
+from configuration.training.root import TrainConfig
 
 
 class SchedulerWrapper:
@@ -13,15 +13,15 @@ class SchedulerWrapper:
     and provides a unified .step() method handling different scheduler types.
     """
 
-    def __init__(self, optimizer: optim.Optimizer, config: SchedulerConfig) -> None:
+    def __init__(self, optimizer: optim.Optimizer, config: TrainConfig) -> None:
         """
         Args:
             optimizer (optim.Optimizer): The optimizer to step.
             config (SchedulerConfig): The scheduler configuration.
         """
         self.optimizer = optimizer
-        self.config = config
-        self.scheduler = self._construct_scheduler()
+        self.config = config.scheduler
+        self.scheduler = self._construct_scheduler(max_iterations=config.max_epochs, warmup_epochs=config.warmup_epochs)
 
     def step(self, metric: Optional[float] = None) -> None:
         if self.scheduler is None:
@@ -34,15 +34,23 @@ class SchedulerWrapper:
         else:
             self.scheduler.step()
 
-    def _construct_scheduler(self) -> Optional[LRScheduler]:
+    def _construct_scheduler(self, max_iterations: int, warmup_epochs: int) -> Optional[LRScheduler]:
+        """
+        Construct the scheduler from the given configuration.
+
+        Args:
+            max_iterations (int): Maximum number of iterations.
+            warmup_epochs (int): Number of warmup epochs.
+        """
         if not self.config.enabled:
             return None
 
+        lr_scheduler: LRScheduler
         match self.config.name:
             case "CosineAnnealingLR":
-                return CosineAnnealingLR(
+                lr_scheduler = CosineAnnealingLR(
                     optimizer=self.optimizer,
-                    T_max=self.config.parameters["t_max"],
+                    T_max=max_iterations - warmup_epochs,
                     eta_min=self.config.parameters.get("eta_min", 0)
                 )
             case "ReduceLROnPlateau":
@@ -52,7 +60,7 @@ class SchedulerWrapper:
 
                 mode_literal = cast(Literal["min", "max"], raw_mode)
 
-                return ReduceLROnPlateau(
+                lr_scheduler = ReduceLROnPlateau(
                     optimizer=self.optimizer,
                     mode=mode_literal,
                     factor=self.config.parameters.get("factor", 0.1),
@@ -63,15 +71,30 @@ class SchedulerWrapper:
                     verbose=self.config.parameters.get("verbose", False),
                 )
             case "StepLR":
-                return StepLR(
+                lr_scheduler = StepLR(
                     optimizer=self.optimizer,
                     step_size=self.config.parameters["step_size"],
                     gamma=self.config.parameters.get("gamma", 0.1)
                 )
             case "ExponentialLR":
-                return ExponentialLR(
+                lr_scheduler = ExponentialLR(
                     optimizer=self.optimizer,
                     gamma=self.config.parameters.get("gamma", 0.9)
                 )
             case _:
                 raise ValueError(f"Scheduler {self.config.name} is not supported.")
+
+        if warmup_epochs > 0:
+            warmup_scheduler = optim.lr_scheduler.LinearLR(
+                optimizer=self.optimizer,
+                start_factor=1e-5,
+                end_factor=1.0,
+                total_iters=warmup_epochs,
+            )
+            lr_scheduler = optim.lr_scheduler.SequentialLR(
+                optimizer=self.optimizer,
+                schedulers=[warmup_scheduler, lr_scheduler],
+                milestones=[warmup_epochs],
+            )
+
+        return lr_scheduler
