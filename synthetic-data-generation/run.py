@@ -73,8 +73,8 @@ def main():
             logging.info(f"Run {i + 1} completed successfully.")
 
         run_end = time.time()
-        current_run_time = run_end - overall_start
         run_duration = run_end - run_start
+        current_run_time = run_end - overall_start
         elapsed_times.append(run_duration)
 
         # Log the duration of the current run
