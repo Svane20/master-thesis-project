@@ -355,7 +355,7 @@ def main() -> None:
             run_hours, run_remainder = divmod(current_run_time, 3600)
             run_minutes, run_seconds = divmod(run_remainder, 60)
             logging.info(
-                f"Total execution time: {int(run_hours)} hours, {int(run_minutes)} minutes and {run_seconds:.2f} seconds."
+                f"Total execution time so far: {int(run_hours)} hours, {int(run_minutes)} minutes and {run_seconds:.2f} seconds."
             )
 
             # Calculate remaining time estimate
