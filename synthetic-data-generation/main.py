@@ -5,13 +5,12 @@ import numpy as np
 from numpy.typing import NDArray
 import time
 import logging
-import platform
 from scipy.stats.qmc import Halton
 
 from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alpha_threshold
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
 from addons.installation import install_addons
-from configuration.configuration import Configuration, load_configuration
+from configuration.configuration import Configuration, get_configuration
 from configuration.spawn_objects import SpawnObjectsConfiguration
 from engine.rendering import setup_rendering
 from environment.biomes import get_all_biomes_by_directory
@@ -45,26 +44,6 @@ def general_cleanup(configuration: Configuration) -> None:
 
     # Remove the existing cube in the Blender Scene
     clear_cube()
-
-
-def get_configuration() -> Configuration:
-    """
-    Loads the configuration for the Blender pipeline.
-
-    Returns:
-        Configuration: The configuration for the Blender pipeline
-
-    """
-    # Detect OS and set the configuration path accordingly
-    base_directory = Path(__file__).resolve().parent
-    if platform.system() == "Windows":
-        configuration_path: Path = base_directory / "configuration_windows.json"
-    else:  # Assume Linux for any non-Windows OS
-        configuration_path: Path = base_directory / "configuration_linux.json"
-
-    config = load_configuration(configuration_path)
-
-    return Configuration(**config)
 
 
 def apply_render_configuration(configuration: Configuration) -> None:

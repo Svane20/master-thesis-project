@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from typing import Union, Dict
 import json
 from typing import List
-import logging
+import platform
 
 from configuration.addons import AddonConfiguration
 from configuration.camera import CameraConfiguration
@@ -37,7 +37,27 @@ class Configuration(BaseModel):
     sky_configuration: SkyConfiguration
 
 
-def load_configuration(path: Path) -> Union[Dict[str, Union[str, int, float, bool, dict]], None]:
+def get_configuration() -> Configuration:
+    """
+    Loads the configuration for the Blender pipeline.
+
+    Returns:
+        Configuration: The configuration for the Blender pipeline
+
+    """
+    # Detect OS and set the configuration path accordingly
+    base_directory = Path(__file__).resolve().parent
+    if platform.system() == "Windows":
+        configuration_path: Path = base_directory / "configuration_windows.json"
+    else:  # Assume Linux for any non-Windows OS
+        configuration_path: Path = base_directory / "configuration_linux.json"
+
+    config = _load_configuration(configuration_path)
+
+    return Configuration(**config)
+
+
+def _load_configuration(path: Path) -> Union[Dict[str, Union[str, int, float, bool, dict]], None]:
     """
     Load settings from a JSON file.
 

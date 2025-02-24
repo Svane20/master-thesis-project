@@ -4,8 +4,8 @@ import sys
 import logging
 import os
 
+from configuration.configuration import get_configuration
 from custom_logging.custom_logger import setup_logging
-from main import get_configuration
 
 
 def delete_logs_from_previous_runs(log_path: str) -> None:
