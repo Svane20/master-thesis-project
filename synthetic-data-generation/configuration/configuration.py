@@ -46,7 +46,7 @@ def get_configuration() -> Configuration:
 
     """
     # Detect OS and set the configuration path accordingly
-    base_directory = Path(__file__).resolve().parent
+    base_directory = Path(__file__).resolve().parent.parent
     if platform.system() == "Windows":
         configuration_path: Path = base_directory / "configuration_windows.json"
     else:  # Assume Linux for any non-Windows OS
