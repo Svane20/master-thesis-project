@@ -73,6 +73,7 @@ def main():
             logging.info(f"Run {i + 1} completed successfully.")
 
         run_end = time.time()
+        current_run_time = run_end - overall_start
         run_duration = run_end - run_start
         elapsed_times.append(run_duration)
 
@@ -82,7 +83,6 @@ def main():
         logging.info(f"Run {i + 1} took {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds.")
 
         # Log the cumulative runtime so far
-        current_run_time = run_end - overall_start
         run_hours, run_remainder = divmod(current_run_time, 3600)
         run_minutes, run_seconds = divmod(run_remainder, 60)
         logging.info(

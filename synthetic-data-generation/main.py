@@ -339,6 +339,7 @@ def main() -> None:
 
             # Log the elapsed time for rendering the current image
             end_time = time.perf_counter()
+            current_run_time = end_time - script_start_time
             elapsed_time = end_time - start_time
             elapsed_times.append(elapsed_time)  # Store elapsed time for averaging
 
@@ -351,7 +352,6 @@ def main() -> None:
             )
 
             # Log the cumulative runtime so far
-            current_run_time = end_time - script_start_time
             run_hours, run_remainder = divmod(current_run_time, 3600)
             run_minutes, run_seconds = divmod(run_remainder, 60)
             logging.info(
