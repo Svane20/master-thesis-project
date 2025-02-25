@@ -229,7 +229,7 @@ def populate_meshes(
     logging.debug(f"Found {len(texture_paths)} textures")
     texture = str(random.choice(texture_paths))
     texture_name = Path(texture).name
-    logging.debug(f"Selected random texture: {texture_name}")
+    logging.info(f"Populating meshes with texture: {texture_name}")
 
     # Determine texture resolution suffix and extract base name
     resolutions = ["_4k.blend", "_8k.blend", "_16k.blend"]
