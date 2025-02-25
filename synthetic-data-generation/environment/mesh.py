@@ -158,6 +158,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
                     continue
 
                 random_biome_path = np.random.choice(biomes_path_flag)
+                logging.info(f"Selected grass biome file: {random_biome_path}")
 
                 apply_biome(
                     bpy_object=bpy_object,

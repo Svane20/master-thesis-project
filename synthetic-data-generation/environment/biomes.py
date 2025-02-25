@@ -52,7 +52,7 @@ def apply_biomes_to_objects(
             continue
 
         random_biome_path = np.random.choice(biome_paths)
-        logging.debug(f"Applying biome from {random_biome_path} to object '{bpy_object.name}'.")
+        logging.info(f"Selected tree biome file: {random_biome_path}")
 
         apply_biome(
             bpy_object=bpy_object,
@@ -87,7 +87,7 @@ def apply_biome(
             logging.error(f"Object '{bpy_object}' not found in the scene.")
             raise ValueError(f"Object '{bpy_object}' not found in the scene.")
 
-    logging.info(f"Applying biome '{biome_path}' to object '{bpy_object.name}'.")
+    logging.debug(f"Applying biome '{biome_path}' to object '{bpy_object.name}'.")
 
     # Set the object as the new emitter for scattering
     bpy.ops.scatter5.set_new_emitter(obj_name=bpy_object.name)
@@ -117,7 +117,7 @@ def apply_biome(
         scattered_object.pass_index = label_index
         logging.debug(f"Assigned pass index {label_index} to object '{scattered_object.name}'.")
 
-    logging.info(f"Biome applied to object '{bpy_object.name}' successfully.")
+    logging.debug(f"Biome applied to object '{bpy_object.name}' successfully.")
 
 
 def get_object_by_name(name: Union[str, bpy.types.Object]) -> Union[bpy.types.Object, None]:
