@@ -75,7 +75,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
             Tuple[float, float],
             Tuple[float, float],
             Tuple[float, float]
-        ] = ((0.001, 0.025), (0.001, 0.025), (0.001, 0.025)),
+        ] = ((0.001, 0.025), (0.01, 0.5), (0.01, 0.5)),
         biome_label_indices: Tuple[int, int, int] = (255, 0, 0),
         seed: int = None,
 ) -> None:
