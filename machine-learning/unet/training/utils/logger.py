@@ -74,6 +74,20 @@ class WandbLogger:
         log_data = {**payload}
         self.run.log(log_data, step=step)
 
+    def log_images_dict(self, payload: Dict[str, wandb.Image], step: int) -> None:
+        """
+        Log the images dictionary to the wandb.
+
+        Args:
+            payload (Dict[str, wandb.Image]): Payload to log.
+            step (int): Step to log.
+        """
+
+        if not self.run:
+            return
+
+        self.run.log(payload, step=step)
+
     def finish(self) -> None:
         """
         Finish the wandb run.
@@ -110,6 +124,17 @@ class Logger:
         """
         if self.wandb_logger:
             self.wandb_logger.log_dict(payload, step)
+
+    def log_images_dict(self, payload: Dict[str, wandb.Image], step: int) -> None:
+        """
+        Log the images dictionary to the logger.
+
+        Args:
+            payload (Dict[str, wandb.Image]): Data to log.
+            step (int): Step to log.
+        """
+        if self.wandb_logger:
+            self.wandb_logger.log_images_dict(payload, step)
 
     def finish(self) -> None:
         """

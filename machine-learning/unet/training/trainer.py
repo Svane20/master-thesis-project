@@ -1,5 +1,8 @@
 import torch
 import torch.nn as nn
+import wandb
+from torchvision.utils import make_grid
+from torchvision.transforms.functional import to_pil_image
 
 import time
 from typing import Dict, Optional, Any, List, Tuple
@@ -467,6 +470,27 @@ class Trainer:
         """
         # Forward pass
         outputs = self.model(inputs)
+
+        if phase == Phase.VAL and self.epoch % 10 == 0:
+            # Take 8 samples for visualization
+            sample_inputs = inputs[:5].detach().cpu()
+            sample_targets = targets[:5].detach().cpu()
+            sample_outputs = outputs[:5].detach().cpu()
+
+            # Create grid images (assumes the tensors have shape [B, C, H, W])
+            inputs_grid = make_grid(sample_inputs, nrow=4, normalize=True)
+            produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)
+            true_grid = make_grid(sample_targets, nrow=4, normalize=True)
+
+            # Log the images
+            self.logger.log_images_dict(
+                payload={
+                    "predictions/inputs": wandb.Image(to_pil_image(inputs_grid)),
+                    "predictions/targets": wandb.Image(to_pil_image(true_grid)),
+                    "predictions/outputs": wandb.Image(to_pil_image(produced_grid)),
+                },
+                step=self.epoch
+            )
 
         # Calculate losses
         losses = self.criterion(outputs, targets)
