@@ -175,7 +175,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
             apply_biomes_to_objects(
                 unique_object_names=set(new_object_names) - set(existing_object_names),
                 biome_paths=tree_biomes_path,
-                density=density_tree,
+                density=tree_densities[0],
                 label_index=0,
             )
             tree_spawned = True
