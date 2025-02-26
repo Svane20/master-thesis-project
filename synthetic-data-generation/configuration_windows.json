@@ -112,6 +112,7 @@
     "image_size": 2048,
     "noise_basis": "PERLIN_ORIGINAL",
     "generate_trees": true,
+    "tree_probability": 0.50,
     "trees_configuration": {
       "directory": "C:/Users/svane/AppData/Roaming/Blender Foundation/Blender/data/scatter library/_biomes_/Vegetation",
       "keywords": [

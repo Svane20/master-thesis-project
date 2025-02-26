@@ -59,6 +59,7 @@ class TerrainConfiguration(BaseModel):
         image_size (int): The size of the image or terrain representation.
         noise_basis (int): The size of the noise basis.
         generate_trees (bool): Whether to generate trees.
+        tree_probability (float): The probability of generating trees.
         trees_configuration (TreesConfiguration): The configuration of the trees.
         grass_configuration (GrassConfiguration): The configuration of the grass.
         not_grass_configuration (NotGrassConfiguration): The configuration of the not grass.
@@ -67,6 +68,7 @@ class TerrainConfiguration(BaseModel):
     image_size: int
     noise_basis: str
     generate_trees: bool
+    tree_probability: float
     trees_configuration: TreesConfiguration
     grass_configuration: GrassConfiguration
     not_grass_configuration: NotGrassConfiguration

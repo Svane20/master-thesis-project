@@ -143,6 +143,7 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
         grass_biomes_path=grass_biomes,
         not_grass_biomes_path=not_grass_biomes,
         generate_trees=terrain_configuration.generate_trees,
+        tree_probability=terrain_configuration.tree_probability,
         world_size=int(terrain_configuration.world_size),
         seed=configuration.constants.seed
     )

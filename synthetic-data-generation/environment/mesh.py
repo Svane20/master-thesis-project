@@ -65,6 +65,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
         grass_biomes_path: List[str],
         not_grass_biomes_path: List[str],
         generate_trees: bool,
+        tree_probability: float,
         grass_densities: Tuple[
             Tuple[float, float],
             Tuple[float, float],
@@ -87,6 +88,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
         grass_biomes_path (List[str]): The grass biomes paths to be applied to the terrain sub-meshes.
         not_grass_biomes_path (List[str]): The not grass biomes paths to be applied to the terrain sub-meshes.
         generate_trees (bool, optional): Whether to generate a tree or not.
+        tree_probability (float, optional): The probability of generating a tree.
         grass_densities (Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]], optional): The grass densities.
         tree_densities (Tuple[Tuple[float, float], Tuple[float, float], Tuple[float, float]], optional): The tree densities.
         biome_label_indices (Tuple[int, int, int], optional): The biome label indices.
@@ -170,7 +172,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
 
             logging.debug(f"Applied grass biomes to object '{object_name}' with label index {biome_label_index}.")
 
-        if generate_trees and not tree_spawned:
+        if generate_trees and not tree_spawned and random.random() < tree_probability:
             # Apply a random tree biome to the object
             apply_biomes_to_objects(
                 unique_object_names=set(new_object_names) - set(existing_object_names),
