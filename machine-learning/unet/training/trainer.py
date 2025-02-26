@@ -150,12 +150,15 @@ class Trainer:
                         )
                         break
                 else:
-                    # Save best stats to file
-                    if self.logging_config.log_metrics:
-                        self._save_stats(filename="best_stats.json", payload=payload)
+                    # Save model checkpoint based on the save frequency
+                    if self.checkpoint_config.save_freq > 0 and (
+                            int(current_epoch) % self.checkpoint_config.save_freq) == 0:
+                        # Save best stats to file
+                        if self.logging_config.log_metrics:
+                            self._save_stats(filename="best_stats.json", payload=payload)
 
-                    # Save the model at the end of each epoch
-                    self._save_checkpoint(epoch=current_epoch)
+                        # Save the model at the end of each epoch
+                        self._save_checkpoint(epoch=current_epoch)
 
                 # Update epoch
                 self.epoch += 1
