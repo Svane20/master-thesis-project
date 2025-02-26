@@ -74,7 +74,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
             Tuple[float, float],
             Tuple[float, float],
             Tuple[float, float]
-        ] = ((0.001, 0.025), (0.01, 0.5), (0.01, 0.5)),
+        ] = ((0.001, 0.025), (0.001, 0.025), (0.001, 0.025)),
         biome_label_indices: Tuple[int, int, int] = (255, 0, 0),
         seed: int = None,
 ) -> None:
@@ -175,7 +175,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
             apply_biomes_to_objects(
                 unique_object_names=set(new_object_names) - set(existing_object_names),
                 biome_paths=tree_biomes_path,
-                density=tree_densities[0],
+                density=density_tree,
                 label_index=0,
             )
             tree_spawned = True
