@@ -118,7 +118,7 @@ def predict(image_path: str) -> Tuple[np.ndarray, np.ndarray, float]:
 
 
 title = "Demo: Sky Replacement with Alpha Matting"
-description = "This demo performs alpha matting and sky replacements for houses using a U-Net model. Upload an image to generate the alpha matte."
+description = "This demo performs alpha matting and sky replacements for houses using a U-Net model. Upload an image to perform sky replacement."
 
 # Create examples list from "examples/" directory
 example_list = [["examples/" + example] for example in os.listdir("examples") if
