@@ -1,8 +1,8 @@
 import torch
 import torch.nn as nn
 
-from image_encoder import ImageEncoder
-from mask_decoder import MaskDecoder
+from .image_encoder import ImageEncoder
+from .mask_decoder import MaskDecoder
 
 
 class UNet(nn.Module):

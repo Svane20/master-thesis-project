@@ -9,25 +9,7 @@ from timeit import default_timer as timer
 from PIL.Image import Image
 from typing import Tuple
 
-from image_encoder import ImageEncoder
-from mask_decoder import MaskDecoder
-from unet import UNet
-
-# Disable Albumentations update checks
-os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
-
-
-# Define model and transforms
-model = UNet(
-    image_encoder=ImageEncoder(
-        pretrained=True,
-        freeze_pretrained=True,
-    ),
-    mask_decoder=MaskDecoder(
-        out_channels=1,
-        dropout=0.5
-    )
-)
+from model.build_model import build_model
 
 transforms = A.Compose([
     A.Resize(224, 224),
@@ -40,9 +22,8 @@ transforms = A.Compose([
     ToTensorV2(),
 ])
 
-# Load model checkpoint
-model.load_state_dict(torch.load("unet_production.pt", map_location="cpu", weights_only=True))
-
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = build_model("unet_v1.pt", device=str(device), mode="eval")
 
 def preprocess(image: Image) -> torch.Tensor:
     """
@@ -77,12 +58,9 @@ def postprocess(mask: torch.Tensor) -> np.ndarray:
         np.ndarray: Post-processed mask.
     """
     # Remove batch and channel dimensions, and convert to NumPy array
-    mask = mask.squeeze(0).squeeze(0).cpu().numpy()
+    pred_alpha = mask.squeeze(0).cpu().numpy()
 
-    # Normalize and convert to uint8 (values 0-255 for visualization)
-    mask = (mask > 0.5).astype(np.uint8) * 255
-
-    return mask
+    return pred_alpha
 
 
 def predict(image: Image) -> Tuple[np.ndarray, float]:
@@ -101,25 +79,21 @@ def predict(image: Image) -> Tuple[np.ndarray, float]:
     # Preprocess the image
     image = preprocess(image)
 
-    # Put model in evaluation mode
-    model.eval()
-
     with torch.inference_mode():
-        # Get predictions
-        logits = model(image)
-        prediction = torch.sigmoid(logits)  # Apply sigmoid for binary segmentation
+        outputs = model(image)
+        outputs = torch.clamp(outputs, 0, 1)  # Clamp to [0, 1]
 
     # Calculate the prediction time
     prediction_time = round(timer() - start_time, 5)
 
     # Postprocess the output
-    prediction = postprocess(prediction)
+    prediction = postprocess(outputs)
 
     return prediction, prediction_time
 
 
-title = "Demo: Binary Segmentation"
-description = "This demo performs binary segmentation on input images using a U-Net model."
+title = "Demo: Unet Alpha Matting"
+description = "This demo performs alpha matting using a U-Net model. Upload an image to generate the alpha matte."
 
 # Create examples list from "examples/" directory
 example_list = [["examples/" + example] for example in os.listdir("examples") if example.lower().endswith(('.png', '.jpg', '.jpeg'))]
