@@ -6,45 +6,32 @@ from albumentations.pytorch import ToTensorV2
 import numpy as np
 import os
 from timeit import default_timer as timer
-from PIL.Image import Image
+from PIL import Image
 from typing import Tuple
+from pathlib import Path
 
-from image_encoder import ImageEncoder
-from mask_decoder import MaskDecoder
-from unet import UNet
+from model.build_model import build_model
+from replacements.foreground_estimation import get_foreground_estimation
+from replacements.replacements import sky_replacement
 
-# Disable Albumentations update checks
-os.environ["NO_ALBUMENTATIONS_UPDATE"] = "1"
-
-
-# Define model and transforms
-model = UNet(
-    image_encoder=ImageEncoder(
-        pretrained=True,
-        freeze_pretrained=True,
-    ),
-    mask_decoder=MaskDecoder(
-        out_channels=1,
-        dropout=0.5
-    )
+transforms = A.Compose(
+    [
+        A.Resize(224, 224),
+        A.Normalize(
+            mean=(0.5, 0.5, 0.5),
+            std=(0.5, 0.5, 0.5),
+        ),
+        ToTensorV2(),
+    ],
+    additional_targets={'mask': 'mask'}
 )
 
-transforms = A.Compose([
-    A.Resize(224, 224),
-
-    # Normalize and convert to tensor
-    A.Normalize(
-        mean=(0.485, 0.456, 0.406),
-        std=(0.229, 0.224, 0.225),
-    ),
-    ToTensorV2(),
-])
-
-# Load model checkpoint
-model.load_state_dict(torch.load("unet_production.pt", map_location="cpu", weights_only=True))
+checkpoint_path = "unet_v1.pt"
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+model = build_model(checkpoint_path, device=str(device), mode="eval")
 
 
-def preprocess(image: Image) -> torch.Tensor:
+def preprocess(image: np.ndarray) -> torch.Tensor:
     """
     Preprocess the input image.
 
@@ -54,83 +41,97 @@ def preprocess(image: Image) -> torch.Tensor:
     Returns:
         torch.Tensor: Preprocessed image.
     """
-    # Convert PIL image to NumPy array
-    image = np.array(image)
-
-    # Apply Albumentations transformations
+    # Apply transforms
     transformed = transforms(image=image)
+    image_tensor = transformed["image"].unsqueeze(0).to(device)  # Add batch dimension
 
-    # Add batch dimension (C, H, W -> 1, C, H, W)
-    tensor = transformed["image"].unsqueeze(0)
-
-    return tensor
+    return image_tensor
 
 
-def postprocess(mask: torch.Tensor) -> np.ndarray:
+def postprocess(predicted_mask: torch.Tensor, width: int, height: int) -> np.ndarray:
     """
     Postprocess the predicted mask.
 
     Args:
-        mask (torch.Tensor): Predicted mask.
+        predicted_mask (torch.Tensor): Predicted mask.
+        width (int): Width of the original image.
+        height (int): Height of the original image.
 
     Returns:
         np.ndarray: Post-processed mask.
     """
-    # Remove batch and channel dimensions, and convert to NumPy array
-    mask = mask.squeeze(0).squeeze(0).cpu().numpy()
+    # Remove the batch dimension
+    predicted_mask = predicted_mask.squeeze(0).cpu().numpy()
 
-    # Normalize and convert to uint8 (values 0-255 for visualization)
-    mask = (mask > 0.5).astype(np.uint8) * 255
+    # Normalize the alpha mask to [0, 1]
+    if predicted_mask.shape[2] == 4:
+        predicted_mask = predicted_mask[..., 3].astype(np.float64) / 255.0
+    else:
+        predicted_mask = np.squeeze(predicted_mask, axis=0)
 
-    return mask
+    # Upscale the predicted mask to the original image size
+    predicted_mask = np.array(
+        Image.fromarray((predicted_mask * 255).astype(np.uint8)).resize((width, height))
+    ).astype(np.float32) / 255.0
+
+    return predicted_mask
 
 
-def predict(image: Image) -> Tuple[np.ndarray, float]:
+def predict(image_path: str) -> Tuple[np.ndarray, np.ndarray, float]:
     """
     Perform binary segmentation on the input image.
 
     Args:
-        image (Image): Input image.
+        image_path (str): Path to the input image.
 
     Returns:
-        Tuple[np.ndarray, float]: Predicted mask and prediction time.
+        Tuple[np.ndarray, np.ndarray, float]: Predicted mask, sky replacement and prediction time.
     """
     # Start the timer
     start_time = timer()
 
-    # Preprocess the image
-    image = preprocess(image)
+    # Load the image
+    image = np.array(Image.open(image_path).convert("RGB"))
 
-    # Put model in evaluation mode
-    model.eval()
+    # Preprocess the image
+    image_tensor = preprocess(image)
 
     with torch.inference_mode():
-        # Get predictions
-        logits = model(image)
-        prediction = torch.sigmoid(logits)  # Apply sigmoid for binary segmentation
+        outputs = model(image_tensor.to(device))
+        outputs = torch.clamp(outputs, 0, 1)  # Clamp to [0, 1]
+
+    # Postprocess the output
+    predicted_alpha_matte = postprocess(outputs, width=image.shape[1], height=image.shape[0])
+
+    # Perform foreground estimation
+    foreground = get_foreground_estimation(image_path, predicted_alpha_matte)
+
+    # Perform sky replacement
+    current_directory = Path(__file__).parent
+    new_sky_path = current_directory / "assets/skies/new_sky.webp"
+    replaced_sky = sky_replacement(new_sky_path, foreground, predicted_alpha_matte)
 
     # Calculate the prediction time
     prediction_time = round(timer() - start_time, 5)
 
-    # Postprocess the output
-    prediction = postprocess(prediction)
-
-    return prediction, prediction_time
+    return predicted_alpha_matte, replaced_sky, prediction_time
 
 
-title = "Demo: Binary Segmentation"
-description = "This demo performs binary segmentation on input images using a U-Net model."
+title = "Demo: Sky Replacement with Alpha Matting"
+description = "This demo performs alpha matting and sky replacements for houses using a U-Net model. Upload an image to perform sky replacement."
 
 # Create examples list from "examples/" directory
-example_list = [["examples/" + example] for example in os.listdir("examples") if example.lower().endswith(('.png', '.jpg', '.jpeg'))]
+example_list = [["examples/" + example] for example in os.listdir("examples") if
+                example.lower().endswith(('.png', '.jpg', '.jpeg'))]
 
 # Create Gradio interface
 demo = gr.Interface(
     fn=predict,
-    inputs=gr.Image(type="pil", label="Input Image"),
+    inputs=gr.Image(type="filepath", label="Input Image"),
     outputs=[
-        gr.Image(type="numpy", label="Predicted Mask"),  # Mask output
-        gr.Number(label="Prediction Time (s)"),         # Prediction time
+        gr.Image(type="numpy", label="Predicted Mask"),
+        gr.Image(type="numpy", label="Sky Replacement"),
+        gr.Number(label="Prediction Time (s)"),
     ],
     title=title,
     description=description,
