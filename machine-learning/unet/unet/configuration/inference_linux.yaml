@@ -4,15 +4,15 @@ scratch:
 
 # Dataset configuration
 dataset:
-  name: "carvana"
-  root: "./data"
+  name: "synthetic-data"
+  root: "/mnt/shared/datasets/processed"
   batch_size: 16
   pin_memory: true
   train:
     num_workers: 8
     shuffle: true
     drop_last: true
-  test:
+  val:
     num_workers: 8
     shuffle: false
     drop_last: false

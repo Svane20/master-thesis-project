@@ -29,7 +29,7 @@ training:
 
   # Criterion configuration
   criterion:
-    name: "MattingLoss"
+    name: "MattingLossV2"
     weight_dict:
       reconstruction: 1.0
       laplacian: 0.5
