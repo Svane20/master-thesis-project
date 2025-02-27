@@ -1,12 +1,11 @@
 import torch
 from torch.utils.data.dataset import Dataset
-
-from albumentations import Compose
 import numpy as np
 import os
 from PIL import Image
 from pathlib import Path
 from typing import Tuple, Optional
+from albumentations import Compose
 
 
 class SyntheticDataset(Dataset):
@@ -14,9 +13,9 @@ class SyntheticDataset(Dataset):
     Load Synthetic dataset.
 
     Args:
-        image_directory (pathlib.Path): Path to the images' directory.
-        mask_directory (pathlib.Path): Path to the masks' directory.
-        transforms (albumentations.Compose, optional): Transform to apply to the images and masks.
+        image_directory (Path): Path to the images' directory.
+        mask_directory (Path): Path to the masks' directory.
+        transforms (Compose, optional): Albumentations transforms to apply to the image and mask.
     """
 
     def __init__(
@@ -30,50 +29,34 @@ class SyntheticDataset(Dataset):
         self.transforms = transforms
         self.images = os.listdir(image_directory)
 
-
     def __len__(self) -> int:
-        """
-        Get the length of the dataset.
-
-        Returns:
-            int: Length of the dataset.
-        """
-
         return len(self.images)
 
     def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
-        """
-        Get the image and mask at the specified index.
-
-        Args:
-            index (int): Index of the image and mask.
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor]: Image and mask tensors.
-        """
         # Load the image
         image_filename = self.images[index]
         image_path = os.path.join(self.image_directory, image_filename)
 
-        # Load the mask
+        # Load the mask (assuming mask filename is derived from image filename)
         mask_filename = image_filename.replace("Image", "SkyMask")
         mask_path = os.path.join(self.mask_directory, mask_filename)
 
-        # Load the image and convert to RGB
+        # Load the image (RGB)
         image = np.array(Image.open(image_path).convert("RGB"))
 
-        # Load the mask as an RGBA image, then extract the alpha channel.
+        # Load the mask as RGBA, extract the alpha channel, and normalize to [0, 1]
         mask_rgba = np.array(Image.open(mask_path).convert("RGBA"), dtype=np.float32)
         mask = mask_rgba[..., 3]  # extract alpha channel
-        mask = mask / 255.0        # normalize to [0, 1]
+        mask = mask / 255.0
 
         # Apply transforms if provided.
         if self.transforms:
+            # The transform will process "image" and "mask" separately based on the type of transform.
             augmented = self.transforms(image=image, mask=mask)
             image = augmented['image']
             mask = augmented['mask']
 
-        # Convert the image (HWC) to tensor (CHW)
+        # Convert image from HWC to CHW tensor if needed.
         if isinstance(image, np.ndarray):
             image = torch.from_numpy(image).permute(2, 0, 1).float()
 

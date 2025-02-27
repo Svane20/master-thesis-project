@@ -1,12 +1,13 @@
 import torch
 
 from pathlib import Path
+import platform
 
+from configuration.configuration import load_configuration_and_checkpoint
 from datasets.synthetic.data_loaders import create_data_loader
 from datasets.transforms import get_val_transforms
 
 from evaluation.inference import evaluate_model
-from evaluation.utils.configuration import load_config
 from training.utils.logger import setup_logging
 
 from unet.build_model import build_unet_model
@@ -16,13 +17,14 @@ setup_logging(__name__)
 
 def main() -> None:
     # Directories
-    root_directory = Path(__file__).resolve().parent.parent
+    base_directory = Path(__file__).resolve().parent.parent
+    if platform.system() == "Windows":
+        configuration_path: Path = base_directory / "unet/configuration/inference_windows.yaml"
+    else:  # Assume Linux for any non-Windows OS
+        configuration_path: Path = base_directory / "unet/configuration/inference_linux.yaml"
 
     # Load configuration and checkpoint
-    configuration, checkpoint_path = load_config(
-        current_directory=root_directory,
-        configuration_path="unet/configuration/inference_windows.yaml"
-    )
+    configuration, checkpoint_path = load_configuration_and_checkpoint(configuration_path)
 
     # Load the model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -35,7 +37,7 @@ def main() -> None:
     )
 
     # Create data loader
-    val_directory = root_directory / configuration.dataset.root / configuration.dataset.name / "val"
+    val_directory = Path(configuration.dataset.root) / configuration.dataset.name / "val"
     transforms = get_val_transforms(configuration.scratch.resolution)
     data_loader = create_data_loader(
         directory=val_directory,
