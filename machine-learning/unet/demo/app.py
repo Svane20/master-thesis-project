@@ -117,7 +117,7 @@ def predict(image_path: str) -> Tuple[np.ndarray, np.ndarray, float]:
     return predicted_alpha_matte, replaced_sky, prediction_time
 
 
-title = "Demo: Unet Alpha Matting"
+title = "Demo: Sky Replacement with Alpha Matting"
 description = "This demo performs alpha matting and sky replacements for houses using a U-Net model. Upload an image to generate the alpha matte."
 
 # Create examples list from "examples/" directory
