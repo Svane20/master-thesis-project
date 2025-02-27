@@ -71,9 +71,9 @@ training:
       enabled: true
       project: "U-NET"
       entity: "svane20-keyshot"
-      tags: [ "unet", "carvana", "segmentation", "experiment" ]
-      notes: "Training U-Net on Carvana dataset with mixed precision"
-      group: "carvana-segmentation-experiments"
+      tags: [ "unet", "synthetic-data", "alpha-matting", "experiment" ]
+      notes: "Training U-Net on Synthetic dataset with mixed precision"
+      group: "unet-synthetic-experiments"
       job_type: "training"
     log_directory: "./logs"
     log_metrics: false

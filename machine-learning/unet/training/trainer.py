@@ -11,6 +11,7 @@ import logging
 import os.path
 import numpy as np
 import json
+import platform
 
 from configuration.training.root import TrainConfig
 from training.criterions import CORE_LOSS_KEY, MattingLoss
@@ -670,11 +671,12 @@ class Trainer:
         logging.info(f"Moving components to device {self.device}.")
 
         if compile_model:
-            logging.info("Compiling the model with backend 'aot_eager'.")
+            backend = "inductor" if platform.system() == "Linux" else "aot_eager"
+            logging.info(f"Compiling the model with backend '{backend}'.")
 
-            self.model = torch.compile(self.model, backend="aot_eager")
+            self.model = torch.compile(self.model, backend=backend)
 
-            logging.info("Done compiling model with backend 'aot_eager'.")
+            logging.info(f"Done compiling model with backend '{backend}'.")
 
         self.model.to(self.device)
 

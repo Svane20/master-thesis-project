@@ -6,23 +6,23 @@ scratch:
 
 # Dataset configuration
 dataset:
-  name: "carvana"
-  root: "./data"
+  name: "synthetic-data"
+  root: "/mnt/shared/datasets/processed"
   batch_size: 16
   pin_memory: true
   train:
     num_workers: 8
     shuffle: true
     drop_last: true
-  test:
+  val:
     num_workers: 4
     shuffle: false
     drop_last: false
 
 # Training configuration
 training:
-  max_epochs: 100
-  warmup_epochs: 10 # 5-10% of max_epochs
+  max_epochs: 200
+  warmup_epochs: 20 # 5-10% of max_epochs
   accelerator: cuda
   seed: 42
   compile_model: true
@@ -32,15 +32,15 @@ training:
     name: "MattingLoss"
     weight_dict:
       reconstruction: 1.0
-      laplacian: 1.0
-      gradient: 0.5
-      boundary: 0.5
+      laplacian: 0.5
+      gradient: 0.25
+      boundary: 1.0
 
   # Optimizer configuration
   optimizer:
     name: "AdamW"
-    lr: 1.0e-4
-    weight_decay: 1.0e-6
+    lr: 3e-4
+    weight_decay: 1.0e-7
     amp:
       enabled: true
       amp_dtype: float16
@@ -54,16 +54,15 @@ training:
     name: "CosineAnnealingLR"
     enabled: true
     parameters:
-      t_max: 90 # 80-90% of max_epochs
-      eta_min: 1.0e-5
+      eta_min: 1.0e-7
 
   # Early stopping configuration
   early_stopping:
-    enabled: true
+    enabled: false
     verbose: true
-    patience: 20
+    patience: 30
     min_delta: 0.0
-    monitor: "losses/test_core_loss"
+    monitor: "losses/val_core_loss"
     mode: "min"
 
   # Logging configuration
@@ -72,9 +71,9 @@ training:
       enabled: true
       project: "U-NET"
       entity: "svane20-keyshot"
-      tags: [ "unet", "carvana", "segmentation", "experiment" ]
-      notes: "Training U-Net on Carvana dataset with mixed precision"
-      group: "carvana-segmentation-experiments"
+      tags: [ "unet", "synthetic-data", "alpha-matting", "experiment" ]
+      notes: "Training U-Net on Synthetic dataset with mixed precision"
+      group: "unet-synthetic-experiments"
       job_type: "training"
     log_directory: "./logs"
     log_metrics: false
@@ -82,8 +81,9 @@ training:
 
   # Checkpoint configuration
   checkpoint:
-    save_directory: "./checkpoints"
-    checkpoint_path: "unet.pt"
+    save_directory: "/mnt/shared/ml/checkpoints/unet"
+    save_freq: 5
+    checkpoint_path: "unet_v1.pt"
     resume_from: null # "./checkpoints/<CHECKPOINT>" or null
 
 # Model configuration
@@ -91,7 +91,7 @@ model:
   name: "UNet"
   image_encoder:
     pretrained: true
-    freeze_pretrained: false
+    freeze_pretrained: true
   mask_decoder:
     out_channels: 1
     dropout: 0.5

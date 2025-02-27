@@ -1,7 +1,7 @@
 import torch
 
-from argparse import ArgumentParser, Namespace
 from pathlib import Path
+import platform
 
 from datasets.synthetic.data_loaders import setup_data_loaders
 
@@ -58,13 +58,12 @@ def _setup_run(config: Config) -> None:
         print(f"Error during training: {e}")
 
 
-def main(args: Namespace) -> None:
-    """
-    Args:
-        args (Namespace): Command-line arguments.
-    """
-    current_dir = Path(__file__).resolve().parent.parent
-    configuration_path = current_dir / args.config
+def main() -> None:
+    base_directory = Path(__file__).resolve().parent.parent
+    if platform.system() == "Windows":
+        configuration_path: Path = base_directory / "unet/configuration/training_windows.yaml"
+    else:  # Assume Linux for any non-Windows OS
+        configuration_path: Path = base_directory / "unet/configuration/training_linux.yaml"
 
     config: Config = load_configuration(configuration_path)
 
@@ -72,15 +71,4 @@ def main(args: Namespace) -> None:
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-
-    parser.add_argument(
-        "-c",
-        "--config",
-        type=str,
-        default="unet/configuration/training_windows.yaml",
-        help="Path to the configuration file.",
-    )
-
-    arguments = parser.parse_args()
-    main(arguments)
+    main()
