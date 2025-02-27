@@ -8,7 +8,7 @@ scratch:
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 16
+  batch_size: 32
   pin_memory: true
   train:
     num_workers: 8
@@ -29,10 +29,12 @@ training:
 
   # Criterion configuration
   criterion:
-    name: "MattingLossV2"
+    name: "MattingLoss"
     weight_dict:
       reconstruction: 1.0
-      gradient: 0.6
+      laplacian: 0.5
+      gradient: 0.25
+      boundary: 1.0
 
   # Optimizer configuration
   optimizer:
@@ -81,7 +83,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v1.pt"
+    checkpoint_path: "unet_v2.pt"
     resume_from: null # "./checkpoints/<CHECKPOINT>" or null
 
 # Model configuration

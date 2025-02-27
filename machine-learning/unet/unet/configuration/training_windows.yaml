@@ -29,7 +29,7 @@ training:
 
   # Criterion configuration
   criterion:
-    name: "MattingLossV2"
+    name: "MattingLoss"
     weight_dict:
       reconstruction: 1.0
       laplacian: 0.5
@@ -83,7 +83,7 @@ training:
   checkpoint:
     save_directory: "D:/OneDrive/Master Thesis/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v1.pt"
+    checkpoint_path: "unet_v2.pt"
     resume_from: null # "./checkpoints/<CHECKPOINT>" or null
 
 # Model configuration
@@ -91,7 +91,7 @@ model:
   name: "UNet"
   image_encoder:
     pretrained: true
-    freeze_pretrained: true
+    freeze_pretrained: false
   mask_decoder:
     out_channels: 1
-    dropout: 0.5
+    dropout: 0.2
