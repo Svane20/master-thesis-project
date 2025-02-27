@@ -4,3 +4,5 @@ torchvision
 albumentations
 numpy
 pillow
+pymatting
+opencv-python
