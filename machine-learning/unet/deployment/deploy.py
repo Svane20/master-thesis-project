@@ -21,7 +21,7 @@ def main() -> None:
 
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_configuration_and_checkpoint(configuration_path, is_deployment=True)
-    exports_directory = Path(configuration.deployment.destination_directory)
+    destination_directory = Path(configuration.deployment.destination_directory)
 
     # Load the model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -38,7 +38,7 @@ def main() -> None:
     save_model_checkpoint(
         model=model,
         device=device,
-        directory=exports_directory,
+        directory=destination_directory,
         model_name=model_name,
     )
 
@@ -46,7 +46,7 @@ def main() -> None:
     export_to_onnx(
         model=model,
         device=device,
-        directory=exports_directory,
+        directory=destination_directory,
         model_name=model_name,
         input_shape=(1, 3, configuration.scratch.resolution, configuration.scratch.resolution)
     )
