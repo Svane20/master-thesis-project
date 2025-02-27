@@ -26,8 +26,9 @@ transforms = A.Compose(
     additional_targets={'mask': 'mask'}
 )
 
+checkpoint_path = "unet_v1.pt"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = build_model("unet_v1.pt", device=str(device), mode="eval")
+model = build_model(checkpoint_path, device=str(device), mode="eval")
 
 
 def preprocess(image: np.ndarray) -> torch.Tensor:
