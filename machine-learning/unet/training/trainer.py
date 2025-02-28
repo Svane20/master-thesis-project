@@ -375,12 +375,11 @@ class Trainer:
                         # Forward pass
                         outputs = self.model(X)
 
-                        # Log predictions
-                        if self.epoch % 10 == 0:
+                        # Log predictions for every 10 epochs
+                        if self.epoch > 0 and self.epoch % 10 == 0:
                             # Take 8 samples for visualization
-                            sample_inputs = X[:5].detach().cpu()
-                            sample_targets = X[:5].detach().cpu()
-                            sample_outputs = outputs[:5].detach().cpu()
+                            sample_targets = y[:6].detach().cpu()
+                            sample_outputs = outputs[:6].detach().cpu()
 
                             # Create grid images (assumes the tensors have shape [B, C, H, W])
                             produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)

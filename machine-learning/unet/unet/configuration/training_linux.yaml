@@ -8,7 +8,7 @@ scratch:
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 32
+  batch_size: 16
   pin_memory: true
   train:
     num_workers: 8
@@ -32,8 +32,8 @@ training:
     name: "MattingLoss"
     weight_dict:
       reconstruction: 1.0
-      laplacian: 0.5
-      gradient: 0.25
+      laplacian: 0.6
+      gradient: 0.50
       boundary: 1.0
 
   # Optimizer configuration
