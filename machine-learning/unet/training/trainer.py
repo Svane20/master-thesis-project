@@ -96,7 +96,7 @@ class Trainer:
         try:
             while self.epoch < self.max_epochs:
                 train_metrics, train_losses = self._train_one_epoch(train_data_loader)
-                val_metrics, val_losses = self._validate_one_epoch(val_data_loader)
+                val_metrics, extra_metrics, val_losses = self._validate_one_epoch(val_data_loader)
 
                 # Validation metric
                 validation_metric_key = self.early_stopping_config.monitor \
@@ -121,6 +121,7 @@ class Trainer:
                     "overview/learning_rate": self.optimizer.param_groups[0]["lr"],
                     **{f"train/{k}": v for k, v in train_metrics.items()},
                     **{f"val/{k}": v for k, v in val_metrics.items()},
+                    **{f"metrics/{k}": v for k, v in extra_metrics.items()},
                     **{f"{k}": v for k, v in combined_losses.items()}
                 }
                 self.logger.log_dict(
@@ -303,8 +304,10 @@ class Trainer:
 
         return metrics, losses
 
-    def _validate_one_epoch(self, data_loader: torch.utils.data.DataLoader) -> Tuple[
-        Dict[str, float], Dict[str, float]]:
+    def _validate_one_epoch(
+            self,
+            data_loader: torch.utils.data.DataLoader
+    ) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]:
         """
         Validate the model for one epoch.
 
@@ -312,7 +315,7 @@ class Trainer:
             data_loader (torch.utils.data.DataLoader): Data loader for validation.
 
         Returns:
-            Tuple[Dict[str, float], Dict[str, float]]: Validation metrics and losses.
+            Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]: Validation metrics, matting metrics and losses.
         """
         # Init stat meters
         batch_time_meter = AverageMeter(name="Batch Time", device=str(self.device), fmt=":.2f")
@@ -349,6 +352,7 @@ class Trainer:
         # Model validation loop
         self.model.eval()
         metrics = {}
+        extra_metrics = {}
         losses = {}
         end = time.time()
 
@@ -448,10 +452,10 @@ class Trainer:
             losses[k] = v.avg
 
         # Compute average metrics
-        metrics["sad"] = sad_meter.avg
-        metrics["mse"] = mse_meter.avg
-        metrics["mae"] = mae_meter.avg
-        metrics["grad"] = grad_meter.avg
+        extra_metrics["sad"] = sad_meter.avg
+        extra_metrics["mse"] = mse_meter.avg
+        extra_metrics["mae"] = mae_meter.avg
+        extra_metrics["grad"] = grad_meter.avg
 
         # Compute average state metrics
         metrics["data_time"] = data_time_meter.avg
@@ -464,7 +468,7 @@ class Trainer:
         # Reset meters
         self._reset_meters([phase])
 
-        return metrics, losses
+        return metrics, extra_metrics, losses
 
     def _run_step(
             self,
