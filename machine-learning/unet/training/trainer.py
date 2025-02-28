@@ -329,10 +329,10 @@ class Trainer:
         extra_losses_meters = {}
 
         # Initialize metrics meters
-        sad_meter = AverageMeter(name="SAD", device=str(self.device), fmt=":.2f")
-        mse_meter = AverageMeter(name="MSE", device=str(self.device), fmt=":.2f")
-        mae_meter = AverageMeter(name="MAE", device=str(self.device), fmt=":.2f")
-        grad_meter = AverageMeter(name="Grad", device=str(self.device), fmt=":.2f")
+        sad_meter = AverageMeter(name="SAD", device=str(self.device), fmt=":.2e")
+        mse_meter = AverageMeter(name="MSE", device=str(self.device), fmt=":.2e")
+        mae_meter = AverageMeter(name="MAE", device=str(self.device), fmt=":.2e")
+        grad_meter = AverageMeter(name="Grad", device=str(self.device), fmt=":.2e")
 
         # Progress bar
         iters_per_epoch = len(data_loader)

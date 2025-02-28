@@ -32,8 +32,8 @@ training:
     name: "MattingLoss"
     weight_dict:
       reconstruction: 1.0
-      laplacian: 0.5
-      gradient: 0.5
+      laplacian: 0.6
+      gradient: 0.25
       boundary: 1.0
 
   # Optimizer configuration
@@ -83,7 +83,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v3.pt"
+    checkpoint_path: "unet_v4.pt"
     resume_from: null # "./checkpoints/<CHECKPOINT>" or null
 
 # Model configuration
