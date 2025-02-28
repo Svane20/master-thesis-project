@@ -7,7 +7,7 @@ from typing import Dict, Tuple
 import time
 import logging
 
-from evaluation.metrics import compute_metrics, compute_metrics_batch
+from metrics.utils import compute_metrics, compute_evaluation_metrics
 from training.utils.train_utils import AverageMeter, MemMeter, DurationMeter, ProgressMeter
 
 
@@ -56,7 +56,7 @@ def evaluate_model(
     end = time.time()
 
     # Metrics
-    metrics_sum = {"mse": 0, "sad": 0, "grad": 0, "conn": 0}
+    metrics_sum = {"sad": 0, "mse": 0, "mae": 0, "grad": 0, "conn": 0}
     total_samples = 0
 
     for batch_idx, (X, y) in enumerate(data_loader):
@@ -80,7 +80,7 @@ def evaluate_model(
                     outputs = torch.clamp(outputs, 0, 1)
 
                     # Calculate batch metrics
-                    batch_metrics = compute_metrics_batch(outputs, y)
+                    batch_metrics = compute_evaluation_metrics(outputs, y)
 
                     for k, v in batch_metrics.items():
                         metrics_sum[k] += v * X.size(0)
@@ -144,7 +144,7 @@ def predict_image(
     # Apply transformations
     transformed = transform(image=image, mask=mask)
     image_tensor = transformed["image"].unsqueeze(0).to(device)  # Add batch dimension
-    mask_tensor = transformed["mask"].unsqueeze(0).unsqueeze(0).to(device)  # Add batch dimension
+    mask_tensor = transformed["mask"].unsqueeze(0).to(device)  # Add batch dimension
 
     with torch.inference_mode():
         with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=torch.float16):
@@ -152,15 +152,11 @@ def predict_image(
             outputs = torch.clamp(outputs, 0, 1)  # Clamp to [0, 1]
 
             # Calculate metrics
-            metrics = compute_metrics(outputs, mask_tensor)
+            metrics = compute_metrics(outputs, mask_tensor, compute_grad=True)
 
-    logging.info(
-        f"Metrics:\n"
-        f"  MSE: {metrics['mse']:.6f}\n"
-        f"  SAD: {metrics['sad']:.6f}\n"
-        f"  Grad: {metrics['grad']:.6f}\n"
-        f"  Conn: {metrics['conn']:.6f}\n"
-    )
+    logging.info("Metrics:")
+    for k, v in metrics.items():
+        logging.info(f"\t{k}: {v}")
 
     # Convert alpha matte to numpy array
     pred_alpha = outputs.squeeze(0).cpu().numpy()

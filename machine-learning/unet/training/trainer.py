@@ -20,6 +20,7 @@ from training.optimizers import construct_optimizer, GradientClipper
 from training.schedulers import SchedulerWrapper
 from training.utils.checkpoint_utils import load_state_dict_into_model
 from training.utils.logger import setup_logging, Logger
+from metrics.utils import compute_training_metrics
 from training.utils.train_utils import get_amp_type, get_resume_checkpoint, DurationMeter, makedir, AverageMeter, \
     MemMeter, Phase, ProgressMeter, Meter, human_readable_time
 
@@ -324,6 +325,12 @@ class Trainer:
         loss_meter = AverageMeter(name="Loss", device=str(self.device), fmt=":.2e")
         extra_losses_meters = {}
 
+        # Initialize metrics accumulator
+        sad_meter = AverageMeter(name="SAD", device=str(self.device), fmt=":.2f")
+        mse_meter = AverageMeter(name="MSE", device=str(self.device), fmt=":.2f")
+        mae_meter = AverageMeter(name="MAE", device=str(self.device), fmt=":.2f")
+        grad_meter = AverageMeter(name="Grad", device=str(self.device), fmt=":.2f")
+
         # Progress bar
         iters_per_epoch = len(data_loader)
         progress = ProgressMeter(
@@ -361,9 +368,42 @@ class Trainer:
                             enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                             dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
                     ):
-                        # Run a single step
-                        loss_dict, extra_losses = self._step(X, y, phase)
+                        # Forward pass
+                        outputs = self.model(X)
 
+                        # Log predictions
+                        if self.epoch % 10 == 0:
+                            # Take 8 samples for visualization
+                            sample_inputs = X[:5].detach().cpu()
+                            sample_targets = X[:5].detach().cpu()
+                            sample_outputs = outputs[:5].detach().cpu()
+
+                            # Create grid images (assumes the tensors have shape [B, C, H, W])
+                            produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)
+                            true_grid = make_grid(sample_targets, nrow=4, normalize=True)
+
+                            # Log the images
+                            self.logger.log_images_dict(
+                                payload={
+                                    "predictions/outputs": wandb.Image(to_pil_image(produced_grid)),
+                                    "predictions/targets": wandb.Image(to_pil_image(true_grid)),
+                                },
+                                step=self.epoch
+                            )
+
+                        # Calculate losses
+                        losses = self.criterion(outputs, y)
+
+                        # Extract the core loss and step losses
+                        loss = {}
+                        step_losses = {}
+                        if isinstance(losses, dict):
+                            step_losses.update(
+                                {f"losses/{phase}_{k}": v for k, v in losses.items()}
+                            )
+                            loss = losses.pop(CORE_LOSS_KEY)
+
+                        loss_dict, extra_losses = {'loss': loss}, step_losses
                         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
                         _, loss = loss_dict.popitem()
 
@@ -374,6 +414,13 @@ class Trainer:
                                     name=k, device=str(self.device), fmt=":.2e"
                                 )
                             extra_losses_meters[k].update(val=v.item(), n=1)
+
+                        # Calculate metrics
+                        batch_metrics = compute_training_metrics(outputs, y)
+                        sad_meter.update(val=batch_metrics["sad"], n=X.size(0))
+                        mse_meter.update(val=batch_metrics["mse"], n=X.size(0))
+                        mae_meter.update(val=batch_metrics["mae"], n=X.size(0))
+                        grad_meter.update(val=batch_metrics["grad"], n=X.size(0))
 
                 # Measure elapsed time
                 batch_time_meter.update(time.time() - end)
@@ -399,6 +446,12 @@ class Trainer:
         metrics[f"{phase}_loss"] = loss_meter.avg
         for k, v in extra_losses_meters.items():
             losses[k] = v.avg
+
+        # Compute average metrics
+        metrics["sad"] = sad_meter.avg
+        metrics["mse"] = mse_meter.avg
+        metrics["mae"] = mae_meter.avg
+        metrics["grad"] = grad_meter.avg
 
         # Compute average state metrics
         metrics["data_time"] = data_time_meter.avg
@@ -471,27 +524,6 @@ class Trainer:
         """
         # Forward pass
         outputs = self.model(inputs)
-
-        if phase == Phase.VAL and self.epoch % 10 == 0:
-            # Take 8 samples for visualization
-            sample_inputs = inputs[:5].detach().cpu()
-            sample_targets = targets[:5].detach().cpu()
-            sample_outputs = outputs[:5].detach().cpu()
-
-            # Create grid images (assumes the tensors have shape [B, C, H, W])
-            inputs_grid = make_grid(sample_inputs, nrow=4, normalize=True)
-            produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)
-            true_grid = make_grid(sample_targets, nrow=4, normalize=True)
-
-            # Log the images
-            self.logger.log_images_dict(
-                payload={
-                    "predictions/inputs": wandb.Image(to_pil_image(inputs_grid)),
-                    "predictions/targets": wandb.Image(to_pil_image(true_grid)),
-                    "predictions/outputs": wandb.Image(to_pil_image(produced_grid)),
-                },
-                step=self.epoch
-            )
 
         # Calculate losses
         losses = self.criterion(outputs, targets)

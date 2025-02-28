@@ -29,4 +29,4 @@ model:
 
 # Inference configuration
 inference:
-  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/unet_v1.pt"
+  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/unet_v2.pt"

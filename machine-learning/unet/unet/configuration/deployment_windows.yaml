@@ -14,5 +14,5 @@ model:
 
 # Deployment configuration
 deployment:
-  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/unet_v1.pt"
+  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/unet_v2.pt"
   destination_directory: "D:/OneDrive/Master Thesis/ml/models/unet"

@@ -14,5 +14,5 @@ model:
 
 # Deployment configuration
 deployment:
-  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v1.pt"
+  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v2.pt"
   destination_directory: "/mnt/shared/ml/models/unet"
