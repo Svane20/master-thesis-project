@@ -328,7 +328,7 @@ class Trainer:
         loss_meter = AverageMeter(name="Loss", device=str(self.device), fmt=":.2e")
         extra_losses_meters = {}
 
-        # Initialize metrics accumulator
+        # Initialize metrics meters
         sad_meter = AverageMeter(name="SAD", device=str(self.device), fmt=":.2f")
         mse_meter = AverageMeter(name="MSE", device=str(self.device), fmt=":.2f")
         mae_meter = AverageMeter(name="MAE", device=str(self.device), fmt=":.2f")
@@ -341,6 +341,10 @@ class Trainer:
             meters=[
                 loss_meter,
                 self.time_elapsed_meter,
+                mse_meter,
+                mae_meter,
+                grad_meter,
+                sad_meter,
                 batch_time_meter,
                 data_time_meter,
                 mem_meter,
@@ -395,16 +399,16 @@ class Trainer:
                             )
 
                         # Calculate losses
-                        losses = self.criterion(outputs, y)
+                        computed_losses = self.criterion(outputs, y)
 
                         # Extract the core loss and step losses
                         loss = {}
                         step_losses = {}
-                        if isinstance(losses, dict):
+                        if isinstance(computed_losses, dict):
                             step_losses.update(
-                                {f"losses/{phase}_{k}": v for k, v in losses.items()}
+                                {f"losses/{phase}_{k}": v for k, v in computed_losses.items()}
                             )
-                            loss = losses.pop(CORE_LOSS_KEY)
+                            loss = computed_losses.pop(CORE_LOSS_KEY)
 
                         loss_dict, extra_losses = {'loss': loss}, step_losses
                         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
