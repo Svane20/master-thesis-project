@@ -287,7 +287,7 @@ class Trainer:
         self._log_timers(phase)
 
         # Compute average loss metrics
-        metrics[f"{phase}_loss"] = loss_meter.avg
+        metrics["loss"] = loss_meter.avg
         for k, v in extra_losses_meters.items():
             losses[k] = v.avg
 
@@ -418,7 +418,7 @@ class Trainer:
         self._log_timers(phase)
 
         # Compute average loss metrics
-        metrics[f"loss"] = loss_meter.avg
+        metrics["loss"] = loss_meter.avg
         for k, v in extra_losses_meters.items():
             losses[k] = v.avg
 
