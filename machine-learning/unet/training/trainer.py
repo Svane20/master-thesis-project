@@ -95,8 +95,8 @@ class Trainer:
 
         try:
             while self.epoch < self.max_epochs:
-                train_metrics, train_losses = self._train_one_epoch(train_data_loader)
-                val_metrics, val_extra_metrics, val_losses = self._validate_one_epoch(val_data_loader)
+                train_stats, train_losses = self._train_one_epoch(train_data_loader)
+                val_stats, val_metrics, val_losses = self._validate_one_epoch(val_data_loader)
 
                 # Validation metric
                 validation_metric_key = self.early_stopping_config.monitor \
@@ -119,9 +119,9 @@ class Trainer:
                     "overview/epoch": self.epoch,
                     "overview/epoch_duration": epoch_duration_est,
                     "overview/learning_rate": self.optimizer.param_groups[0]["lr"],
-                    **{f"train/{k}": v for k, v in train_metrics.items()},
-                    **{f"val/{k}": v for k, v in val_metrics.items()},
-                    **{f"metrics/{k}": v for k, v in val_extra_metrics.items()},
+                    **{f"train/{k}": v for k, v in train_stats.items()},
+                    **{f"val/{k}": v for k, v in val_stats.items()},
+                    **{f"metrics/{k}": v for k, v in val_metrics.items()},
                     **{f"{k}": v for k, v in combined_losses.items()}
                 }
                 self.logger.log_dict(
@@ -237,10 +237,11 @@ class Trainer:
             prefix="Train | Epoch: [{}]".format(self.epoch),
         )
 
+        stats = {}
+        losses = {}
+
         # Model training loop
         self.model.train()
-        metrics = {}
-        losses = {}
         end = time.time()
 
         for batch_idx, (X, y) in enumerate(data_loader):
@@ -287,22 +288,22 @@ class Trainer:
         self._log_timers(phase)
 
         # Compute average loss metrics
-        metrics["loss"] = loss_meter.avg
+        stats["loss"] = loss_meter.avg
         for k, v in extra_losses_meters.items():
             losses[k] = v.avg
 
         # Compute average state metrics
-        metrics["est_epoch_time"] = self.est_epoch_time[phase]
-        metrics["data_time"] = data_time_meter.avg
-        metrics["batch_time"] = batch_time_meter.avg
-        metrics["mem"] = mem_meter.avg
+        stats["est_epoch_time"] = self.est_epoch_time[phase]
+        stats["data_time"] = data_time_meter.avg
+        stats["batch_time"] = batch_time_meter.avg
+        stats["mem"] = mem_meter.avg
 
-        logging.info(f"Train metrics: {metrics}")
+        logging.info(f"Train metrics: {stats}")
 
         # Reset meters
         self._reset_meters([phase])
 
-        return metrics, losses
+        return stats, losses
 
     def _validate_one_epoch(
             self,
@@ -350,10 +351,12 @@ class Trainer:
             prefix="Val | Epoch: [{}]".format(self.epoch),
         )
 
+        stats = {}
+        losses = {}
+        metrics = {}
+
         # Model validation loop
         self.model.eval()
-        metrics = {}
-        losses = {}
         end = time.time()
 
         for batch_idx, (X, y) in enumerate(data_loader):
@@ -418,28 +421,28 @@ class Trainer:
         self._log_timers(phase)
 
         # Compute average loss metrics
-        metrics["loss"] = loss_meter.avg
+        stats["loss"] = loss_meter.avg
         for k, v in extra_losses_meters.items():
             losses[k] = v.avg
 
         # Compute average metrics
-        extra_metrics["mse"] = mse_meter.avg
-        extra_metrics["mae"] = mae_meter.avg
+        metrics["mse"] = mse_meter.avg
+        metrics["mae"] = mae_meter.avg
         for k, v in extra_metrics_meters.items():
-            extra_metrics[k] = v.avg
+            metrics[k] = v.avg
 
         # Compute average state metrics
-        metrics["data_time"] = data_time_meter.avg
-        metrics["batch_time"] = batch_time_meter.avg
-        metrics["mem"] = mem_meter.avg
-        metrics["est_epoch_time"] = self.est_epoch_time[phase]
+        stats["data_time"] = data_time_meter.avg
+        stats["batch_time"] = batch_time_meter.avg
+        stats["mem"] = mem_meter.avg
+        stats["est_epoch_time"] = self.est_epoch_time[phase]
 
-        logging.info(f"Val metrics: {metrics}")
+        logging.info(f"Val metrics: {stats}")
 
         # Reset meters
         self._reset_meters([phase])
 
-        return metrics, extra_metrics, losses
+        return stats, metrics, losses
 
     def _run_step(
             self,
