@@ -2,16 +2,16 @@
 
 # Global configuration
 scratch:
-  resolution: 224
+  resolution: 512
 
 # Dataset configuration
 dataset:
   name: "synthetic-data"
   root: "D:/OneDrive/Master Thesis/datasets/processed"
-  batch_size: 16
+  batch_size: 8
   pin_memory: true
   train:
-    num_workers: 8
+    num_workers: 4
     shuffle: true
     drop_last: true
   val:
@@ -33,7 +33,7 @@ training:
     weight_dict:
       reconstruction: 1.0
       laplacian: 0.5
-      gradient: 0.25
+      gradient: 0.5
       boundary: 1.0
 
   # Optimizer configuration

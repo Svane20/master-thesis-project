@@ -2,16 +2,16 @@
 
 # Global configuration
 scratch:
-  resolution: 224
+  resolution: 1024 # Try with 512 next
 
 # Dataset configuration
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 16
+  batch_size: 4
   pin_memory: true
   train:
-    num_workers: 8
+    num_workers: 4
     shuffle: true
     drop_last: true
   val:
@@ -32,8 +32,8 @@ training:
     name: "MattingLoss"
     weight_dict:
       reconstruction: 1.0
-      laplacian: 0.6
-      gradient: 0.25
+      laplacian: 0.5
+      gradient: 0.5
       boundary: 1.0
 
   # Optimizer configuration
@@ -83,7 +83,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v4.pt"
+    checkpoint_path: "unet_v5.pt"
     resume_from: null # "./checkpoints/<CHECKPOINT>" or null
 
 # Model configuration
