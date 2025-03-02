@@ -15,7 +15,6 @@ import platform
 
 from configuration.training.root import TrainConfig
 from training.criterions import CORE_LOSS_KEY, MattingLoss
-from training.criterions_new import MattingLossV2
 from training.early_stopping import EarlyStopping
 from training.optimizers import construct_optimizer, GradientClipper
 from training.schedulers import SchedulerWrapper
@@ -330,10 +329,9 @@ class Trainer:
         extra_losses_meters = {}
 
         # Initialize metrics meters
-        sad_meter = AverageMeter(name="SAD", device=str(self.device), fmt=":.2e")
         mse_meter = AverageMeter(name="MSE", device=str(self.device), fmt=":.2e")
         mae_meter = AverageMeter(name="MAE", device=str(self.device), fmt=":.2e")
-        grad_meter = AverageMeter(name="Grad", device=str(self.device), fmt=":.2e")
+        extra_metrics_meters = {}
 
         # Progress bar
         iters_per_epoch = len(data_loader)
@@ -344,8 +342,6 @@ class Trainer:
                 self.time_elapsed_meter,
                 mse_meter,
                 mae_meter,
-                sad_meter,
-                grad_meter,
                 batch_time_meter,
                 data_time_meter,
                 mem_meter,
@@ -357,7 +353,6 @@ class Trainer:
         # Model validation loop
         self.model.eval()
         metrics = {}
-        extra_metrics = {}
         losses = {}
         end = time.time()
 
@@ -377,44 +372,13 @@ class Trainer:
                             enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                             dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
                     ):
-                        # Forward pass
-                        outputs = self.model(X)
+                        # Run a single step
+                        loss_dict, extra_losses, extra_metrics = self._step(X, y, phase)
 
-                        # Log predictions for every 10 epochs
-                        if self.epoch > 0 and self.epoch % 10 == 0:
-                            # Take 8 samples for visualization
-                            sample_targets = y[:6].detach().cpu()
-                            sample_outputs = outputs[:6].detach().cpu()
-
-                            # Create grid images (assumes the tensors have shape [B, C, H, W])
-                            produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)
-                            true_grid = make_grid(sample_targets, nrow=4, normalize=True)
-
-                            # Log the images
-                            self.logger.log_images_dict(
-                                payload={
-                                    "predictions/outputs": wandb.Image(to_pil_image(produced_grid)),
-                                    "predictions/targets": wandb.Image(to_pil_image(true_grid)),
-                                },
-                                step=self.epoch
-                            )
-
-                        # Calculate losses
-                        computed_losses = self.criterion(outputs, y)
-
-                        # Extract the core loss and step losses
-                        loss = {}
-                        step_losses = {}
-                        if isinstance(computed_losses, dict):
-                            step_losses.update(
-                                {f"losses/{phase}_{k}": v for k, v in computed_losses.items()}
-                            )
-                            loss = computed_losses.pop(CORE_LOSS_KEY)
-
-                        loss_dict, extra_losses = {'loss': loss}, step_losses
                         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
                         _, loss = loss_dict.popitem()
 
+                        # Update loss meters
                         loss_meter.update(val=loss.item(), n=1)
                         for k, v in extra_losses.items():
                             if k not in extra_losses_meters:
@@ -423,12 +387,15 @@ class Trainer:
                                 )
                             extra_losses_meters[k].update(val=v.item(), n=1)
 
-                        # Calculate metrics
-                        batch_metrics = compute_training_metrics(outputs, y)
-                        sad_meter.update(val=batch_metrics["sad"], n=X.size(0))
-                        mse_meter.update(val=batch_metrics["mse"], n=X.size(0))
-                        mae_meter.update(val=batch_metrics["mae"], n=X.size(0))
-                        grad_meter.update(val=batch_metrics["grad"], n=X.size(0))
+                        # Update metrics meters
+                        mse_meter.update(val=extra_metrics["mse"].item(), n=1)
+                        mae_meter.update(val=extra_metrics["mae"].item(), n=1)
+                        for k, v in extra_metrics.items():
+                            if k not in extra_metrics_meters:
+                                extra_metrics_meters[k] = AverageMeter(
+                                    name=k, device=str(self.device), fmt=":.2e"
+                                )
+                            extra_metrics_meters[k].update(val=v.item(), n=1)
 
                 # Measure elapsed time
                 batch_time_meter.update(time.time() - end)
@@ -456,10 +423,10 @@ class Trainer:
             losses[k] = v.avg
 
         # Compute average metrics
-        extra_metrics["sad"] = sad_meter.avg
         extra_metrics["mse"] = mse_meter.avg
         extra_metrics["mae"] = mae_meter.avg
-        extra_metrics["grad"] = grad_meter.avg
+        for k, v in extra_metrics_meters.items():
+            extra_metrics[k] = v.avg
 
         # Compute average state metrics
         metrics["data_time"] = data_time_meter.avg
@@ -501,7 +468,7 @@ class Trainer:
                 enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                 dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
         ):
-            loss_dict, extra_losses = self._step(inputs, targets, phase)
+            loss_dict, extra_losses, _ = self._step(inputs, targets, phase)
 
         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
         _, loss = loss_dict.popitem()
@@ -519,7 +486,8 @@ class Trainer:
                 )
             extra_losses_meters[extra_loss_key].update(val=extra_loss.item(), n=1)
 
-    def _step(self, inputs: torch.Tensor, targets: torch.Tensor, phase: str) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+    def _step(self, inputs: torch.Tensor, targets: torch.Tensor, phase: str) -> Tuple[
+        Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """
         Calculate the loss and metrics for the current batch.
 
@@ -528,7 +496,7 @@ class Trainer:
             targets (torch.Tensor): Target data.
 
         Returns:
-            Tuple[Dict[str, Any], Dict[str, Any]]: Loss dictionary and step losses.
+            Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]: Loss dictionary, step losses and metrics.
         """
         # Forward pass
         outputs = self.model(inputs)
@@ -545,8 +513,32 @@ class Trainer:
             )
             loss = losses.pop(CORE_LOSS_KEY)
 
+        metrics = {}
+        if phase == Phase.VAL:
+            # Calculate metrics
+            metrics = compute_training_metrics(outputs, targets)
+
+            # Log predictions for every 10 epochs
+            if self.epoch > 0 and self.epoch % 10 == 0:
+                # Take 8 samples for visualization
+                sample_targets = targets[:6].detach().cpu()
+                sample_outputs = outputs[:6].detach().cpu()
+
+                # Create grid images (assumes the tensors have shape [B, C, H, W])
+                produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)
+                true_grid = make_grid(sample_targets, nrow=4, normalize=True)
+
+                # Log the images
+                self.logger.log_images_dict(
+                    payload={
+                        "predictions/outputs": wandb.Image(to_pil_image(produced_grid)),
+                        "predictions/targets": wandb.Image(to_pil_image(true_grid)),
+                    },
+                    step=self.epoch
+                )
+
         # Loss dictionary
-        return {'loss': loss}, step_losses
+        return {'loss': loss}, step_losses, metrics
 
     def _load_resuming_checkpoint(self, checkpoint_path: Path) -> None:
         """
@@ -643,18 +635,11 @@ class Trainer:
         print_model_summary(self.model, self.logging_config.log_directory)
 
         # Criterion, optimizer, scheduler
-        if self.criterion_config.name == "MattingLossV2":
-            self.criterion = MattingLossV2(
-                weight_dict=self.criterion_config.weight_dict,
-                dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
-                device=self.device
-            )
-        else:
-            self.criterion = MattingLoss(
-                weight_dict=self.criterion_config.weight_dict,
-                dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
-                device=self.device
-            )
+        self.criterion = MattingLoss(
+            weight_dict=self.criterion_config.weight_dict,
+            dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
+            device=self.device
+        )
         self.optimizer = construct_optimizer(model, self.train_config.optimizer)
         self.scheduler = SchedulerWrapper(optimizer=self.optimizer, config=self.train_config)
 

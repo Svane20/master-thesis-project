@@ -31,10 +31,10 @@ training:
   criterion:
     name: "MattingLoss"
     weight_dict:
-      reconstruction: 1.0
-      laplacian: 1.0
+      boundary: 1.0
       gradient: 0.5
-      boundary: 0.5
+      laplacian: 0.5
+      reconstruction: 1.0
 
   # Optimizer configuration
   optimizer:
