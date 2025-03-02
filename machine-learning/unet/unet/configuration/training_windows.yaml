@@ -2,13 +2,13 @@
 
 # Global configuration
 scratch:
-  resolution: 512
+  resolution: 512 # Try with 1024 next
 
 # Dataset configuration
 dataset:
   name: "synthetic-data"
   root: "D:/OneDrive/Master Thesis/datasets/processed"
-  batch_size: 8
+  batch_size: 12
   pin_memory: true
   train:
     num_workers: 4

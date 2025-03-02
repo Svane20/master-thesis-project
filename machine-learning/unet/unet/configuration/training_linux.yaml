@@ -2,13 +2,13 @@
 
 # Global configuration
 scratch:
-  resolution: 1024 # Try with 512 next
+  resolution: 512 # Try with 1024 next
 
 # Dataset configuration
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 4
+  batch_size: 12
   pin_memory: true
   train:
     num_workers: 4
