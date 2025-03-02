@@ -15,6 +15,7 @@ import platform
 
 from configuration.training.root import TrainConfig
 from training.criterions import CORE_LOSS_KEY, MattingLoss
+from training.criterions_new import MattingLossV2
 from training.early_stopping import EarlyStopping
 from training.optimizers import construct_optimizer, GradientClipper
 from training.schedulers import SchedulerWrapper
@@ -642,11 +643,18 @@ class Trainer:
         print_model_summary(self.model, self.logging_config.log_directory)
 
         # Criterion, optimizer, scheduler
-        self.criterion = MattingLoss(
-            weight_dict=self.criterion_config.weight_dict,
-            dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
-            device=self.device
-        )
+        if self.criterion_config.name == "MattingLossV2":
+            self.criterion = MattingLossV2(
+                weight_dict=self.criterion_config.weight_dict,
+                dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
+                device=self.device
+            )
+        else:
+            self.criterion = MattingLoss(
+                weight_dict=self.criterion_config.weight_dict,
+                dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
+                device=self.device
+            )
         self.optimizer = construct_optimizer(model, self.train_config.optimizer)
         self.scheduler = SchedulerWrapper(optimizer=self.optimizer, config=self.train_config)
 
