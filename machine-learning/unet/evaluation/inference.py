@@ -152,7 +152,7 @@ def predict_image(
             outputs = torch.clamp(outputs, 0, 1)  # Clamp to [0, 1]
 
             # Calculate metrics
-            metrics = compute_metrics(outputs, mask_tensor, compute_grad=True)
+            metrics = compute_metrics(outputs, mask_tensor, is_eval=True)
 
     logging.info("Metrics:")
     for k, v in metrics.items():

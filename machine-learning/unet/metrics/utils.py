@@ -18,7 +18,7 @@ def compute_training_metrics(pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, 
         Dict[str, float]: Dictionary of averaged metrics for the batch.
     """
     # Initialize accumulators for metrics
-    batch_metrics = {"sad": 0.0, "mse": 0.0, "mae": 0, "grad": 0.0}
+    batch_metrics = {"mse": 0.0, "mae": 0}
     batch_size = pred.size(0)
 
     # Compute metrics for each sample in the batch
@@ -52,7 +52,7 @@ def compute_evaluation_metrics(pred: torch.Tensor, gt: torch.Tensor) -> Dict[str
 
     # Compute metrics for each sample in the batch
     for i in range(batch_size):
-        sample_metrics = compute_metrics(pred[i:i + 1], gt[i:i + 1], compute_grad=True)  # Process one sample at a time
+        sample_metrics = compute_metrics(pred[i:i + 1], gt[i:i + 1], is_eval=True)  # Process one sample at a time
 
         for key in batch_metrics:
             batch_metrics[key] += sample_metrics[key]
@@ -64,27 +64,27 @@ def compute_evaluation_metrics(pred: torch.Tensor, gt: torch.Tensor) -> Dict[str
     return batch_metrics
 
 
-def compute_metrics(pred: torch.Tensor, gt: torch.Tensor, compute_grad: bool = False) -> dict[str, float]:
+def compute_metrics(pred: torch.Tensor, gt: torch.Tensor, is_eval: bool = False) -> Dict[str, float]:
     """
     Compute evaluation metrics for alpha matte prediction.
 
     Args:
         pred (torch.Tensor): Predicted alpha matte.
         gt (torch.Tensor): Ground truth alpha matte.
-        compute_grad (bool): Whether to compute gradient error. Default is False.
+        is_eval (bool): Whether to compute evaluation metrics. Default is False.
 
     Returns:
-        dict[str, float]: Dictionary of evaluation metrics.
+        Dict[str, float]: Dictionary of evaluation metrics.
     """
     metrics = {
-        "sad": compute_SAD(pred, gt),
         "mse": compute_MSE(pred, gt),
         "mae": compute_MAE(pred, gt),
-        "grad": compute_GRAD(pred, gt),
     }
 
-    if compute_grad:
+    if is_eval:
+        metrics["sad"] = compute_SAD(pred, gt),
         metrics["conn"] = compute_CONN(pred, gt, is_batch=False)
+        metrics["grad"] = compute_GRAD(pred, gt)
 
     return metrics
 

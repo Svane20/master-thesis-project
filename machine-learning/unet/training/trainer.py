@@ -96,7 +96,7 @@ class Trainer:
         try:
             while self.epoch < self.max_epochs:
                 train_metrics, train_losses = self._train_one_epoch(train_data_loader)
-                val_metrics, extra_metrics, val_losses = self._validate_one_epoch(val_data_loader)
+                val_metrics, val_extra_metrics, val_losses = self._validate_one_epoch(val_data_loader)
 
                 # Validation metric
                 validation_metric_key = self.early_stopping_config.monitor \
@@ -121,7 +121,7 @@ class Trainer:
                     "overview/learning_rate": self.optimizer.param_groups[0]["lr"],
                     **{f"train/{k}": v for k, v in train_metrics.items()},
                     **{f"val/{k}": v for k, v in val_metrics.items()},
-                    **{f"metrics/{k}": v for k, v in extra_metrics.items()},
+                    **{f"metrics/{k}": v for k, v in val_extra_metrics.items()},
                     **{f"{k}": v for k, v in combined_losses.items()}
                 }
                 self.logger.log_dict(
@@ -388,14 +388,14 @@ class Trainer:
                             extra_losses_meters[k].update(val=v.item(), n=1)
 
                         # Update metrics meters
-                        mse_meter.update(val=extra_metrics["mse"].item(), n=1)
-                        mae_meter.update(val=extra_metrics["mae"].item(), n=1)
+                        mse_meter.update(val=extra_metrics["mse"], n=1)
+                        mae_meter.update(val=extra_metrics["mae"], n=1)
                         for k, v in extra_metrics.items():
                             if k not in extra_metrics_meters:
                                 extra_metrics_meters[k] = AverageMeter(
                                     name=k, device=str(self.device), fmt=":.2e"
                                 )
-                            extra_metrics_meters[k].update(val=v.item(), n=1)
+                            extra_metrics_meters[k].update(val=v, n=1)
 
                 # Measure elapsed time
                 batch_time_meter.update(time.time() - end)
@@ -418,7 +418,7 @@ class Trainer:
         self._log_timers(phase)
 
         # Compute average loss metrics
-        metrics[f"{phase}_loss"] = loss_meter.avg
+        metrics[f"loss"] = loss_meter.avg
         for k, v in extra_losses_meters.items():
             losses[k] = v.avg
 
@@ -486,8 +486,12 @@ class Trainer:
                 )
             extra_losses_meters[extra_loss_key].update(val=extra_loss.item(), n=1)
 
-    def _step(self, inputs: torch.Tensor, targets: torch.Tensor, phase: str) -> Tuple[
-        Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
+    def _step(
+            self,
+            inputs: torch.Tensor,
+            targets: torch.Tensor,
+            phase: str
+    ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """
         Calculate the loss and metrics for the current batch.
 

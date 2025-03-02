@@ -83,7 +83,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v5.pt"
+    checkpoint_path: "unet_v7.pt"
     resume_from: null # "./checkpoints/<CHECKPOINT>" or null
 
 # Model configuration
