@@ -376,7 +376,7 @@ class MattingLossV2(nn.Module):
         return reduced_loss
 
 
-def check_loss_devices(loss_fn: MattingLoss):
+def check_loss_devices(loss_fn: MattingLossV2):
     # MRSDLoss doesn't register any buffers, so we assume it uses the input device.
     print("MRSDLoss: (uses input device)")
 
@@ -410,7 +410,7 @@ if __name__ == '__main__':
     # Define loss weights for each component.
     config = {"reconstruction": 1.0, "gradient": 0.5, "laplacian": 0.5}
 
-    loss_fn = MattingLoss(weight_dict=config, device=device, dtype=dtype)
+    loss_fn = MattingLossV2(weight_dict=config, device=device, dtype=dtype)
     losses = loss_fn(pred_alpha, gt_alpha)
     # check_loss_devices(loss_fn)
 
