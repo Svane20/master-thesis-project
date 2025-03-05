@@ -21,8 +21,8 @@ dataset:
 
 # Training configuration
 training:
-  max_epochs: 200
-  warmup_epochs: 20 # 5-10% of max_epochs
+  max_epochs: 300
+  warmup_epochs: 30 # 5-10% of max_epochs
   accelerator: cuda
   seed: 42
   compile_model: true

@@ -25,7 +25,7 @@ training:
   warmup_epochs: 20 # 5-10% of max_epochs
   accelerator: cuda
   seed: 42
-  compile_model: true
+  compile_model: false
 
   # Criterion configuration
   criterion:
@@ -83,7 +83,7 @@ training:
   checkpoint:
     save_directory: "D:/OneDrive/Master Thesis/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v2.pt"
+    checkpoint_path: "unet_v8.pt"
     resume_from: null # "./checkpoints/<CHECKPOINT>" or null
 
 # Model configuration
