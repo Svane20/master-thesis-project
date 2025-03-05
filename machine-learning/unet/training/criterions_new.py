@@ -7,18 +7,17 @@ import torch.nn.functional as F
 CORE_LOSS_KEY = 'core_loss'
 
 
-def l1_loss(pred: torch.Tensor, gt: torch.Tensor, weight: float = None) -> torch.Tensor:
+def l1_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
     """
     L1 loss between predicted and ground truth alpha mattes.
     """
     loss = torch.abs(pred - gt).mean()
-    return loss if weight is None else loss * weight
+    return loss
 
 
 def composition_loss(
         pred: torch.Tensor,
         gt: torch.Tensor,
-        weight: float = None,
         image: torch.Tensor = None,
         fg: torch.Tensor = None,
         bg: torch.Tensor = None
@@ -40,10 +39,10 @@ def composition_loss(
         raise ValueError("For composition loss, either (fg, bg) or image must be provided.")
 
     loss = torch.abs(comp_pred - comp_gt).mean()
-    return loss if weight is None else loss * weight
+    return loss
 
 
-def laplacian_loss(pred: torch.Tensor, gt: torch.Tensor, weight: float = None, levels: int = 3) -> torch.Tensor:
+def laplacian_loss(pred: torch.Tensor, gt: torch.Tensor, levels: int = 3) -> torch.Tensor:
     """
     Laplacian pyramid loss for multi-scale supervision on the alpha matte.
     """
@@ -76,13 +75,12 @@ def laplacian_loss(pred: torch.Tensor, gt: torch.Tensor, weight: float = None, l
     coarse_loss = torch.abs(current_pred - current_gt).mean()
     loss += (2 ** (levels - 1)) * coarse_loss
 
-    return loss if weight is None else loss * weight
+    return loss
 
 
 def gradient_loss(
         pred: torch.Tensor,
         gt: torch.Tensor,
-        weight: float = None,
         use_grad_penalty: bool = False,
         grad_penalty_lambda: float = 0.0
 ) -> torch.Tensor:
@@ -103,7 +101,7 @@ def gradient_loss(
         penalty = (torch.abs(grad_pred_x).mean() + torch.abs(grad_pred_y).mean())
         loss = loss + grad_penalty_lambda * penalty
 
-    return loss if weight is None else loss * weight
+    return loss
 
 
 class MattingLossV2(nn.Module):
@@ -249,28 +247,19 @@ class MattingLossV2(nn.Module):
             Dict[str, torch.Tensor]: Updated dictionary of loss components.
         """
         # L1 loss
-        losses['l1'] = l1_loss(pred, gt, weight=self.weight_dict.get("l1", 1.0))
+        losses['l1'] = l1_loss(pred, gt)
 
         # Composition loss
         if image is not None:
-            losses['composition'] = composition_loss(
-                pred, gt,
-                weight=self.weight_dict.get("comp", 1.0),
-                image=image
-            )
+            losses['composition'] = composition_loss(pred, gt, image)
 
         # Laplacian pyramid loss.
-        losses['laplacian'] = laplacian_loss(
-            pred,
-            gt,
-            weight=self.weight_dict.get("lap", 1.0)
-        )
+        losses['laplacian'] = laplacian_loss(pred, gt)
 
         # Gradient loss.
         losses['gradient'] = gradient_loss(
             pred,
             gt,
-            weight=self.weight_dict.get("grad", 1.0),
             use_grad_penalty=self.use_grad_penalty,
             grad_penalty_lambda=self.grad_penalty_lambda
         )
