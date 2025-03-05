@@ -14,7 +14,7 @@ import json
 import platform
 
 from configuration.training.root import TrainConfig
-from training.criterions import CORE_LOSS_KEY, MattingLoss
+from training.criterions_new import CORE_LOSS_KEY, MattingLossV2
 from training.early_stopping import EarlyStopping
 from training.optimizers import construct_optimizer, GradientClipper
 from training.schedulers import SchedulerWrapper
@@ -509,7 +509,7 @@ class Trainer:
         outputs = self.model(inputs)
 
         # Calculate losses
-        losses = self.criterion(outputs, targets)
+        losses = self.criterion(outputs, targets, inputs)
 
         # Extract the core loss and step losses
         loss = {}
@@ -642,7 +642,7 @@ class Trainer:
         print_model_summary(self.model, self.logging_config.log_directory)
 
         # Criterion, optimizer, scheduler
-        self.criterion = MattingLoss(
+        self.criterion = MattingLossV2(
             weight_dict=self.criterion_config.weight_dict,
             dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
             device=self.device
@@ -707,18 +707,28 @@ class Trainer:
         Args:
             compile_model (bool): Compile the model for faster training. Default is True.
         """
+        import torch
         logging.info(f"Moving components to device {self.device}.")
 
         if compile_model:
             backend = "inductor" if platform.system() == "Linux" else "aot_eager"
             logging.info(f"Compiling the model with backend '{backend}'.")
 
-            self.model = torch.compile(self.model, backend=backend)
+            try:
+                self.model = torch.compile(self.model, backend=backend)
+                logging.info(f"Successfully compiled model with backend '{backend}'.")
+            except Exception as e:
+                logging.error(f"Model compilation with backend '{backend}' failed: {e}")
 
-            logging.info(f"Done compiling model with backend '{backend}'.")
+                # Suppress Dynamo errors and fall back to eager mode.
+                import torch._dynamo
+                torch._dynamo.config.suppress_errors = True
+
+                logging.info("Falling back to eager mode (without compilation).")
+        else:
+            logging.info("Model compilation is disabled; using eager mode.")
 
         self.model.to(self.device)
-
         logging.info(f"Done moving components to device {self.device}.")
 
     def _setup_torch_backend(self) -> None:
