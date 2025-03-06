@@ -41,7 +41,7 @@ nohup python run.py &
 4. When the SSH connection is re-established, run the following command:
 
 ````bash
-ps -ef | grep main.py
+ps -ef | grep run.py
 ````
 
 OR
@@ -49,7 +49,7 @@ OR
 5. Check the logs in the `logs/run.log` file with the following command:
 
 ````bash
-tail -f logs/run.log
+tail -f logs/blender-app.log
 ````
 
 6. Kill the process with the following command:

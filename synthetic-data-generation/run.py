@@ -15,22 +15,22 @@ def delete_logs_from_previous_runs(log_path: str) -> None:
     Args:
         log_path (str): The path to the log file.
     """
-    logging.info("Deleting log files from previous runs...")
+    print("Deleting log files from previous runs...")
 
     log_directory = os.path.dirname(log_path)
     if not os.path.exists(log_directory):
-        logging.info("Log directory does not exist. No log files to delete.")
+        print("Log directory does not exist. No log files to delete.")
         return
 
     log_files = [f for f in os.listdir(log_directory) if f.endswith(".log")]
     if not log_files:
-        logging.info("No log files found from previous runs.")
+        print("No log files found from previous runs.")
         return
 
     for log_file in log_files:
         os.remove(os.path.join(log_directory, log_file))
 
-    logging.info("Deleted all log files from previous runs.")
+    print("Deleted all log files from previous runs.")
 
 
 def main():
@@ -39,15 +39,15 @@ def main():
     max_runs = configuration.run_configuration.max_runs
     delay = configuration.run_configuration.delay
 
+    # Delete log files from previous runs
+    delete_logs_from_previous_runs(log_path=configuration.run_configuration.run_path)
+
     # Setup logging
     setup_logging(
         name=__name__,
         log_path=configuration.run_configuration.run_path,
         save_logs=configuration.run_configuration.save_logs
     )
-
-    # Delete log files from previous runs
-    delete_logs_from_previous_runs(log_path=configuration.run_configuration.run_path)
 
     # Time tracking
     overall_start = time.time()
