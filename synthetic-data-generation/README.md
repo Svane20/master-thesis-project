@@ -71,3 +71,39 @@ ps -ef | grep main.py
 ````bash
 sudo sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"
 ````
+
+## Count the number of files in a directory
+
+### Windows
+
+1. Run the following command to get the count for each directory:
+
+````text
+Get-ChildItem -Path "D:\OneDrive\Master Thesis\datasets\raw\synthetic-data" -Directory | ForEach-Object {
+    $images = Get-ChildItem -Path "$($_.FullName)\images" -File
+    Write-Output "$($_.Name): $($images.Count) file(s)"
+}
+````
+
+2. Run the following command to get the total count:
+
+````text
+$rootDir = "D:\OneDrive\Master Thesis\datasets\raw\synthetic-data"
+$totalCount = 0
+
+Get-ChildItem -Path $rootDir -Directory | ForEach-Object {
+    $imagesPath = Join-Path $_.FullName "images"
+    if (Test-Path $imagesPath) {
+        $totalCount += (Get-ChildItem -Path $imagesPath -File -ErrorAction SilentlyContinue).Count
+    }
+}
+Write-Output "Total files in all 'images' folders: $totalCount"
+````
+
+### Linux
+
+1. Run the following command to get the total count:
+
+````text
+find /mnt/shared/datasets/raw/synthetic-data/*/images -maxdepth 1 -type f 2>/dev/null | wc -l
+````
