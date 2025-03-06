@@ -5,7 +5,7 @@ from torchvision.utils import make_grid
 from torchvision.transforms.functional import to_pil_image
 
 import time
-from typing import Dict, Optional, Any, List, Tuple
+from typing import Dict, Optional, Any, List, Tuple, cast, Sized
 from pathlib import Path
 import logging
 import os.path
@@ -92,6 +92,9 @@ class Trainer:
         """
         train_data_loader = self.train_data_loader
         val_data_loader = self.val_data_loader
+
+        logging.info(f"Training samples: {len(cast(Sized, train_data_loader.dataset))}")
+        logging.info(f"Validation samples: {len(cast(Sized, val_data_loader.dataset))}")
 
         try:
             while self.epoch < self.max_epochs:

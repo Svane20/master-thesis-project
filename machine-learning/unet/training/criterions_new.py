@@ -42,7 +42,7 @@ def composition_loss(
     return loss
 
 
-def laplacian_loss(pred: torch.Tensor, gt: torch.Tensor, levels: int = 3) -> torch.Tensor:
+def laplacian_loss(pred: torch.Tensor, gt: torch.Tensor, levels: int = 5) -> torch.Tensor:
     """
     Laplacian pyramid loss for multi-scale supervision on the alpha matte.
     """
