@@ -46,7 +46,15 @@ ps -ef | grep run.py
 
 OR
 
-5. Check the logs in the `logs/run.log` file with the following command:
+5. Check the logs in the `logs/blender-run.log` file with the following command:
+
+Current run
+
+````bash
+tail -f logs/blender-run.log
+````
+
+Current iteration
 
 ````bash
 tail -f logs/blender-app.log
