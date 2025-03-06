@@ -7,6 +7,7 @@ from configuration.configuration import Configuration
 from configuration.outputs import OutputsConfiguration
 from configuration.render import RenderConfiguration
 from constants.file_extensions import FileExtension
+from utils.metadata import save_metadata
 
 
 class Constants:
@@ -72,6 +73,9 @@ def get_playground_directory_with_tag(configuration: Configuration) -> Path:
     if configuration.constants.render_images:
         create_directory(directory / Constants.IMAGES_DIRNAME)
         create_directory(directory / Constants.MASKS_DIRNAME)
+
+    # Save the metadata
+    save_metadata(directory)
 
     return directory
 

@@ -4,6 +4,8 @@ from typing import List, Union, Tuple, Set
 import numpy as np
 import logging
 
+from utils.metadata import add_entry, MetadataKey
+
 
 def get_all_biomes_by_directory(directory: str, keywords: List[str] | None = None) -> List[str]:
     """
@@ -52,6 +54,7 @@ def apply_biomes_to_objects(
             continue
 
         random_biome_path = np.random.choice(biome_paths)
+        add_entry(category=MetadataKey.BIOMES, filepath=Path(random_biome_path).as_posix())
         logging.info(f"Selected tree biome file: {random_biome_path}")
 
         apply_biome(

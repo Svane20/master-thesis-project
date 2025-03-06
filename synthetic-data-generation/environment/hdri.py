@@ -8,6 +8,7 @@ import logging
 from configuration.configuration import Configuration
 from configuration.sky import SkyConfiguration, SunConfiguration
 from constants.file_extensions import FileExtension
+from utils.metadata import add_entry, MetadataKey
 
 
 class Constants:
@@ -85,6 +86,7 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
         keywords=sky_configuration.keywords
     )
     random_hdri_path = random.choice(hdri_paths)
+    add_entry(category=MetadataKey.HDRIS, filepath=random_hdri_path.as_posix())
     logging.info(f"Selected HDRI file: {random_hdri_path}")
 
     node_tree = bpy.context.scene.world.node_tree

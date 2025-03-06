@@ -6,6 +6,7 @@ import logging
 from typing import List
 
 from bpy_utils.bpy_ops import append_object
+from utils.metadata import add_entry, MetadataKey
 
 
 def spawn_objects(
@@ -57,6 +58,7 @@ def spawn_objects(
 
     for index in range(num_objects):
         random_object_path = random.choice(blend_objects_paths)
+        add_entry(category=MetadataKey.OBJECTS, filepath=random_object_path.as_posix())
         logging.info(f"Selected object file: {random_object_path}")
 
         # Append the object to the scene

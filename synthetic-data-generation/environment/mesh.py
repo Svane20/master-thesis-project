@@ -12,6 +12,7 @@ import logging
 
 from bpy_utils.bpy_ops import delete_object_by_selection
 from environment.biomes import apply_biomes_to_objects, apply_biome, get_object_by_name
+from utils.metadata import add_entry, MetadataKey
 
 
 def convert_delatin_mesh_to_sub_meshes(
@@ -161,6 +162,7 @@ def generate_mesh_objects_from_delation_sub_meshes(
                     continue
 
                 random_biome_path = np.random.choice(biomes_path_flag)
+                add_entry(category=MetadataKey.BIOMES, filepath=Path(random_biome_path).as_posix())
                 logging.info(f"Selected grass biome file: {random_biome_path}")
 
                 apply_biome(
@@ -232,19 +234,21 @@ def populate_meshes(
 
     # Choose a random texture from available terrain textures
     logging.debug(f"Found {len(texture_paths)} textures")
-    texture = str(random.choice(texture_paths))
-    texture_name = Path(texture).name
-    logging.info(f"Selected texture file: {texture}")
+    texture_filepath = str(random.choice(texture_paths))
+    texture_path = Path(texture_filepath)
+    texture_name = texture_path.name
+    add_entry(category=MetadataKey.TEXTURES, filepath=texture_path.as_posix())
+    logging.info(f"Selected texture file: {texture_filepath}")
 
     # Determine texture resolution suffix and extract base name
     resolutions = ["_4k.blend", "_8k.blend", "_16k.blend"]
     for res in resolutions:
-        if res in texture:
+        if res in texture_filepath:
             name = texture_name.split(res)[0]
             logging.debug(f"Texture resolution '{res}' found. Using base name: {name}")
             break
     else:
-        error_msg = f"Texture resolution not found in {texture}"
+        error_msg = f"Texture resolution not found in {texture_filepath}"
         logging.error(error_msg)
         assert False, error_msg
 
@@ -255,8 +259,8 @@ def populate_meshes(
     while True:
         try:
             bpy.ops.wm.append(
-                filepath=texture,
-                directory=os.path.join(texture, "Material"),
+                filepath=texture_filepath,
+                directory=os.path.join(texture_filepath, "Material"),
                 filename=name,
             )
             materials_after_appending = bpy.data.materials.keys()
@@ -269,7 +273,7 @@ def populate_meshes(
             name = new_materials
             break
         except Exception as e:
-            logging.error(f"Failed to append {texture}. Error: {e}")
+            logging.error(f"Failed to append {texture_filepath}. Error: {e}")
             break
 
     # Clear existing materials and add a new material slot
