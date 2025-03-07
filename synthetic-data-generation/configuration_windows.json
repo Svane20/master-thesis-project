@@ -163,7 +163,7 @@
         "directory": "C:/Thesis/renderer/assets/models/houses",
         "include": null,
         "exclude": [
-          "Modern house 2_hidden"
+          "_hidden"
         ]
       },
       {
