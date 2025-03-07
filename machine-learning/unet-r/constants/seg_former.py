@@ -1,1 +1,0 @@
-MODEL_NAME: str = "nvidia/mit-b0"
