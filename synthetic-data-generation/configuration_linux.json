@@ -122,6 +122,7 @@
       "exclude": [
         "coniferous_biome02",
         "coniferous_biome03",
+        "coniferous_biome16",
         "deciduous_biome02",
         "deciduous_biome04",
         "deciduous_biome08",
@@ -200,7 +201,10 @@
     "directory": "/mnt/shared/blender_data/renderer/assets/hdris/pure_skies",
     "include": null,
     "exclude": [
+      "kloppenheim_02_puresky",
+      "kloppenheim_07_puresky",
       "kloofendal_38d_partly_cloudy_puresky",
+      "kloofendal_43d_clear_puresky",
       "qwantani_puresky",
       "table_mountain_1_puresky"
     ],
