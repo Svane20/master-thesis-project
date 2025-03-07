@@ -73,7 +73,9 @@ def main() -> None:
         predicted_mask = np.squeeze(predicted_mask, axis=0)
 
     # Upscale the predicted mask to the original image size
-    predicted_mask = np.array(Image.fromarray((predicted_mask * 255).astype(np.uint8)).resize((image.shape[1], image.shape[0]))).astype(np.float32) / 255.0
+    predicted_mask = np.array(
+        Image.fromarray((predicted_mask * 255).astype(np.uint8)).resize((image.shape[1], image.shape[0]))).astype(
+        np.float32) / 255.0
 
     # Save the prediction
     save_prediction(
@@ -93,7 +95,7 @@ def main() -> None:
     )
 
     # Replace the background with a new sky
-    new_sky_path = root_directory / "replacements" / "skies" / "new_sky.webp"
+    new_sky_path = root_directory / "libs" / "replacements" / "skies" / "new_sky.webp"
     replace_background(
         new_sky_path,
         foreground,
