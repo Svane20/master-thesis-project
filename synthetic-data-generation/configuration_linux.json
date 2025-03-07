@@ -190,7 +190,9 @@
   "sky_configuration": {
     "directory": "/mnt/shared/blender_data/renderer/assets/hdris/pure_skies",
     "include": null,
-    "exclude": null,
+    "exclude": [
+      "kloofendal_38d_partly_cloudy_puresky"
+    ],
     "temperature": {
       "min": 5000,
       "max": 6500

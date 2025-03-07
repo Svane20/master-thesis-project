@@ -1,10 +1,11 @@
 import time
 import logging
 import os
+import subprocess
+import sys
 
 from configuration.configuration import get_configuration
 from custom_logging.custom_logger import setup_logging
-from run import start_run
 
 
 def delete_logs_from_previous_runs(log_path: str) -> None:
@@ -57,9 +58,19 @@ def main():
         logging.info(f"Starting run {i + 1} of {max_runs}...")
 
         try:
-            start_run(configuration=configuration)
-        except Exception as e:
-            logging.error(f"Error occurred during run {i + 1}: {e}")
+            result = subprocess.run(["python", "run.py"], check=True)
+        except subprocess.CalledProcessError as e:
+            # Check if the return code indicates a SIGKILL
+            if e.returncode == -9:
+                logging.error("Process was killed by SIGKILL. Terminating the script completely.")
+                sys.exit(1)  # or break out of the loop if appropriate
+            elif e.returncode == -11:
+                # Ignore segmentation fault errors
+                pass
+            else:
+                logging.info(f"Error occurred during run {i + 1}: {e}")
+        else:
+            logging.info(f"Run {i + 1} completed successfully.")
 
         run_end = time.time()
         run_duration = run_end - run_start
