@@ -119,7 +119,11 @@
         "coniferous",
         "deciduous"
       ],
-      "exclude": null
+      "exclude": [
+        "coniferous_biome02",
+        "deciduous_biome02",
+        "deciduous_biome11"
+      ]
     },
     "grass_configuration": {
       "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Grassblade",
@@ -156,7 +160,9 @@
         ],
         "directory": "/mnt/shared/blender_data/renderer/assets/models/houses",
         "include": null,
-        "exclude": null
+        "exclude": [
+          "Modern house 2_hidden"
+        ]
       },
       {
         "should_spawn": false,
