@@ -199,7 +199,8 @@
     "directory": "/mnt/shared/blender_data/renderer/assets/hdris/pure_skies",
     "include": null,
     "exclude": [
-      "kloofendal_38d_partly_cloudy_puresky"
+      "kloofendal_38d_partly_cloudy_puresky",
+      "qwantani_puresky"
     ],
     "temperature": {
       "min": 5000,
