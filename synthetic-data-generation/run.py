@@ -356,8 +356,13 @@ def start_run(configuration: Configuration = None) -> None:
                 )
     except KeyboardInterrupt:
         logging.error("Keyboard interrupt detected. Terminating the script.")
-    except Exception:
-        logging.exception("An error occurred during the script execution")
+    except Exception as e:
+        logging.exception(f"An error occurred during the script execution: Error: {e}")
+
+        # Delete playground directory if empty
+        if not list(playground_directory.iterdir()):
+            logging.info(f"Deleting empty playground directory: {playground_directory}")
+            playground_directory.rmdir()
 
     # Cleanup temporary files generated during rendering
     logging.info("Removing temporary files generated during the execution...")
