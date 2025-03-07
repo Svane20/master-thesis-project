@@ -111,19 +111,23 @@ def setup_terrain(configuration: Configuration) -> NDArray[np.float32]:
     # Get all biomes
     tree_biomes = get_all_biomes_by_directory(
         directory=terrain_configuration.trees_configuration.directory,
-        keywords=terrain_configuration.trees_configuration.keywords,
+        include=terrain_configuration.trees_configuration.include,
+        exclude=terrain_configuration.trees_configuration.exclude
     )
     grass_biomes = get_all_biomes_by_directory(
         directory=terrain_configuration.grass_configuration.directory,
-        keywords=terrain_configuration.grass_configuration.keywords
+        include=terrain_configuration.grass_configuration.include,
+        exclude=terrain_configuration.trees_configuration.exclude
     )
     not_grass_biomes = get_all_biomes_by_directory(
         directory=terrain_configuration.not_grass_configuration.directory,
-        keywords=terrain_configuration.not_grass_configuration.keywords
+        include=terrain_configuration.not_grass_configuration.include,
+        exclude=terrain_configuration.trees_configuration.exclude
     )
     texture_blend_files = get_all_textures_by_directory(
         directory=terrain_configuration.textures_configuration.directory,
-        keywords=terrain_configuration.textures_configuration.keywords
+        include=terrain_configuration.textures_configuration.include,
+        exclude=terrain_configuration.textures_configuration.exclude
     )
 
     # Create terrain and segmentation map
@@ -196,7 +200,8 @@ def spawn_objects_in_the_scene(
             filepath=spawn_object.directory,
             height_map=height_map,
             world_size=world_size,
-            keywords=spawn_object.keywords,
+            include=spawn_object.include,
+            exclude=spawn_object.exclude,
             seed=seed
         )
 

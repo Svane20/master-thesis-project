@@ -4,7 +4,7 @@ from typing import List
 
 class SpawnObject(BaseModel):
     """
-    Configuration for spawning a object
+    Configuration for spawning an object
 
     Attributes:
         should_spawn (bool): Whether to spawn the object
@@ -12,14 +12,16 @@ class SpawnObject(BaseModel):
         num_objects (int): Number of objects to spawn
         position (List[int]): The positions to spawn the objects in
         directory (str): The directory where to find objects to spawn
-        keywords (List[str]): The keywords to find specific objects to spawn
+        include (List[str]): The keywords that must be present in the file path
+        exclude (List[str]): The keywords to filter out from the file paths
     """
     should_spawn: bool
     use_halton: bool
     num_objects: int
     position: List[int] | None
     directory: str
-    keywords: List[str] | None
+    include: List[str] | None
+    exclude: List[str] | None
 
 
 class SpawnObjectsConfiguration(BaseModel):

@@ -8,10 +8,12 @@ class TreesConfiguration(BaseModel):
 
     Attributes:
         directory (str): The directory where the tree files are located
-        keywords (List[str]): The keywords get specific tree files
+        include (List[str]): The keywords that must be present in the file path
+        exclude (List[str]): The keywords to filter out from the file paths
     """
     directory: str
-    keywords: List[str] | None
+    include: List[str] | None
+    exclude: List[str] | None
 
 
 class GrassConfiguration(BaseModel):
@@ -20,10 +22,12 @@ class GrassConfiguration(BaseModel):
 
     Attributes:
         directory (str): The directory where the grass files are located
-        keywords (List[str]): The keywords get specific grass files
+        include (List[str]): The keywords that must be present in the file path
+        exclude (List[str]): The keywords to filter out from the file paths
     """
     directory: str
-    keywords: List[str] | None
+    include: List[str] | None
+    exclude: List[str] | None
 
 
 class NotGrassConfiguration(BaseModel):
@@ -32,10 +36,12 @@ class NotGrassConfiguration(BaseModel):
 
     Attributes:
         directory (str): The directory where the grass files are located
-        keywords (List[str]): The keywords get specific grass files
+        include (List[str]): The keywords that must be present in the file path
+        exclude (List[str]): The keywords to filter out from the file paths
     """
     directory: str
-    keywords: List[str] | None
+    include: List[str] | None
+    exclude: List[str] | None
 
 
 class TexturesConfiguration(BaseModel):
@@ -44,10 +50,12 @@ class TexturesConfiguration(BaseModel):
 
     Attributes:
         directory (List[str]): The directory where the texture files are located
-        keywords (List[str]): The keywords get texture grass files
+        include (List[str]): The keywords that must be present in the file path
+        exclude (List[str]): The keywords to filter out from the file paths
     """
     directory: str
-    keywords: List[str] | None
+    include: List[str] | None
+    exclude: List[str] | None
 
 
 class TerrainConfiguration(BaseModel):

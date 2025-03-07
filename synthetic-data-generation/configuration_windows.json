@@ -115,29 +115,33 @@
     "tree_probability": 0.2,
     "trees_configuration": {
       "directory": "C:/Users/svane/AppData/Roaming/Blender Foundation/Blender/data/scatter library/_biomes_/Vegetation",
-      "keywords": [
+      "include": [
         "coniferous",
         "deciduous"
-      ]
+      ],
+      "exclude": null
     },
     "grass_configuration": {
       "directory": "C:/Users/svane/AppData/Roaming/Blender Foundation/Blender/data/scatter library/_biomes_/Grassblade",
-      "keywords": [
+      "include": [
         "clean_grass",
         "grass_golf",
         "green_grass"
-      ]
+      ],
+      "exclude": null
     },
     "not_grass_configuration": {
       "directory": "C:/Users/svane/AppData/Roaming/Blender Foundation/Blender/data/scatter library/_biomes_/Grassblade",
-      "keywords": [
+      "include": [
         "rock",
         "flowers"
-      ]
+      ],
+      "exclude": null
     },
     "textures_configuration": {
       "directory": "C:/Thesis/renderer/assets/textures/terrain",
-      "keywords": null
+      "include": null,
+      "exclude": null
     }
   },
   "spawn_objects_configuration": {
@@ -151,7 +155,8 @@
           0
         ],
         "directory": "C:/Thesis/renderer/assets/models/houses",
-        "keywords": null
+        "include": null,
+        "exclude": null
       },
       {
         "should_spawn": false,
@@ -159,7 +164,8 @@
         "num_objects": 5,
         "position": null,
         "directory": "C:/Thesis/renderer/assets/models/bushes",
-        "keywords": null
+        "include": null,
+        "exclude": null
       },
       {
         "should_spawn": false,
@@ -167,7 +173,8 @@
         "num_objects": 5,
         "position": null,
         "directory": "C:/Thesis/renderer/assets/models/fences",
-        "keywords": null
+        "include": null,
+        "exclude": null
       },
       {
         "should_spawn": true,
@@ -175,13 +182,15 @@
         "num_objects": 5,
         "position": null,
         "directory": "C:/Thesis/renderer/assets/models/hedges",
-        "keywords": null
+        "include": null,
+        "exclude": null
       }
     ]
   },
   "sky_configuration": {
     "directory": "C:/Thesis/renderer/assets/hdris/pure_skies",
-    "keywords": null,
+    "include": null,
+    "exclude": null,
     "temperature": {
       "min": 5000,
       "max": 6500

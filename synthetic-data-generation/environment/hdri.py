@@ -38,13 +38,18 @@ class Constants:
     FAC: str = "Fac"
 
 
-def get_all_hdri_by_directory(directory: str, keywords: List[str] | None = None) -> List[Path]:
+def get_all_hdri_by_directory(
+        directory: str,
+        include: List[str] | None = None,
+        exclude: List[str] | None = None,
+) -> List[Path]:
     """
     Retrieve all HDRI files in the specified directory.
 
     Args:
         directory (Path): The directory to search for HDRI files.
-        keywords (List[str], optional): A list of keywords to filter HDRI files. Defaults to None.
+        include (List[str], optional): A list of keywords that must be present in the file path. Defaults to None.
+        exclude (List[str], optional): A list of keywords to filter out from the file paths. Defaults to None.
 
     Returns:
         List[Path]: A list of HDRI file paths.
@@ -58,8 +63,11 @@ def get_all_hdri_by_directory(directory: str, keywords: List[str] | None = None)
     for ext in Constants.HDRI_EXTENSIONS:
         hdri_files += list(directory.glob(f"*{ext}"))
 
-    if keywords:
-        hdri_files = [path for path in hdri_files if any(keyword in path.stem for keyword in keywords)]
+    if include:
+        hdri_files = [path for path in hdri_files if any(keyword in path.stem for keyword in include)]
+
+    if exclude:
+        hdri_files = [path for path in hdri_files if not any(keyword in path.stem for keyword in exclude)]
 
     if not hdri_files:
         logging.error(f"No HDRI files found in {directory}")
@@ -83,7 +91,8 @@ def add_sky_to_scene(configuration: Configuration, seed: int = None) -> None:
     logging.debug(f"Adding sky to the scene from directory: {directory}")
     hdri_paths = get_all_hdri_by_directory(
         directory=directory,
-        keywords=sky_configuration.keywords
+        include=sky_configuration.include,
+        exclude=sky_configuration.exclude
     )
     random_hdri_path = random.choice(hdri_paths)
     add_entry(category=MetadataKey.HDRIS, filepath=random_hdri_path.as_posix())

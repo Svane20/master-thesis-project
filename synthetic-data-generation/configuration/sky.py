@@ -25,6 +25,8 @@ class SkyConfiguration(BaseModel):
 
     Attributes:
         directory (str): The path to the HDRI directory.
+        include (List[str]): The keywords that must be present in the file path
+        exclude (List[str]): The keywords to filter out from the file paths
         temperature (dict): A dictionary containing the 'min' and 'max' temperature values.
         strength (dict): A dictionary containing the 'min' and 'max' strength values for the HDRI.
         density (dict): A dictionary containing the 'min' and 'max' density values for the environment.
@@ -32,7 +34,8 @@ class SkyConfiguration(BaseModel):
         sun_configuration (SunConfiguration): Configuration settings for the sun.
     """
     directory: str
-    keywords: List[str] | None
+    include: List[str] | None
+    exclude: List[str] | None
     temperature: Dict[str, int]
     strength: Dict[str, float]
     density: Dict[str, int]

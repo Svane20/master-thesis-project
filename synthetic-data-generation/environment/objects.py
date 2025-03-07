@@ -15,7 +15,8 @@ def spawn_objects(
         filepath: str,
         height_map: NDArray[np.float32],
         world_size: float,
-        keywords: List[str] | None = None,
+        include: List[str] | None = None,
+        exclude: List[str] | None = None,
         seed: int = None
 ) -> None:
     """
@@ -27,7 +28,8 @@ def spawn_objects(
         filepath (str): The directory path containing .blend files for objects.
         height_map (NDArray[np.float32]): The terrain height map.
         world_size (float): The size of the world (terrain scale).
-        keywords (List[str], optional): A list of keywords to filter object files. Default is None.
+        include (List[str], optional): A list of keywords that must be present in the file path. Defaults to None.
+        exclude (List[str], optional): A list of keywords to filter out from the file paths. Defaults to None.
         seed (int, optional): Random seed for reproducibility. Default is None.
 
     Raises:
@@ -50,9 +52,11 @@ def spawn_objects(
         logging.error(f"No .blend files found in directory {path}")
         raise FileNotFoundError(f"No .blend files found in directory {path}")
 
-    if keywords:
-        blend_objects_paths = [path for path in blend_objects_paths if
-                               any(keyword in path.name for keyword in keywords)]
+    if include:
+        blend_objects_paths = [path for path in blend_objects_paths if any(keyword in path for keyword in include)]
+
+    if exclude:
+        blend_objects_paths = [path for path in blend_objects_paths if not any(keyword in path for keyword in exclude)]
 
     logging.debug(f"Found {len(blend_objects_paths)} .blend files in {path}")
 
