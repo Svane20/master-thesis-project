@@ -356,6 +356,11 @@ def start_run(configuration: Configuration = None) -> None:
                 )
     except KeyboardInterrupt:
         logging.error("Keyboard interrupt detected. Terminating the script.")
+
+        # Delete playground directory if empty
+        if not list(playground_directory.iterdir()):
+            logging.info(f"Deleting empty playground directory: {playground_directory}")
+            playground_directory.rmdir()
     except Exception as e:
         logging.exception(f"An error occurred during the script execution: Error: {e}")
 
