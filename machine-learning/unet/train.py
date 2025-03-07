@@ -67,8 +67,6 @@ def main() -> None:
 
     config: Config = load_configuration(configuration_path)
 
-    print(f"Configuration: {config}")
-
     _setup_run(config)
 
 
