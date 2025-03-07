@@ -53,10 +53,16 @@ def spawn_objects(
         raise FileNotFoundError(f"No .blend files found in directory {path}")
 
     if include:
-        blend_objects_paths = [path for path in blend_objects_paths if any(keyword in path for keyword in include)]
+        blend_objects_paths = [
+            path for path in blend_objects_paths
+            if any(keyword in str(path) for keyword in include)
+        ]
 
     if exclude:
-        blend_objects_paths = [path for path in blend_objects_paths if not any(keyword in path for keyword in exclude)]
+        blend_objects_paths = [
+            path for path in blend_objects_paths
+            if not any(keyword in str(path) for keyword in exclude)
+        ]
 
     logging.debug(f"Found {len(blend_objects_paths)} .blend files in {path}")
 
