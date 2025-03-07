@@ -3,12 +3,12 @@ import torch
 from pathlib import Path
 import platform
 
-from configuration.configuration import load_configuration_and_checkpoint
+from libs.configuration.configuration import load_configuration_and_checkpoint
 from datasets.synthetic.data_loaders import create_data_loader
 from datasets.transforms import get_val_transforms
 
-from evaluation.inference import evaluate_model
-from training.utils.logger import setup_logging
+from libs.evaluation.inference import evaluate_model
+from libs.training.utils.logger import setup_logging
 
 from unet.build_model import build_unet_model
 
@@ -17,11 +17,11 @@ setup_logging(__name__)
 
 def main() -> None:
     # Directories
-    base_directory = Path(__file__).resolve().parent.parent
+    base_directory = Path(__file__).resolve().parent.parent.parent
     if platform.system() == "Windows":
-        configuration_path: Path = base_directory / "unet/configuration/inference_windows.yaml"
+        configuration_path: Path = base_directory / "unet/configs/inference_windows.yaml"
     else:  # Assume Linux for any non-Windows OS
-        configuration_path: Path = base_directory / "unet/configuration/inference_linux.yaml"
+        configuration_path: Path = base_directory / "unet/configs/inference_linux.yaml"
 
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_configuration_and_checkpoint(configuration_path)
