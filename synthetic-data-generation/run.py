@@ -259,18 +259,17 @@ def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
     return height_map
 
 
-def start_run(configuration: Configuration = None) -> None:
+def start_run() -> None:
     """The main function to render the images from multiple camera angles."""
-    if not configuration:
-        # Get configuration
-        configuration = get_configuration()
+    # Get configuration
+    configuration = get_configuration()
 
-        # Setup logging
-        setup_logging(
-            name=__name__,
-            log_path=configuration.run_configuration.app_path,
-            save_logs=configuration.run_configuration.save_logs,
-        )
+    # Setup logging
+    setup_logging(
+        name=__name__,
+        log_path=configuration.run_configuration.app_path,
+        save_logs=configuration.run_configuration.save_logs,
+    )
 
     # Track the overall script execution time
     script_start_time = time.perf_counter()
