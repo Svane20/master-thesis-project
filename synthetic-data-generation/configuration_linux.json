@@ -121,6 +121,7 @@
       ],
       "exclude": [
         "coniferous_biome02",
+        "coniferous_biome03",
         "deciduous_biome02",
         "deciduous_biome04",
         "deciduous_biome08",
