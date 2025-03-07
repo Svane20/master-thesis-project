@@ -207,7 +207,9 @@
       "kloofendal_38d_partly_cloudy_puresky",
       "kloofendal_43d_clear_puresky",
       "qwantani_puresky",
-      "table_mountain_1_puresky"
+      "table_mountain_1_puresky",
+      "sunflowers_puresky",
+      "syferfontein_0d_clear_puresky"
     ],
     "temperature": {
       "min": 5000,
