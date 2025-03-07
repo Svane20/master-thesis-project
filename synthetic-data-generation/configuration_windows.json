@@ -200,7 +200,8 @@
     "include": null,
     "exclude": [
       "kloofendal_38d_partly_cloudy_puresky",
-      "qwantani_puresky"
+      "qwantani_puresky",
+      "table_mountain_1_puresky"
     ],
     "temperature": {
       "min": 5000,
