@@ -7,13 +7,11 @@ from datasets.synthetic.data_loaders import setup_data_loaders
 
 from libs.training.trainer import Trainer
 from libs.training.utils.train_utils import set_seeds
-
-from configuration.model import ModelConfig
 from libs.configuration.configuration import Config, load_configuration
 from libs.configuration.dataset import DatasetConfig
 from libs.configuration.scratch import ScratchConfig
 from libs.configuration.training.root import TrainConfig
-from unet.build_model import build_unet_model_for_train
+from .build_model import build_unet_model_for_train
 
 
 def _setup_run(config: Config) -> None:

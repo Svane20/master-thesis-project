@@ -5,9 +5,9 @@ from pathlib import Path
 import logging
 from typing import Dict, Any
 
-from unet.modeling.image_encoder import ImageEncoder
-from unet.modeling.mask_decoder import MaskDecoder
-from unet.modeling.unet import UNet
+from .modeling.image_encoder import ImageEncoder
+from .modeling.mask_decoder import MaskDecoder
+from .modeling.unet_vgg16_bn import UNetVGG16BN
 
 
 def build_unet_model_for_train(configuration: Dict[str, Any]) -> nn.Module:
@@ -76,7 +76,7 @@ def _build(configuration: Dict[str, Any]) -> nn.Module:
     image_encoder_config = configuration.get("image_encoder", {})
     mask_decoder_config = configuration.get("mask_decoder", {})
 
-    return UNet(
+    return UNetVGG16BN(
         image_encoder=ImageEncoder(
             pretrained=image_encoder_config.get("pretrained", False),
             freeze_pretrained=image_encoder_config.get("freeze_pretrained", False),

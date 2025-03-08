@@ -6,7 +6,7 @@ import platform
 from libs.configuration.configuration import load_configuration_and_checkpoint
 from libs.deployment.export_model import export_to_onnx
 from libs.deployment.trim_checkpoint import save_model_checkpoint
-from unet.build_model import build_unet_model
+from .build_model import build_unet_model
 
 
 def main() -> None:
