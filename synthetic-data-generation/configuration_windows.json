@@ -203,6 +203,7 @@
     "include": null,
     "exclude": [
       "kloppenheim_02_puresky",
+      "kloppenheim_03_puresky",
       "kloppenheim_07_puresky",
       "kloofendal_38d_partly_cloudy_puresky",
       "kloofendal_43d_clear_puresky",
