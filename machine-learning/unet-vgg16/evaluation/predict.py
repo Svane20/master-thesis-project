@@ -13,7 +13,7 @@ from libs.evaluation.visualization import save_prediction
 from libs.replacements.foreground_estimation import get_foreground_estimation
 from libs.replacements.replacement import replace_background
 from libs.training.utils.logger import setup_logging
-from unet.build_model import build_unet_model
+from ..build_model import build_unet_model
 
 setup_logging(__name__)
 

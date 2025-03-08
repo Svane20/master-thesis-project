@@ -10,7 +10,7 @@ from datasets.transforms import get_val_transforms
 from libs.evaluation.inference import evaluate_model
 from libs.training.utils.logger import setup_logging
 
-from unet.build_model import build_unet_model
+from ..build_model import build_unet_model
 
 setup_logging(__name__)
 
