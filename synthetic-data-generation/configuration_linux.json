@@ -123,6 +123,7 @@
         "coniferous_biome02",
         "coniferous_biome03",
         "coniferous_biome04",
+        "coniferous_biome13",
         "coniferous_biome16",
         "deciduous_biome02",
         "deciduous_biome04",
@@ -212,10 +213,14 @@
       "table_mountain_1_puresky",
       "sunflowers_puresky",
       "syferfontein_0d_clear_puresky",
+      "syferfontein_6d_clear_puresky",
       "syferfontein_18d_clear_puresky",
       "rocky_ridge_puresky",
       "overcast_soil_puresky",
-      "table_mountain_2_puresky"
+      "table_mountain_2_puresky",
+      "industrial_sunset_02_puresky",
+      "rustig_koppie_puresky",
+      "pizzo_pernice_puresky"
     ],
     "temperature": {
       "min": 5000,
