@@ -203,8 +203,10 @@
     "directory": "C:/Thesis/renderer/assets/hdris/pure_skies",
     "include": null,
     "exclude": [
+      "kloppenheim_01_puresky",
       "kloppenheim_02_puresky",
       "kloppenheim_03_puresky",
+      "kloppenheim_05_puresky",
       "kloppenheim_07_puresky",
       "kloofendal_38d_partly_cloudy_puresky",
       "kloofendal_43d_clear_puresky",
@@ -213,14 +215,17 @@
       "table_mountain_1_puresky",
       "sunflowers_puresky",
       "syferfontein_0d_clear_puresky",
+      "syferfontein_1d_clear_puresky",
       "syferfontein_6d_clear_puresky",
       "syferfontein_18d_clear_puresky",
       "rocky_ridge_puresky",
       "overcast_soil_puresky",
       "table_mountain_2_puresky",
+      "industrial_sunset_puresky",
       "industrial_sunset_02_puresky",
       "rustig_koppie_puresky",
-      "pizzo_pernice_puresky"
+      "pizzo_pernice_puresky",
+      "quarry_01_puresky"
     ],
     "temperature": {
       "min": 5000,
