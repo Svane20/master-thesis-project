@@ -225,7 +225,8 @@
       "industrial_sunset_02_puresky",
       "rustig_koppie_puresky",
       "pizzo_pernice_puresky",
-      "quarry_01_puresky"
+      "quarry_01_puresky",
+      "mud_road_puresky"
     ],
     "temperature": {
       "min": 5000,
