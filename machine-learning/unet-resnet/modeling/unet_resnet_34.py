@@ -111,9 +111,9 @@ class UNetResNet34(nn.Module):
     UNet model that combines the ResNet-based encoder and the decoder.
     """
 
-    def __init__(self, pretrained: bool = True):
+    def __init__(self, pretrained: bool = True, freeze_pretrained: bool = False):
         super().__init__()
-        self.encoder = ResNetEncoder(pretrained=pretrained)
+        self.encoder = ResNetEncoder(pretrained=pretrained, freeze_pretrained=freeze_pretrained)
         self.decoder = ResNetDecoder()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

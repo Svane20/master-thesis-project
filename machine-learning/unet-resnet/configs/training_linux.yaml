@@ -71,9 +71,9 @@ training:
       enabled: true
       project: "U-NET"
       entity: "svane20-keyshot"
-      tags: [ "unet", "vgg16-bn", "synthetic-data" ]
-      notes: "Training U-Net with VGG16-BN backbone on synthetic data."
-      group: "unet-vgg16-bn"
+      tags: [ "unet", "resnet-34", "synthetic-data" ]
+      notes: "Training U-Net with ResNet-34 backbone on synthetic data."
+      group: "unet-resnet-34"
       job_type: "training"
     log_directory: "./logs"
     log_metrics: false
@@ -83,7 +83,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_vgg16_bn_v1.pt"
+    checkpoint_path: "unet_resnet_34_v1.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration
@@ -91,6 +91,3 @@ model:
   image_encoder:
     pretrained: true
     freeze_pretrained: false
-  mask_decoder:
-    out_channels: 1
-    dropout: 0.2

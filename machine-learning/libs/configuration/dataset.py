@@ -15,4 +15,4 @@ class DatasetConfig:
     batch_size: int
     pin_memory: bool
     train: DatasetLoaderConfig
-    val: DatasetLoaderConfig
+    test: DatasetLoaderConfig

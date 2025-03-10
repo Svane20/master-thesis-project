@@ -59,9 +59,9 @@ def _setup_run(config: Config) -> None:
 def main() -> None:
     base_directory = Path(__file__).resolve().parent.parent
     if platform.system() == "Windows":
-        configuration_path: Path = base_directory / "unet-vgg16/configs/training_windows.yaml"
+        configuration_path: Path = base_directory / "unet-resnet/configs/training_windows.yaml"
     else:  # Assume Linux for any non-Windows OS
-        configuration_path: Path = base_directory / "unet-vgg16/configs/training_linux.yaml"
+        configuration_path: Path = base_directory / "unet-resnet/configs/training_linux.yaml"
 
     config: Config = load_configuration(configuration_path)
 

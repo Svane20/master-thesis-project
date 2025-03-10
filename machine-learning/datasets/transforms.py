@@ -17,37 +17,31 @@ def get_train_transforms(resolution: int) -> A.Compose:
     """
     return A.Compose(
         [
-            # Spatial transforms applied to both image and mask.
+            # Horizontal flip with a probability of 0.5.
             A.HorizontalFlip(p=0.5),
 
-            # Random cropping to the target resolution with 80% probability.
+            # Random cropping of the image and mask with a probability of 0.5.
             A.RandomResizedCrop(size=(resolution, resolution), scale=(0.5, 1.0), ratio=(0.75, 1.33), p=0.5),
 
-            # Resize in case the crop doesn't exactly match your desired dimensions
+            # Resize the image and mask to the target resolution.
             A.Resize(height=resolution, width=resolution),
 
-            # Photometric transforms applied only to the image (they are image-only transforms).
-            A.OneOf(
-                [
-                    A.CLAHE(clip_limit=2.0, p=0.5),
-                    A.Sharpen(alpha=(0.2, 0.5), p=0.5),
-                ],
-                p=0.5,
-            ),
-
+            # Normalize the image and mask.
             A.Normalize(
                 mean=(0.5, 0.5, 0.5),
                 std=(0.5, 0.5, 0.5),
             ),
+
+            # Convert the image and mask to PyTorch tensors.
             ToTensorV2(),
         ],
-        additional_targets={'mask': 'mask'}  # ensure "mask" key is processed appropriately
+        additional_targets={'mask': 'mask'}
     )
 
 
-def get_val_transforms(resolution: int) -> A.Compose:
+def get_test_transforms(resolution: int) -> A.Compose:
     """
-    Get the validation transforms.
+    Get the testing transforms.
 
     Applies spatial transforms to both image and mask. No photometric changes.
 
@@ -55,15 +49,20 @@ def get_val_transforms(resolution: int) -> A.Compose:
         resolution (int): Resolution of the image.
 
     Returns:
-        albumentations.Compose: Validation transforms.
+        albumentations.Compose: Testing transforms.
     """
     return A.Compose(
         [
-            A.Resize(resolution, resolution),
+            # Resize the image and mask to the target resolution.
+            A.Resize(height=resolution, width=resolution),
+
+            # Normalize the image and mask.
             A.Normalize(
                 mean=(0.5, 0.5, 0.5),
                 std=(0.5, 0.5, 0.5),
             ),
+
+            # Convert the image and mask to PyTorch tensors.
             ToTensorV2(),
         ],
         additional_targets={'mask': 'mask'}
