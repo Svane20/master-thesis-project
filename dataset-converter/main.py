@@ -24,6 +24,23 @@ def compress_png(source_file: Path, dest_file: Path) -> None:
         img.save(dest_file, format="PNG", optimize=True, compress_level=9)
 
 
+def process_all_tasks(tasks, desc, max_workers):
+    """
+    Process a list of (source, destination) tasks concurrently.
+
+    Args:
+        tasks (list): List of tuples (source_path, destination_path).
+        desc (str): Description to show in the progress bar.
+        max_workers (int): Maximum number of parallel workers.
+    """
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(compress_png, source, dest) for source, dest in tasks]
+        with tqdm(total=len(futures), desc=desc) as pbar:
+            for future in as_completed(futures):
+                future.result()  # Propagate exceptions if any
+                pbar.update(1)
+
+
 def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: float = 0.8, max_workers: int = 2) -> None:
     """
     Flatten versioned synthetic data into train and validation directories,
@@ -58,7 +75,6 @@ def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: flo
         directory.mkdir(parents=True, exist_ok=True)
 
     # Gather samples from source_dir.
-    # For each image file, compute the expected mask name by replacing "Image_" with "SkyMask_".
     samples = {}
     for folder in source_dir.iterdir():
         if folder.is_dir():
@@ -94,31 +110,37 @@ def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: flo
 
     logging.info(f"Train samples: {len(train_samples)}, Validation samples: {len(val_samples)}")
 
-    # Helper function to process a split in parallel
-    def process_split(sample_ids, images_dest, masks_dest, split_desc):
-        tasks = []
-        with ProcessPoolExecutor(max_workers=max_workers) as executor:
-            for sample_id in sample_ids:
-                sample = samples[sample_id]
-                if "image" in sample:
-                    dest_image_path = images_dest / sample_id
-                    if not dest_image_path.exists():
-                        tasks.append(executor.submit(compress_png, sample["image"], dest_image_path))
-                if "mask" in sample:
-                    dest_mask_path = masks_dest / sample_id.replace("Image_", "SkyMask_", 1)
-                    if not dest_mask_path.exists():
-                        tasks.append(executor.submit(compress_png, sample["mask"], dest_mask_path))
-            with tqdm(total=len(tasks), desc=split_desc) as pbar:
-                for future in as_completed(tasks):
-                    future.result()  # Propagate exceptions if any
-                    pbar.update(1)
+    # Build combined task list for training and validation splits
+    all_tasks = []
 
-    # Process training samples in parallel
-    process_split(train_samples, train_images_dest, train_masks_dest, "Processing training samples")
+    # Training tasks
+    for sample_id in train_samples:
+        sample = samples[sample_id]
+        if "image" in sample:
+            dest_image_path = train_images_dest / sample_id
+            if not dest_image_path.exists():
+                all_tasks.append((sample["image"], dest_image_path))
+        if "mask" in sample:
+            dest_mask_path = train_masks_dest / sample_id.replace("Image_", "SkyMask_", 1)
+            if not dest_mask_path.exists():
+                all_tasks.append((sample["mask"], dest_mask_path))
 
-    # Process validation samples in parallel
-    process_split(val_samples, val_images_dest, val_masks_dest, "Processing validation samples")
+    # Validation tasks
+    for sample_id in val_samples:
+        sample = samples[sample_id]
+        if "image" in sample:
+            dest_image_path = val_images_dest / sample_id
+            if not dest_image_path.exists():
+                all_tasks.append((sample["image"], dest_image_path))
+        if "mask" in sample:
+            dest_mask_path = val_masks_dest / sample_id.replace("Image_", "SkyMask_", 1)
+            if not dest_mask_path.exists():
+                all_tasks.append((sample["mask"], dest_mask_path))
 
+    logging.info(f"Total tasks to process: {len(all_tasks)}")
+
+    # Process all tasks concurrently using a single executor
+    process_all_tasks(all_tasks, "Processing all samples", max_workers)
     logging.info("Finished dataset flattening and splitting")
 
 
@@ -161,17 +183,19 @@ if __name__ == '__main__':
     # Load configuration
     configuration = get_configurations()
 
-    # Directories
+    # Define source and destination directories
     source_directory = Path(configuration.source_directory)
     destination_directory = Path(configuration.destination_directory)
 
-    # Flatten and split dataset (80% train, 20% val)
-    max_workers = os.cpu_count() // 2
+    # Determine number of workers dynamically based on available CPUs
+    workers = os.cpu_count() or 2
+
+    # Flatten and split dataset (e.g., 80% train, 20% val)
     flatten_and_split_dataset(
         source_directory,
         destination_directory,
         train_ratio=configuration.train_ratio,
-        max_workers=max_workers
+        max_workers=workers
     )
 
     # Validate the train and validation splits
