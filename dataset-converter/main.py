@@ -165,14 +165,12 @@ if __name__ == '__main__':
     source_directory = Path(configuration.source_directory)
     destination_directory = Path(configuration.destination_directory)
 
-    # Flatten and split dataset (80% train, 20% test)
-    max_workers = os.cpu_count()
-
+    # Flatten and split dataset
     flatten_and_split_dataset(
         source_directory,
         destination_directory,
         train_ratio=configuration.train_ratio,
-        max_workers=max_workers
+        max_workers=min(configuration.num_workers, 2)
     )
 
     # Validate the train and test splits
