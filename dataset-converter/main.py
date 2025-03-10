@@ -4,7 +4,6 @@ import logging
 from tqdm import tqdm
 import random
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import os
 
 from configuration.base import get_configurations
 from custom_logging.custom_logger import setup_logging
@@ -187,15 +186,12 @@ if __name__ == '__main__':
     source_directory = Path(configuration.source_directory)
     destination_directory = Path(configuration.destination_directory)
 
-    # Determine number of workers dynamically based on available CPUs
-    workers = os.cpu_count() or 2
-
     # Flatten and split dataset (e.g., 80% train, 20% val)
     flatten_and_split_dataset(
         source_directory,
         destination_directory,
         train_ratio=configuration.train_ratio,
-        max_workers=workers
+        max_workers=min(configuration.num_workers, 2)
     )
 
     # Validate the train and validation splits
