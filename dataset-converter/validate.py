@@ -132,8 +132,6 @@ if __name__ == '__main__':
     # Load configuration
     configuration = get_configurations()
 
-    # Validate the base directory
+    # Validate the base and destination directory
     validate_base_directory(Path(configuration.source_directory))
-
-    # Validate the destination directory
     validate_destination_directory(Path(configuration.destination_directory))
