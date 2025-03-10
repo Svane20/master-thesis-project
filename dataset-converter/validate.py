@@ -5,7 +5,7 @@ from configuration.base import get_configurations
 from custom_logging.custom_logger import setup_logging
 
 
-def validate_base_directory(source_dir: Path) -> bool:
+def validate_base_directory(source_dir: Path) -> None:
     """
     Validate that every image in the base directory has a corresponding mask and every mask has a corresponding image.
     It iterates over each folder in source_dir and checks the "images" and "masks" subdirectories.
@@ -16,9 +16,6 @@ def validate_base_directory(source_dir: Path) -> bool:
 
     Args:
         source_dir (Path): Path to the top-level unprocessed data directory.
-
-    Returns:
-        bool: True if every image has a corresponding mask and every mask has an image, False otherwise.
     """
     valid = True
 
@@ -61,10 +58,8 @@ def validate_base_directory(source_dir: Path) -> bool:
     else:
         logging.error("Base directory validation failed: Some images or masks are missing corresponding pairs.")
 
-    return valid
 
-
-def validate_destination_directory(destination_dir: Path) -> bool:
+def validate_destination_directory(destination_dir: Path) -> None:
     """
     Validate that every image in the destination directory's train and test subfolders
     has a corresponding mask and every mask has a corresponding image.
@@ -84,9 +79,6 @@ def validate_destination_directory(destination_dir: Path) -> bool:
 
     Args:
         destination_dir (Path): Path to the top-level processed data directory.
-
-    Returns:
-        bool: True if every image has a corresponding mask and every mask has an image, False otherwise.
     """
     valid = True
 
@@ -132,8 +124,6 @@ def validate_destination_directory(destination_dir: Path) -> bool:
         logging.error(
             "Destination directory validation failed: Some images or masks are missing corresponding pairs in the test and train subfolders.")
 
-    return valid
-
 
 if __name__ == '__main__':
     # Setup logging
@@ -143,15 +133,7 @@ if __name__ == '__main__':
     configuration = get_configurations()
 
     # Validate the base directory
-    source_directory = Path(configuration.source_directory)
-    if validate_base_directory(source_directory):
-        logging.info("Base directory is complete and valid.")
-    else:
-        logging.error("Base directory is incomplete or invalid.")
+    validate_base_directory(Path(configuration.source_directory))
 
     # Validate the destination directory
-    destination_directory = Path(configuration.destination_directory)
-    if validate_destination_directory(destination_directory):
-        logging.info("Destination directory is complete and valid.")
-    else:
-        logging.error("Destination directory is incomplete or invalid.")
+    validate_destination_directory(Path(configuration.destination_directory))
