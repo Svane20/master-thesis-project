@@ -19,9 +19,9 @@ def main() -> None:
     # Directories
     base_directory = Path(__file__).resolve().parent.parent.parent
     if platform.system() == "Windows":
-        configuration_path: Path = base_directory / "unet-vgg16/configs/inference_windows.yaml"
+        configuration_path: Path = base_directory / "unet_resnet/configs/inference_windows.yaml"
     else:  # Assume Linux for any non-Windows OS
-        configuration_path: Path = base_directory / "unet-vgg16/configs/inference_linux.yaml"
+        configuration_path: Path = base_directory / "unet_resnet/configs/inference_linux.yaml"
 
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_configuration_and_checkpoint(configuration_path)

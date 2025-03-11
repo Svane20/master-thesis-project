@@ -9,7 +9,7 @@ from libs.configuration.dataset import DatasetConfig
 from libs.configuration.scratch import ScratchConfig
 from libs.configuration.training.root import TrainConfig
 from libs.datasets.synthetic.data_loaders import create_data_loader
-from libs.datasets.transforms import Compose, Resize, RandomCrop, RandomHorizontalFlip, ToTensor, Normalize
+from libs.datasets.synthetic.transforms import get_train_transforms, get_test_transforms
 from libs.training.trainer import Trainer
 from libs.training.utils.train_utils import set_seeds
 
@@ -47,13 +47,7 @@ def _setup_run(config: Config) -> None:
         pin_memory=config.dataset.pin_memory,
         shuffle=config.dataset.train.shuffle,
         drop_last=config.dataset.train.drop_last,
-        transforms=Compose([
-            Resize((600, 600)),
-            RandomCrop((scratch_config.resolution, scratch_config.resolution)),
-            RandomHorizontalFlip(p=0.5),
-            ToTensor(),
-            Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        ])
+        transforms=get_train_transforms(scratch_config.resolution)
     )
     test_data_loader = create_data_loader(
         root_directory=os.path.join(root_path, "test"),
@@ -62,11 +56,7 @@ def _setup_run(config: Config) -> None:
         pin_memory=dataset_config.pin_memory,
         shuffle=config.dataset.test.shuffle,
         drop_last=config.dataset.test.drop_last,
-        transforms=Compose([
-            Resize((scratch_config.resolution, scratch_config.resolution)),
-            ToTensor(),
-            Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-        ])
+        transforms=get_test_transforms(scratch_config.resolution)
     )
 
     # Set up the trainer
@@ -89,9 +79,9 @@ def _setup_run(config: Config) -> None:
 def main() -> None:
     base_directory = Path(__file__).resolve().parent.parent
     if platform.system() == "Windows":
-        configuration_path: Path = base_directory / "unet-vgg16/configs/training_windows.yaml"
+        configuration_path: Path = base_directory / "unet_resnet/configs/training_windows.yaml"
     else:  # Assume Linux for any non-Windows OS
-        configuration_path: Path = base_directory / "unet-vgg16/configs/training_linux.yaml"
+        configuration_path: Path = base_directory / "unet_resnet/configs/training_linux.yaml"
 
     config: Config = load_configuration(configuration_path)
 

@@ -16,9 +16,9 @@ def main() -> None:
 
     # Get configuration based on OS
     if platform.system() == "Windows":
-        configuration_path: Path = root_directory / "unet-vgg16/configs/deployment_windows.yaml"
+        configuration_path: Path = root_directory / "unet_resnet/configs/deployment_windows.yaml"
     else:  # Assume Linux for any non-Windows OS
-        configuration_path: Path = root_directory / "unet-vgg16/configs/deployment_linux.yaml"
+        configuration_path: Path = root_directory / "unet_resnet/configs/deployment_linux.yaml"
 
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_configuration_and_checkpoint(configuration_path, is_deployment=True)

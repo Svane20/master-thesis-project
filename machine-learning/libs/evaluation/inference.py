@@ -2,6 +2,7 @@ import torch
 import torchvision
 
 import numpy as np
+from PIL import Image
 from typing import Dict, Tuple
 import time
 import logging
@@ -121,8 +122,8 @@ def evaluate_model(
 
 
 def predict_image(
-        image: np.ndarray,
-        mask: np.ndarray,
+        image: Image,
+        mask: Image,
         model: torch.nn.Module,
         transform: Transform,
         device: torch.device,
@@ -143,14 +144,14 @@ def predict_image(
     model.eval()
 
     # Apply transformations
-    transformed = transform(image ,mask)
-    image_tensor = transformed["image"].unsqueeze(0).to(device)  # Add batch dimension
-    mask_tensor = transformed["mask"].unsqueeze(0).to(device)  # Add batch dimension
+    image_tensor, mask_tensor = transform(image, mask)
+
+    # Move tensors to device and add batch dimension
+    image_tensor, mask_tensor = image_tensor.unsqueeze(0).to(device), mask_tensor.unsqueeze(0).to(device)
 
     with torch.inference_mode():
         with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=torch.float16):
             outputs = model(image_tensor)
-            outputs = torch.clamp(outputs, 0, 1)  # Clamp to [0, 1]
 
             # Calculate metrics
             metrics = compute_metrics(outputs, mask_tensor, is_eval=False)

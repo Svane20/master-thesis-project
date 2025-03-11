@@ -6,7 +6,8 @@ from typing import Dict, Any
 import platform
 
 from libs.training.utils.checkpoint_utils import load_checkpoint
-from modeling.unet_resnet_34 import UNetResNet34
+
+from unet_resnet.modeling.unet_resnet_34 import UNetResNet34
 
 
 def build_model_for_train(configuration: Dict[str, Any]) -> nn.Module:
