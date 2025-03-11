@@ -128,7 +128,7 @@ class Trainer:
                     payload=payload,
                     step=self.epoch
                 )
-                logging.info(payload)
+                logging.info(f"Epoch {self.epoch} metrics: {payload}")
 
                 # Save training stats to file
                 if self.logging_config.log_metrics:
