@@ -3,6 +3,7 @@ from torch.utils.data import Dataset
 import os
 from PIL import Image
 from typing import List
+import numpy as np
 
 from ..transforms import Transform
 
@@ -34,7 +35,11 @@ class SyntheticDataset(Dataset):
         mask_path = os.path.join(self.masks_dir, self.masks[index])
 
         image = Image.open(image_path).convert("RGB")
-        mask = Image.open(mask_path).convert("L")
+
+        mask_rgba = Image.open(mask_path).convert("RGBA")
+        mask_np = np.array(mask_rgba, dtype=np.float32)
+        mask = mask_np[..., 3] / 255.0  # Normalize alpha to [0, 1]
+        mask = Image.fromarray((mask * 255).astype(np.uint8), mode="L")
 
         if self.transforms:
             image, mask = self.transforms(image, mask)
