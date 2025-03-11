@@ -529,8 +529,8 @@ class Trainer:
             # Log predictions for every 10 epochs
             if self.epoch > 0 and self.epoch % 10 == 0:
                 # Take 8 samples for visualization
-                sample_targets = targets[:6].detach().cpu()
-                sample_outputs = outputs[:6].detach().cpu()
+                sample_targets = targets[:8].detach().cpu()
+                sample_outputs = outputs[:8].detach().cpu()
 
                 # Create grid images (assumes the tensors have shape [B, C, H, W])
                 produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)
