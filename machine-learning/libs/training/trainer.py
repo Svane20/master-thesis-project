@@ -13,7 +13,7 @@ import numpy as np
 import json
 import platform
 
-from ..configuration.training.root import TrainConfig
+from ..configuration.configuration import Config
 from .criterions import CORE_LOSS_KEY, MattingLossV2
 from .early_stopping import EarlyStopping
 from .optimizers import construct_optimizer, GradientClipper
@@ -35,7 +35,7 @@ class Trainer:
             model: nn.Module,
             train_data_loader: torch.utils.data.DataLoader,
             test_data_loader: torch.utils.data.DataLoader,
-            training_config: TrainConfig,
+            config: Config,
             meters: Optional[Dict[str, Any]] = None,
             test_epoch_freq: int = 1,
     ) -> None:
@@ -44,7 +44,7 @@ class Trainer:
             model (nn.Module): Model to train.
             train_data_loader (torch.utils.data.DataLoader): Data loader for training.
             test_data_loader (torch.utils.data.DataLoader): Data loader for testing.
-            training_config (TrainConfig): Configuration for training.
+            config (TrainConfig): Configuration for training.
             meters (Optional[Dict[str, Any]]): Meters for training. Default is None.
             test_epoch_freq (int): Frequency of testing. Default is 1.
         """
@@ -52,13 +52,14 @@ class Trainer:
         self._setup_timers()
 
         # Configuration
-        self.train_config = training_config
-        self.criterion_config = training_config.criterion
-        self.optimizer_config = training_config.optimizer
-        self.scheduler_config = training_config.scheduler
-        self.logging_config = training_config.logging
-        self.early_stopping_config = training_config.early_stopping
-        self.checkpoint_config = training_config.checkpoint
+        self.config = config
+        self.train_config = config.training
+        self.criterion_config = self.train_config.criterion
+        self.optimizer_config = self.train_config.optimizer
+        self.scheduler_config = self.train_config.scheduler
+        self.logging_config = self.train_config.logging
+        self.early_stopping_config = self.train_config.early_stopping
+        self.checkpoint_config = self.train_config.checkpoint
         self.meters_conf = meters
         self.test_epoch_freq = test_epoch_freq
 
@@ -67,14 +68,14 @@ class Trainer:
         setup_logging(__name__)
 
         # Device
-        self._setup_device(training_config.accelerator)
+        self._setup_device(self.train_config.accelerator)
         self._setup_torch_backend()
 
         # Components
         self._setup_components(model)
 
         # Move components to device
-        self._move_to_device(compile_model=training_config.compile_model)
+        self._move_to_device()
 
         # Data loaders
         self.train_data_loader = train_data_loader
@@ -698,19 +699,16 @@ class Trainer:
         Returns:
             Logger: Logger for training.
         """
-        return Logger(self.train_config)
+        return Logger(self.config)
 
-    def _move_to_device(self, compile_model: bool = True) -> None:
+    def _move_to_device(self) -> None:
         """
         Move the components to the device.
-
-        Args:
-            compile_model (bool): Compile the model for faster training. Default is True.
         """
         import torch
         logging.info(f"Moving components to device {self.device}.")
 
-        if compile_model:
+        if self.train_config.compile_model:
             backend = "inductor" if platform.system() == "Linux" else "aot_eager"
             logging.info(f"Compiling the model with backend '{backend}'.")
 

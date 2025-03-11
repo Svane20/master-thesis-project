@@ -9,7 +9,7 @@ from numpy import ndarray
 import atexit
 import functools
 
-from ...configuration.training.root import TrainConfig
+from ...configuration.configuration import Config
 from .train_utils import makedir
 
 
@@ -28,8 +28,8 @@ Scalar = Union[Tensor, ndarray, int, float]
 
 
 class WandbLogger:
-    def __init__(self, configuration: TrainConfig):
-        wandb_configuration = configuration.logging.wandb
+    def __init__(self, configuration: Config):
+        wandb_configuration = configuration.training.logging.wandb
         self.enabled = wandb_configuration.enabled
 
         if not self.enabled:
@@ -99,7 +99,7 @@ class WandbLogger:
 
 
 class Logger:
-    def __init__(self, train_config: TrainConfig):
+    def __init__(self, train_config: Config):
         self.wandb_logger = WandbLogger(train_config)
 
     def log(self, name: str, payload: Scalar, step: int) -> None:

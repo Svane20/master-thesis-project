@@ -74,7 +74,7 @@ def _setup_run(config: Config) -> None:
         model=model,
         train_data_loader=train_data_loader,
         test_data_loader=test_data_loader,
-        training_config=training_config,
+        config=config,
     )
 
     try:

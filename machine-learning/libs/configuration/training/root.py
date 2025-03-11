@@ -52,6 +52,14 @@ class CheckpointConfig:
     checkpoint_path: str
     resume_from: Optional[str]
 
+    def asdict(self):
+        return {
+            "save_directory": self.save_directory,
+            "save_freq": self.save_freq,
+            "checkpoint_path": self.checkpoint_path,
+            "resume_from": self.resume_from
+        }
+
 
 @dataclass
 class TrainConfig:
@@ -78,4 +86,5 @@ class TrainConfig:
             "optimizer": self.optimizer.asdict(),
             "scheduler": self.scheduler.asdict(),
             "early_stopping": self.early_stopping.asdict(),
+            "checkpoint": self.checkpoint.asdict(),
         }

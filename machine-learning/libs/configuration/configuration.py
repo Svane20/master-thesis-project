@@ -20,6 +20,13 @@ class Config:
     deployment: Optional[DeploymentConfig] = None
     model: Optional[Dict[str, Any]] = None
 
+    def asdict(self):
+        return {
+            "scratch": self.scratch.asdict() if self.scratch is not None else None,
+            "dataset": self.dataset.asdict() if self.dataset is not None else None,
+            "training": self.training.asdict() if self.training is not None else None,
+        }
+
 
 def load_configuration(configuration_path: Path) -> Config:
     """
