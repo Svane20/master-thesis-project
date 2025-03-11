@@ -60,7 +60,6 @@ class SyntheticDataset(Dataset):
             else:
                 logging.warning(f"Mask file {f} does not match the expected pattern.")
 
-        # Only keep keys present in both dictionaries
         self.keys = sorted(set(self.image_dict.keys()) & set(self.mask_dict.keys()))
         if not self.keys:
             raise RuntimeError("No matching image-mask pairs found.")
@@ -90,14 +89,13 @@ class SyntheticDataset(Dataset):
             logging.error(f"Error opening mask file {mask_path}: {e}")
             raise e
 
-        # Preprocess mask by extracting the alpha channel directly using PIL
+        # Preprocess mask by extracting the alpha channel
         alpha_channel = mask_rgba.getchannel("A")
         mask = alpha_channel
 
         if self.transforms:
             image, mask = self.transforms(image, mask)
-            # Check dimensions after transformation.
-            # For tensors, compare the last two dimensions; for PIL images, use .size.
+
             if isinstance(image, Tensor) and isinstance(mask, Tensor):
                 if image.shape[-2:] != mask.shape[-2:]:
                     raise ValueError(
