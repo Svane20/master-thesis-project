@@ -1,0 +1,14 @@
+# Global configuration
+scratch:
+  resolution: 512
+
+# Model configuration
+model:
+  image_encoder:
+    pretrained: true
+    freeze_pretrained: false
+
+# Deployment configuration
+deployment:
+  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_resnet_34_v1.pt"
+  destination_directory: "/mnt/shared/ml/models/unet"
