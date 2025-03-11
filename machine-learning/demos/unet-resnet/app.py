@@ -21,7 +21,7 @@ transforms = Compose(
     ],
 )
 
-checkpoint_path = "unet_resnet_34_v1.pt"
+checkpoint_path = "unet_resnet_34_v2.pt"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = build_model(checkpoint_path, device=str(device), mode="eval")
 
@@ -109,7 +109,10 @@ def predict(image_path: str) -> Tuple[np.ndarray, np.ndarray, float]:
 
 
 title = "Demo: Sky Replacement with Alpha Matting"
-description = "This demo performs alpha matting and sky replacements for houses using a U-Net model. Upload an image to perform sky replacement."
+description = """
+This demo performs alpha matting and sky replacements for houses using a U-Net model with a ResNet-34 backbone. 
+Upload an image to perform sky replacement.
+"""
 
 # Create examples list from "examples/" directory
 example_list = [["examples/" + example] for example in os.listdir("examples") if
