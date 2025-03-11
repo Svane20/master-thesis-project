@@ -2,15 +2,15 @@ import torch
 
 from pathlib import Path
 import platform
+import os
 
 from libs.configuration.configuration import load_configuration_and_checkpoint
-from datasets.synthetic.data_loaders import create_data_loader
-from datasets.transforms import get_val_transforms
-
+from libs.datasets.synthetic.data_loaders import create_data_loader
+from libs.datasets.synthetic.transforms import get_test_transforms
 from libs.evaluation.inference import evaluate_model
 from libs.training.utils.logger import setup_logging
 
-from unet.build_model import build_unet_model
+from ..build_model import build_model
 
 setup_logging(__name__)
 
@@ -19,16 +19,16 @@ def main() -> None:
     # Directories
     base_directory = Path(__file__).resolve().parent.parent.parent
     if platform.system() == "Windows":
-        configuration_path: Path = base_directory / "unet/configs/inference_windows.yaml"
+        configuration_path: Path = base_directory / "unet-vgg16/configs/inference_windows.yaml"
     else:  # Assume Linux for any non-Windows OS
-        configuration_path: Path = base_directory / "unet/configs/inference_linux.yaml"
+        configuration_path: Path = base_directory / "unet-vgg16/configs/inference_linux.yaml"
 
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_configuration_and_checkpoint(configuration_path)
 
     # Load the model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = build_unet_model(
+    model = build_model(
         configuration=configuration.model,
         checkpoint_path=checkpoint_path,
         compile_model=False,
@@ -37,16 +37,14 @@ def main() -> None:
     )
 
     # Create data loader
-    val_directory = Path(configuration.dataset.root) / configuration.dataset.name / "val"
-    transforms = get_val_transforms(configuration.scratch.resolution)
     data_loader = create_data_loader(
-        directory=val_directory,
-        transforms=transforms,
+        root_directory=os.path.join(configuration.dataset.root, configuration.dataset.name, "test"),
         batch_size=configuration.dataset.batch_size,
         pin_memory=configuration.dataset.pin_memory,
-        num_workers=configuration.dataset.val.num_workers,
-        shuffle=configuration.dataset.val.shuffle,
-        drop_last=configuration.dataset.val.drop_last,
+        num_workers=configuration.dataset.test.num_workers,
+        shuffle=configuration.dataset.test.shuffle,
+        drop_last=configuration.dataset.test.drop_last,
+        transforms=get_test_transforms(configuration.scratch.resolution)
     )
 
     # Model evaluation

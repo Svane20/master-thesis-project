@@ -2,27 +2,27 @@
 
 # Global configuration
 scratch:
-  resolution: 512 # Try with 1024 next
+  resolution: 512
 
 # Dataset configuration
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 12
+  batch_size: 10
   pin_memory: true
   train:
     num_workers: 4
     shuffle: true
     drop_last: true
-  val:
+  test:
     num_workers: 4
     shuffle: false
     drop_last: false
 
 # Training configuration
 training:
-  max_epochs: 300
-  warmup_epochs: 30 # 5-10% of max_epochs
+  max_epochs: 200
+  warmup_epochs: 20 # 5-10% of max_epochs
   accelerator: cuda
   seed: 42
   compile_model: true
@@ -71,9 +71,9 @@ training:
       enabled: true
       project: "U-NET"
       entity: "svane20-keyshot"
-      tags: [ "unet", "synthetic-data", "alpha-matting", "experiment" ]
-      notes: "Training U-Net on Synthetic dataset with mixed precision"
-      group: "unet-synthetic-experiments"
+      tags: [ "unet", "vgg16-bn", "synthetic-data" ]
+      notes: "Training U-Net with VGG16-BN backbone on synthetic data."
+      group: "unet-vgg16-bn"
       job_type: "training"
     log_directory: "./logs"
     log_metrics: false
@@ -88,7 +88,6 @@ training:
 
 # Model configuration
 model:
-  name: "UNet"
   image_encoder:
     pretrained: true
     freeze_pretrained: false

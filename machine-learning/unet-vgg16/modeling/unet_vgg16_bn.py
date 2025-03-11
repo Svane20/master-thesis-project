@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 
-from unet.modeling.image_encoder import ImageEncoder
-from unet.modeling.mask_decoder import MaskDecoder
+from .image_encoder import ImageEncoder
+from .mask_decoder import MaskDecoder
 
 
-class UNet(nn.Module):
+class UNetVGG16BN(nn.Module):
     """
     UNet model for Image Matting.
     """

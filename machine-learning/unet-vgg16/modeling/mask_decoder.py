@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from typing import List
 
-from unet.modeling.utils import UpSample
+from .utils import UpSample
 
 
 class MaskDecoder(nn.Module):

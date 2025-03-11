@@ -4,7 +4,6 @@ scratch:
 
 # Model configuration
 model:
-  name: "UNet"
   image_encoder:
     pretrained: true
     freeze_pretrained: true
@@ -14,5 +13,5 @@ model:
 
 # Deployment configuration
 deployment:
-  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/unet_v2.pt"
-  destination_directory: "D:/OneDrive/Master Thesis/ml/models/unet"
+  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v2.pt"
+  destination_directory: "/mnt/shared/ml/models/unet"

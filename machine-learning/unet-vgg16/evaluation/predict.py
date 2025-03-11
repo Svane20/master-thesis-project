@@ -7,13 +7,14 @@ import random
 import numpy as np
 
 from libs.configuration.configuration import load_configuration_and_checkpoint
-from datasets.transforms import get_val_transforms
+from libs.datasets.synthetic.transforms import get_test_transforms
 from libs.evaluation.inference import predict_image
 from libs.evaluation.visualization import save_prediction
 from libs.replacements.foreground_estimation import get_foreground_estimation
 from libs.replacements.replacement import replace_background
 from libs.training.utils.logger import setup_logging
-from unet.build_model import build_unet_model
+
+from ..build_model import build_model
 
 setup_logging(__name__)
 
@@ -26,16 +27,16 @@ def main() -> None:
 
     # Get configuration based on OS
     if platform.system() == "Windows":
-        configuration_path: Path = root_directory / "unet/configs/inference_windows.yaml"
+        configuration_path: Path = root_directory / "unet-vgg16/configs/inference_windows.yaml"
     else:  # Assume Linux for any non-Windows OS
-        configuration_path: Path = root_directory / "unet/configs/inference_linux.yaml"
+        configuration_path: Path = root_directory / "unet-vgg16/configs/inference_linux.yaml"
 
     # Load configuration and checkpoint
     configuration, checkpoint_path = load_configuration_and_checkpoint(configuration_path)
 
     # Load the model
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = build_unet_model(
+    model = build_model(
         configuration=configuration.model,
         checkpoint_path=checkpoint_path,
         compile_model=False,
@@ -45,10 +46,10 @@ def main() -> None:
 
     # Get test transforms
     dataset_path = Path(configuration.dataset.root) / configuration.dataset.name
-    transforms = get_val_transforms(configuration.scratch.resolution)
+    transforms = get_test_transforms(configuration.scratch.resolution)
 
     # List all image files in the validation images folder
-    images_dir = dataset_path / "val" / "images"
+    images_dir = dataset_path / "test" / "images"
     image_files = list(images_dir.glob("*.png"))
 
     # Choose a random image file
@@ -57,7 +58,7 @@ def main() -> None:
 
     # Derive the corresponding mask path by replacing "Image" with "SkyMask" in the filename
     mask_filename = chosen_image_path.stem.replace("Image", "SkyMask") + ".png"
-    mask_path = dataset_path / "val" / "masks" / mask_filename
+    mask_path = dataset_path / "test" / "masks" / mask_filename
     mask = np.array(Image.open(mask_path).convert("L"), dtype=np.float32)
     mask = mask / 255.0  # Scale mask values to the [0, 1] range
 
