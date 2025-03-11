@@ -5,7 +5,7 @@ from torchvision.utils import make_grid
 from torchvision.transforms.functional import to_pil_image
 
 import time
-from typing import Dict, Optional, Any, List, Tuple, cast, Sized
+from typing import Dict, Optional, Any, List, Tuple
 from pathlib import Path
 import logging
 import os.path
@@ -14,7 +14,7 @@ import json
 import platform
 
 from ..configuration.training.root import TrainConfig
-from .criterions_new import CORE_LOSS_KEY, MattingLossV2
+from .criterions import CORE_LOSS_KEY, MattingLossV2
 from .early_stopping import EarlyStopping
 from .optimizers import construct_optimizer, GradientClipper
 from .schedulers import SchedulerWrapper
