@@ -1,7 +1,6 @@
 import gradio as gr
 import torch
-import albumentations as A
-from albumentations.pytorch import ToTensorV2
+from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 
 import numpy as np
 import os
@@ -14,24 +13,20 @@ from model.build_model import build_model
 from replacements.foreground_estimation import get_foreground_estimation
 from replacements.replacements import sky_replacement
 
-transforms = A.Compose(
+transforms = Compose(
     [
-        A.Resize(224, 224),
-        A.Normalize(
-            mean=(0.5, 0.5, 0.5),
-            std=(0.5, 0.5, 0.5),
-        ),
-        ToTensorV2(),
+        Resize(size=(512, 512)),
+        ToTensor(),
+        Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
     ],
-    additional_targets={'mask': 'mask'}
 )
 
-checkpoint_path = "unet_v1.pt"
+checkpoint_path = "unet_resnet_34_v1.pt"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = build_model(checkpoint_path, device=str(device), mode="eval")
 
 
-def preprocess(image: np.ndarray) -> torch.Tensor:
+def preprocess(image: Image) -> torch.Tensor:
     """
     Preprocess the input image.
 
@@ -41,11 +36,7 @@ def preprocess(image: np.ndarray) -> torch.Tensor:
     Returns:
         torch.Tensor: Preprocessed image.
     """
-    # Apply transforms
-    transformed = transforms(image=image)
-    image_tensor = transformed["image"].unsqueeze(0).to(device)  # Add batch dimension
-
-    return image_tensor
+    return transforms(image).unsqueeze(0).to(device)
 
 
 def postprocess(predicted_mask: torch.Tensor, width: int, height: int) -> np.ndarray:
@@ -91,7 +82,7 @@ def predict(image_path: str) -> Tuple[np.ndarray, np.ndarray, float]:
     start_time = timer()
 
     # Load the image
-    image = np.array(Image.open(image_path).convert("RGB"))
+    image = Image.open(image_path).convert("RGB")
 
     # Preprocess the image
     image_tensor = preprocess(image)
@@ -101,7 +92,7 @@ def predict(image_path: str) -> Tuple[np.ndarray, np.ndarray, float]:
         outputs = torch.clamp(outputs, 0, 1)  # Clamp to [0, 1]
 
     # Postprocess the output
-    predicted_alpha_matte = postprocess(outputs, width=image.shape[1], height=image.shape[0])
+    predicted_alpha_matte = postprocess(outputs, width=image.size[1], height=image.size[0])
 
     # Perform foreground estimation
     foreground = get_foreground_estimation(image_path, predicted_alpha_matte)

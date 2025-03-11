@@ -1,7 +1,6 @@
 gradio
 torch
 torchvision
-albumentations
 numpy
 pillow
 pymatting
