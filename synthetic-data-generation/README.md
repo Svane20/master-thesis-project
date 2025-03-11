@@ -35,13 +35,13 @@ conda activate blender
 3. Run the following command:
 
 ````bash
-nohup python run.py &
+nohup python main.py &
 ````
 
 4. When the SSH connection is re-established, run the following command:
 
 ````bash
-ps -ef | grep run.py
+ps -ef | grep main.py
 ````
 
 OR

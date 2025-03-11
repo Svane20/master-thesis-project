@@ -17,6 +17,7 @@ class Configuration(BaseModel):
     """
     source_directory: str
     destination_directory: str
+    num_workers: int
     train_ratio: float
 
 

@@ -96,7 +96,7 @@ def main() -> None:
     )
 
     # Replace the background with a new sky
-    new_sky_path = root_directory / "replacements" / "skies" / "new_sky.webp"
+    new_sky_path = root_directory / "libs" / "replacements" / "skies" / "new_sky.webp"
     replace_background(
         new_sky_path,
         foreground,

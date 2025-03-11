@@ -29,12 +29,12 @@ def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: flo
     Flatten versioned synthetic data into train and validation directories,
     moving PNG files.
 
-    Creates train/val splits based on the given train_ratio (default: 80% train, 20% val).
+    Creates train/test splits based on the given train_ratio (default: 80% train, 20% test).
     The directory structure in dest_dir will be:
         - train/images
         - train/masks
-        - val/images
-        - val/masks
+        - test/images
+        - test/masks
 
     For each folder in the source, the script processes images from the "images" subfolder.
     For every image (named like "Image_0.png"), it looks for a corresponding mask in the "masks" subfolder.
@@ -48,13 +48,13 @@ def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: flo
     """
     logging.info("Starting dataset flattening and splitting...")
 
-    # Create destination directories for train and validation splits
+    # Create destination directories for train and testing splits
     train_images_dest = dest_dir / "train" / "images"
     train_masks_dest = dest_dir / "train" / "masks"
-    val_images_dest = dest_dir / "val" / "images"
-    val_masks_dest = dest_dir / "val" / "masks"
+    test_images_dest = dest_dir / "test" / "images"
+    test_masks_dest = dest_dir / "test" / "masks"
 
-    for directory in [train_images_dest, train_masks_dest, val_images_dest, val_masks_dest]:
+    for directory in [train_images_dest, train_masks_dest, test_images_dest, test_masks_dest]:
         directory.mkdir(parents=True, exist_ok=True)
 
     # Gather samples from source_dir.
@@ -85,14 +85,14 @@ def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: flo
     total_samples = len(samples)
     logging.info(f"Total samples collected: {total_samples}")
 
-    # Create train/val split
+    # Create train/test split
     sample_ids = list(samples.keys())
     random.shuffle(sample_ids)
     split_index = int(total_samples * train_ratio)
     train_samples = sample_ids[:split_index]
-    val_samples = sample_ids[split_index:]
+    test_samples = sample_ids[split_index:]
 
-    logging.info(f"Train samples: {len(train_samples)}, Validation samples: {len(val_samples)}")
+    logging.info(f"Train samples: {len(train_samples)}, Test samples: {len(test_samples)}")
 
     # Helper function to process a split in parallel
     def process_split(sample_ids, images_dest, masks_dest, split_desc):
@@ -116,21 +116,21 @@ def flatten_and_split_dataset(source_dir: Path, dest_dir: Path, train_ratio: flo
     # Process training samples in parallel
     process_split(train_samples, train_images_dest, train_masks_dest, "Processing training samples")
 
-    # Process validation samples in parallel
-    process_split(val_samples, val_images_dest, val_masks_dest, "Processing validation samples")
+    # Process testing samples in parallel
+    process_split(test_samples, test_images_dest, test_masks_dest, "Processing testing samples")
 
     logging.info("Finished dataset flattening and splitting")
 
 
 def validate_dataset_split(split_dir: Path) -> bool:
     """
-    Validate that every image in the split (e.g., val or test) has an associated mask.
+    Validate that every image in the split (e.g., train or test) has an associated mask.
     The association is determined by the naming convention:
         For an image file named "folder_Image_0.png" in split_dir/images,
         the corresponding mask is expected to be named "folder_SkyMask_0.png" in split_dir/masks.
 
     Args:
-        split_dir (Path): The split directory to validate (e.g., destination_directory / "val").
+        split_dir (Path): The split directory to validate (e.g., destination_directory / "test").
 
     Returns:
         bool: True if all images have their corresponding masks, False otherwise.
@@ -165,17 +165,16 @@ if __name__ == '__main__':
     source_directory = Path(configuration.source_directory)
     destination_directory = Path(configuration.destination_directory)
 
-    # Flatten and split dataset (80% train, 20% val)
-    max_workers = os.cpu_count() // 2
+    # Flatten and split dataset
     flatten_and_split_dataset(
         source_directory,
         destination_directory,
         train_ratio=configuration.train_ratio,
-        max_workers=max_workers
+        max_workers=min(configuration.num_workers, 2)
     )
 
-    # Validate the train and validation splits
-    for split in ["train", "val"]:
+    # Validate the train and test splits
+    for split in ["train", "test"]:
         split_dir = destination_directory / split
         if validate_dataset_split(split_dir):
             logging.info(f"{split.capitalize()} split is complete and valid.")
