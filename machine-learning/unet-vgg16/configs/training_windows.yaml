@@ -31,10 +31,11 @@ training:
   criterion:
     name: "MattingLossV2"
     weight_dict:
-      l1: 1.0
+      boundary: 0.5
       composition: 1.0
-      laplacian: 1.0
       gradient: 0.5
+      l1: 1.0
+      laplacian: 1.0
 
   # Optimizer configuration
   optimizer:
