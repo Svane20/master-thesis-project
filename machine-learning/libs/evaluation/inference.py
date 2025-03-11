@@ -1,11 +1,12 @@
 import torch
 import torchvision
 
-import albumentations as A
 import numpy as np
 from typing import Dict, Tuple
 import time
 import logging
+
+from libs.datasets.transforms import Transform
 
 from ..metrics.utils import compute_metrics, compute_evaluation_metrics
 from ..training.utils.train_utils import AverageMeter, MemMeter, DurationMeter, ProgressMeter
@@ -123,7 +124,7 @@ def predict_image(
         image: np.ndarray,
         mask: np.ndarray,
         model: torch.nn.Module,
-        transform: A.Compose,
+        transform: Transform,
         device: torch.device,
 ) -> Tuple[np.ndarray, Dict[str, float]]:
     """
@@ -133,7 +134,7 @@ def predict_image(
         image (numpy.ndarray): Input image.
         mask (numpy.ndarray): Ground truth mask.
         model (torch.nn.Module): Model to use for prediction.
-        transform (albumentations.Compose): Transform to apply to the image.
+        transform (Transform): Transform to apply to the image.
         device (torch.device): Device to use for inference.
 
     Returns:
@@ -142,7 +143,7 @@ def predict_image(
     model.eval()
 
     # Apply transformations
-    transformed = transform(image=image, mask=mask)
+    transformed = transform(image ,mask)
     image_tensor = transformed["image"].unsqueeze(0).to(device)  # Add batch dimension
     mask_tensor = transformed["mask"].unsqueeze(0).to(device)  # Add batch dimension
 

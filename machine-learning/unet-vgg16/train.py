@@ -2,15 +2,17 @@ import torch
 
 from pathlib import Path
 import platform
+import os
 
-from datasets.synthetic.data_loaders import setup_data_loaders
-
-from libs.training.trainer import Trainer
-from libs.training.utils.train_utils import set_seeds
 from libs.configuration.configuration import Config, load_configuration
 from libs.configuration.dataset import DatasetConfig
 from libs.configuration.scratch import ScratchConfig
 from libs.configuration.training.root import TrainConfig
+from libs.datasets.synthetic.data_loaders import create_data_loader
+from libs.datasets.transforms import Compose, Resize, RandomCrop, RandomHorizontalFlip, ToTensor, Normalize
+from libs.training.trainer import Trainer
+from libs.training.utils.train_utils import set_seeds
+
 from build_model import build_model_for_train
 
 
@@ -37,7 +39,35 @@ def _setup_run(config: Config) -> None:
     model = build_model_for_train(config.model)
 
     # Set up the data loaders
-    train_data_loader, test_data_loader = setup_data_loaders(scratch_config, dataset_config)
+    root_path = os.path.join(config.dataset.root, config.dataset.name)
+    train_data_loader = create_data_loader(
+        root_directory=os.path.join(root_path, "train"),
+        batch_size=config.dataset.batch_size,
+        num_workers=config.dataset.train.num_workers,
+        pin_memory=config.dataset.pin_memory,
+        shuffle=config.dataset.train.shuffle,
+        drop_last=config.dataset.train.drop_last,
+        transforms=Compose([
+            Resize((600, 600)),
+            RandomCrop((scratch_config.resolution, scratch_config.resolution)),
+            RandomHorizontalFlip(p=0.5),
+            ToTensor(),
+            Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+        ])
+    )
+    test_data_loader = create_data_loader(
+        root_directory=os.path.join(root_path, "test"),
+        batch_size=dataset_config.batch_size,
+        num_workers=config.dataset.test.num_workers,
+        pin_memory=dataset_config.pin_memory,
+        shuffle=config.dataset.test.shuffle,
+        drop_last=config.dataset.test.drop_last,
+        transforms=Compose([
+            Resize((scratch_config.resolution, scratch_config.resolution)),
+            ToTensor(),
+            Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+        ])
+    )
 
     # Set up the trainer
     trainer = Trainer(

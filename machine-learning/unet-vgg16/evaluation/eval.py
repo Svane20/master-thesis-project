@@ -2,11 +2,11 @@ import torch
 
 from pathlib import Path
 import platform
+import os
 
 from libs.configuration.configuration import load_configuration_and_checkpoint
-from datasets.synthetic.data_loaders import create_data_loader
-from datasets.transforms import get_test_transforms
-
+from libs.datasets.synthetic.data_loaders import create_data_loader
+from libs.datasets.synthetic.transforms import get_test_transforms
 from libs.evaluation.inference import evaluate_model
 from libs.training.utils.logger import setup_logging
 
@@ -37,16 +37,14 @@ def main() -> None:
     )
 
     # Create data loader
-    test_directory = Path(configuration.dataset.root) / configuration.dataset.name / "test"
-    transforms = get_test_transforms(configuration.scratch.resolution)
     data_loader = create_data_loader(
-        directory=test_directory,
-        transforms=transforms,
+        root_directory=os.path.join(configuration.dataset.root, configuration.dataset.name, "test"),
         batch_size=configuration.dataset.batch_size,
         pin_memory=configuration.dataset.pin_memory,
         num_workers=configuration.dataset.test.num_workers,
         shuffle=configuration.dataset.test.shuffle,
         drop_last=configuration.dataset.test.drop_last,
+        transforms=get_test_transforms(configuration.scratch.resolution)
     )
 
     # Model evaluation
