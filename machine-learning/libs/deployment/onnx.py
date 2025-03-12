@@ -1,27 +1,24 @@
 import torch
 
 from pathlib import Path
-from typing import Tuple
 import onnx
 import logging
 
 
 def export_to_onnx(
         model: torch.nn.Module,
-        device: torch.device,
         model_name: str,
         directory: Path,
-        input_shape: Tuple[int, int, int, int] = (1, 3, 224, 224),  # (batch_size, channels, height, width),
+        dummy_input: torch.Tensor,
 ) -> None:
     """
     Export the model to ONNX format.
 
     Args:
         model (torch.nn.Module): Model to export.
-        device (torch.device): Device to use for export.
         model_name (str): Name of the model.
         directory (Path): Directory to save the ONNX model to.
-        input_shape (Tuple[int, int, int, int]): Input shape for the model. Default is (1, 3, 224, 224).
+        dummy_input (torch.Tensor): Dummy input tensor.
     """
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
@@ -29,9 +26,6 @@ def export_to_onnx(
 
     # Set model to inference mode
     model.eval()
-
-    # Create dummy input
-    dummy_input = torch.randn(input_shape).to(device)
 
     # Export model to ONNX
     try:
@@ -87,6 +81,5 @@ def validate_onnx_model(onnx_model: onnx.ModelProto) -> None:
     """
     try:
         onnx.checker.check_model(onnx_model)
-        print("Model is valid.")
     except Exception as e:
-        print(f"Failed to validate the model: {e}")
+        print(f"Failed to validate the ONNX model: {e}")

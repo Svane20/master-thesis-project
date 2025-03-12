@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet34, ResNet34_Weights
 
+from typing import Tuple, List
+
 
 # ----------------------------
 # Encoder: ResNet-34 Based
@@ -80,7 +82,12 @@ class ResNetDecoder(nn.Module):
             nn.ReLU(inplace=True)
         )
 
-    def forward(self, bottleneck: torch.Tensor, skip_connections: list, target_size: torch.Size) -> torch.Tensor:
+    def forward(
+            self,
+            bottleneck: torch.Tensor,
+            skip_connections: List[torch.Tensor],
+            target_size: List[int]
+    ) -> torch.Tensor:
         # skip_connections order: [e3, e2, e1, e0]
         d4 = self.up4(bottleneck)  # Upsample from e4 to H/16
         d4 = torch.cat([d4, skip_connections[0]], dim=1)

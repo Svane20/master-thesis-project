@@ -4,8 +4,9 @@ from pathlib import Path
 import platform
 
 from libs.configuration.configuration import load_configuration_and_checkpoint
-from libs.deployment.export_model import export_to_onnx
-from libs.deployment.trim_checkpoint import save_model_checkpoint
+from libs.deployment.onnx import export_to_onnx
+from libs.deployment.minimal import export_model
+from libs.deployment.torchscript import export_to_torch_script
 
 from build_model import build_model
 
@@ -33,23 +34,31 @@ def main() -> None:
         device=str(device),
         mode="eval"
     )
+    dummy_input = torch.randn(1, 3, configuration.scratch.resolution, configuration.scratch.resolution).to(device)
 
     # Export the minimal model checkpoint
     model_name = checkpoint_path.stem
-    save_model_checkpoint(
+    export_model(
         model=model,
         device=device,
         directory=destination_directory,
         model_name=model_name,
     )
 
+    # Export the model to TorchScript
+    export_to_torch_script(
+        model=model,
+        directory=destination_directory,
+        model_name=model_name,
+        dummy_input=dummy_input,
+    )
+
     # Export the model to ONNX
     export_to_onnx(
         model=model,
-        device=device,
         directory=destination_directory,
         model_name=model_name,
-        input_shape=(1, 3, configuration.scratch.resolution, configuration.scratch.resolution)
+        dummy_input=dummy_input,
     )
 
     print("Production build completed successfully.")

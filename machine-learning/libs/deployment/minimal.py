@@ -4,7 +4,7 @@ import torch.nn as nn
 from pathlib import Path
 
 
-def save_model_checkpoint(
+def export_model(
         model: nn.Module,
         device: torch.device,
         model_name: str,
@@ -30,5 +30,6 @@ def save_model_checkpoint(
     model.eval()
 
     # Save the model checkpoint
-    torch.save(model.state_dict(), checkpoint_path)
+    with open(checkpoint_path, "wb") as f:
+        torch.save(obj=model.state_dict(), f=f)
     print(f"Minimal model checkpoint saved at {checkpoint_path}")
