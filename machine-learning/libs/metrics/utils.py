@@ -2,8 +2,27 @@ import torch
 import torch.nn.functional as F
 
 from typing import Dict, Tuple
+from skimage.measure import label
 import numpy as np
-import cv2
+
+
+def get_grad_filter(device: torch.device, dtype: torch.dtype = torch.float16) -> torch.Tensor:
+    """
+    Get the gradient filter for computing the gradient loss.
+
+    Args:
+        device (torch.device): Device to run the filter on.
+        dtype (torch.dtype): Data type of the filter. Default is torch.float16.
+
+    Returns:
+        torch.Tensor: Gradient filter.
+    """
+    y = [[-1, -2, -1], [0, 0, 0], [1, 2, 1]]
+    x = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
+    grad_filter = torch.tensor([y, x], dtype=dtype, device=device)
+    grad_filter = grad_filter.unsqueeze(1)
+
+    return grad_filter
 
 
 def compute_training_metrics(pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, float]:
@@ -17,253 +36,159 @@ def compute_training_metrics(pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, 
     Returns:
         Dict[str, float]: Dictionary of averaged metrics for the batch.
     """
-    # Initialize accumulators for metrics
-    batch_metrics = {"mse": 0.0, "mae": 0}
-    batch_size = pred.size(0)
+    # Resize tensors if necessary
+    pred, gt = _resize_tensors(pred, gt)
 
-    # Compute metrics for each sample in the batch
-    for i in range(batch_size):
-        sample_metrics = compute_metrics(pred[i:i + 1], gt[i:i + 1])  # Process one sample at a time
+    # Calculate metrics
+    mae = F.l1_loss(pred, gt, reduction="mean").item()
+    mse = F.mse_loss(pred, gt, reduction="mean").item()
 
-        for key in batch_metrics:
-            batch_metrics[key] += sample_metrics[key]
-
-    # Average metrics over the batch
-    for key in batch_metrics:
-        batch_metrics[key] /= batch_size
-
-    return batch_metrics
+    return {"mae": mae, "mse": mse}
 
 
-def compute_evaluation_metrics(pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, float]:
+def compute_evaluation_metrics(
+        preds: torch.Tensor,
+        gts: torch.Tensor,
+        grad_filter: torch.Tensor
+) -> Dict[str, float]:
     """
     Compute evaluation metrics for a batch of alpha matte predictions.
 
     Args:
-        pred (torch.Tensor): Predicted alpha mattes (B, C, H, W).
-        gt (torch.Tensor): Ground truth alpha mattes (B, C, H, W).
+        preds (torch.Tensor): Predicted alpha mattes (B, C, H, W).
+        gts (torch.Tensor): Ground truth alpha mattes (B, C, H, W).
+        grad_filter (torch.Tensor): Gradient filter.
 
     Returns:
         Dict[str, float]: Dictionary of averaged metrics for the batch.
     """
-    # Initialize accumulators for metrics
-    batch_metrics = {"sad": 0.0, "mse": 0.0, "mae": 0, "grad": 0.0, "conn": 0.0}
-    batch_size = pred.size(0)
+    # Resize tensors if necessary
+    preds, gts = _resize_tensors(preds, gts)
 
-    # Compute metrics for each sample in the batch
-    for i in range(batch_size):
-        sample_metrics = compute_metrics(pred[i:i + 1], gt[i:i + 1], is_eval=True)  # Process one sample at a time
+    l1_list = []
+    l2_list = []
+    sad_list = []
+    grad_list = []
+    conn_list = []
 
-        for key in batch_metrics:
-            batch_metrics[key] += sample_metrics[key]
+    for pred, gt in zip(preds, gts):
+        l1_dist = F.l1_loss(pred, gt)
+        l2_dist = F.mse_loss(pred, gt)
+        sad = _compute_sad(pred, gt)
+        grad = _compute_grad(pred, gt, grad_filter)
+        conn = _compute_connectivity(pred, gt)
 
-    # Average metrics over the batch
-    for key in batch_metrics:
-        batch_metrics[key] /= batch_size
+        l1_list.append(l1_dist)
+        l2_list.append(l2_dist)
+        sad_list.append(sad)
+        grad_list.append(grad)
+        conn_list.append(conn)
 
-    return batch_metrics
+    l1_dist = torch.stack(l1_list, dim=0)
+    l2_dist = torch.stack(l2_list, dim=0)
+    sad_error = torch.stack(sad_list, dim=0)
+    grad_error = torch.stack(grad_list, dim=0)
+    conn_error = torch.stack(conn_list, dim=0)
 
-
-def compute_metrics(pred: torch.Tensor, gt: torch.Tensor, is_eval: bool = False) -> Dict[str, float]:
-    """
-    Compute evaluation metrics for alpha matte prediction.
-
-    Args:
-        pred (torch.Tensor): Predicted alpha matte.
-        gt (torch.Tensor): Ground truth alpha matte.
-        is_eval (bool): Whether to compute evaluation metrics. Default is False.
-
-    Returns:
-        Dict[str, float]: Dictionary of evaluation metrics.
-    """
-    metrics = {
-        "mse": compute_MSE(pred, gt),
-        "mae": compute_MAE(pred, gt),
+    return {
+        "mae": l1_dist.mean().item(),
+        "mse": l2_dist.mean().item(),
+        "sad": sad_error.mean().item(),
+        "grad": grad_error.mean().item(),
+        "conn": conn_error.mean().item()
     }
 
-    if is_eval:
-        metrics["sad"] = compute_SAD(pred, gt),
-        metrics["conn"] = compute_CONN(pred, gt, is_batch=False)
-        metrics["grad"] = compute_GRAD(pred, gt)
 
-    return metrics
-
-
-def compute_MSE(alpha_pred: torch.Tensor, alpha_gt: torch.Tensor) -> float:
-    """
-    Calculate Mean Squared Error (MSE) between predictions and targets.
-
-    Args:
-        alpha_pred (torch.Tensor): Predicted alpha matte.
-        alpha_gt (torch.Tensor): Ground truth alpha matte.
-
-    Returns:
-        float: MSE value.
-    """
-    alpha_pred, alpha_gt = _resize_tensors(alpha_pred, alpha_gt)
-
-    mse = torch.mean((alpha_pred - alpha_gt) ** 2, dim=[1, 2, 3])
-    return mse if mse.numel() > 1 else mse.item()
-
-
-def compute_MAE(alpha_pred: torch.Tensor, alpha_gt: torch.Tensor) -> float:
-    """
-    Calculate Mean Absolute Error (MAE) between predictions and targets.
-
-    Args:
-        alpha_pred (torch.Tensor): Predicted alpha matte.
-        alpha_gt (torch.Tensor): Ground truth alpha matte.
-
-    Returns:
-        float: MAE value.
-    """
-    alpha_pred, alpha_gt = _resize_tensors(alpha_pred, alpha_gt)
-
-    mae = torch.mean(torch.abs(alpha_pred - alpha_gt), dim=[1, 2, 3])
-    return mae if mae.numel() > 1 else mae.item()
-
-
-def compute_SAD(alpha_pred: torch.Tensor, alpha_gt: torch.Tensor) -> float:
+def _compute_sad(pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
     """
     Calculate Sum of Absolute Differences (SAD) between predictions and targets.
 
     Args:
-        alpha_pred (torch.Tensor): Predicted alpha matte.
-        alpha_gt (torch.Tensor): Ground truth alpha matte.
+        pred (torch.Tensor): Predicted alpha matte.
+        target (torch.Tensor): Ground truth alpha matte.
 
     Returns:
-        float: SAD value.
+        torch.Tensor: SAD value.
     """
-    alpha_pred, alpha_gt = _resize_tensors(alpha_pred, alpha_gt)
+    error_map = torch.abs((pred - target))
+    loss = torch.sum(error_map)
 
-    sad = torch.sum(torch.abs(alpha_pred - alpha_gt), dim=[1, 2, 3])
-    return sad if sad.numel() > 1 else sad.item()
+    return loss / 1000.0
 
 
-def compute_GRAD(alpha_pred: torch.Tensor, alpha_gt: torch.Tensor) -> float:
+def _compute_grad(
+        preds: torch.Tensor,
+        labels: torch.Tensor,
+        grad_filter: torch.Tensor,
+        epsilon: float = 1e-8
+) -> torch.Tensor:
     """
-    Calculate Gradient Error (GRAD) between predictions and targets.
+    Calculate gradient loss between predictions and targets.
 
     Args:
-        alpha_pred (torch.Tensor): Predicted alpha matte.
-        alpha_gt (torch.Tensor): Ground truth alpha matte.
+        preds (torch.Tensor): Predicted alpha matte.
+        labels (torch.Tensor): Ground truth alpha matte.
+        grad_filter (torch.Tensor): Gradient filter.
+        epsilon (float): Small value to prevent division by zero. Default is 1e-8.
 
     Returns:
-        float: GRAD value.
+        torch.Tensor: Gradient loss.
     """
-    alpha_pred, alpha_gt = _resize_tensors(alpha_pred, alpha_gt)
+    if preds.dim() == 3:
+        preds = preds.unsqueeze(1)
 
-    grad_pred_x, grad_pred_y = _compute_gradients(alpha_pred)
-    grad_gt_x, grad_gt_y = _compute_gradients(alpha_gt)
+    if labels.dim() == 3:
+        labels = labels.unsqueeze(1)
 
-    # Compute gradient magnitude difference
-    grad_diff = torch.sqrt((grad_pred_x - grad_gt_x) ** 2 + (grad_pred_y - grad_gt_y) ** 2)
+    grad_preds = F.conv2d(preds, weight=grad_filter, padding=1)
+    grad_labels = F.conv2d(labels, weight=grad_filter, padding=1)
+    grad_preds = torch.sqrt((grad_preds * grad_preds).sum(dim=1, keepdim=True) + epsilon)
+    grad_labels = torch.sqrt(
+        (grad_labels * grad_labels).sum(dim=1, keepdim=True) + 1e-8
+    )
 
-    # Sum over spatial dimensions (and channel) for each image in the batch
-    grad_error = torch.sum(grad_diff, dim=[1, 2, 3])
-
-    return grad_error if grad_error.numel() > 1 else grad_error.item()
+    return F.l1_loss(grad_preds, grad_labels)
 
 
-def compute_CONN(
-        alpha_pred: torch.Tensor,
-        alpha_gt: torch.Tensor,
-        is_batch: bool = False,
-        **kwargs
-):
+def _compute_connectivity(pred: torch.Tensor, target: torch.Tensor, step: float = 0.1) -> torch.Tensor:
+    thresh_steps = list(torch.arange(0, 1 + step, step))
+    l_map = torch.ones_like(pred, dtype=torch.float) * -1
+    for i in range(1, len(thresh_steps)):
+        pred_alpha_thresh = (pred >= thresh_steps[i]).to(dtype=torch.int)
+        target_alpha_thresh = (target >= thresh_steps[i]).to(dtype=torch.int)
+
+        omega = torch.from_numpy(_get_largest_cc(pred_alpha_thresh * target_alpha_thresh)).to(pred.device,
+                                                                                              dtype=torch.int)
+        flag = ((l_map == -1) & (omega == 0)).to(dtype=torch.int)
+        l_map[flag == 1] = thresh_steps[i - 1]
+
+    l_map[l_map == -1] = 1
+
+    pred_d = pred - l_map
+    target_d = target - l_map
+    pred_phi = 1 - pred_d * (pred_d >= 0.15).to(dtype=torch.int)
+    target_phi = 1 - target_d * (target_d >= 0.15).to(dtype=torch.int)
+    loss = torch.sum(torch.abs(pred_phi - target_phi))
+
+    return loss / 1000.0
+
+
+def _get_largest_cc(segmentation: torch.Tensor) -> np.ndarray:
     """
-    Calculate Connectivity Error (CONN) between predictions and targets.
+    Get the largest connected component in the segmentation
 
     Args:
-        alpha_pred (torch.Tensor): Predicted alpha matte.
-        alpha_gt (torch.Tensor): Ground truth alpha matte.
-        is_batch (bool, optional): Whether the inputs are batched. Defaults to False.
-
+        segmentation (torch.Tensor): Segmentation mask.
 
     Returns:
-        float: CONN value.
+        torch.Tensor: Largest connected component.
     """
-    if is_batch:
-        errors = []
-        B = alpha_pred.size(0)
+    segmentation = segmentation.detach().cpu().numpy()
+    labels = label(segmentation, connectivity=1)
+    if labels.max() == 0:
+        return np.zeros_like(segmentation, dtype=bool)
 
-        for i in range(B):
-            error = _compute_conn_single(alpha_pred[i, 0], alpha_gt[i, 0], **kwargs)
-            errors.append(error)
-
-        return torch.tensor(errors)
-    else:
-        return _compute_conn_single(alpha_pred, alpha_gt, **kwargs)
-
-
-def _compute_conn_single(
-        alpha_pred: torch.Tensor,
-        alpha_gt: torch.Tensor,
-        step: float = 0.1,
-        eps: float = 1e-6
-) -> float:
-    """
-    Calculate Connectivity Error (CONN) between predictions and targets.
-
-    Args:
-        alpha_pred (torch.Tensor): Predicted alpha matte.
-        alpha_gt (torch.Tensor): Ground truth alpha matte.
-        step (float, optional): Step size. Defaults to 0.1.
-        eps (float, optional): Epsilon. Defaults to 1e-6.
-
-    Returns:
-        float: CONN value.
-    """
-    if isinstance(alpha_pred, torch.Tensor):
-        alpha_pred = alpha_pred.detach().cpu().numpy().squeeze()
-        alpha_gt = alpha_gt.detach().cpu().numpy().squeeze()
-
-    # Absolute difference map
-    abs_diff = np.abs(alpha_pred - alpha_gt)
-    thresholds = np.arange(0, 1 + step, step)
-    min_error = np.inf
-
-    for t in thresholds:
-        # Binarize based on threshold t
-        pred_bin = (alpha_pred >= t).astype(np.uint8)
-        gt_bin = (alpha_gt >= t).astype(np.uint8)
-
-        # Connected components on ground truth
-        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(gt_bin, connectivity=8)
-
-        if num_labels > 1:
-            # Skip label 0 (background) and find the largest component
-            largest_label = 1 + np.argmax(stats[1:, cv2.CC_STAT_AREA])
-            largest_mask = (labels == largest_label).astype(np.uint8)
-
-            # Compute error only within the largest connected region
-            error = np.sum(abs_diff * largest_mask) / (np.sum(largest_mask) + eps)
-            min_error = min(min_error, error)
-
-    return min_error
-
-
-def _compute_gradients(x):
-    """
-    Computes the x and y gradients using Sobel filters.
-    x: tensor of shape [B, 1, H, W] (or single image with shape [1, H, W])
-
-    Returns:
-        tuple (grad_x, grad_y)
-    """
-    # Define Sobel kernels
-    sobel_kernel_x = torch.tensor([[-1, 0, 1],
-                                   [-2, 0, 2],
-                                   [-1, 0, 1]], dtype=x.dtype, device=x.device).view(1, 1, 3, 3)
-    sobel_kernel_y = torch.tensor([[-1, -2, -1],
-                                   [0, 0, 0],
-                                   [1, 2, 1]], dtype=x.dtype, device=x.device).view(1, 1, 3, 3)
-
-    # Apply convolution (padding=1 to preserve size)
-    grad_x = F.conv2d(x, sobel_kernel_x, padding=1)
-    grad_y = F.conv2d(x, sobel_kernel_y, padding=1)
-
-    return grad_x, grad_y
+    return labels == np.argmax(np.bincount(labels.flat)[1:]) + 1  # Ignore background label
 
 
 def _resize_tensors(alpha_pred: torch.Tensor, alpha_gt: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:

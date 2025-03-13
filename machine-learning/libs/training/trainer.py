@@ -395,14 +395,15 @@ class Trainer:
                             extra_losses_meters[k].update(val=v.item(), n=1)
 
                         # Update metrics meters
-                        mse_meter.update(val=extra_metrics["mse"], n=1)
-                        mae_meter.update(val=extra_metrics["mae"], n=1)
+                        batch_size = y.size(0)
+                        mse_meter.update(val=extra_metrics["mse"], n=batch_size)
+                        mae_meter.update(val=extra_metrics["mae"], n=batch_size)
                         for k, v in extra_metrics.items():
                             if k not in extra_metrics_meters:
                                 extra_metrics_meters[k] = AverageMeter(
                                     name=k, device=str(self.device), fmt=":.2e"
                                 )
-                            extra_metrics_meters[k].update(val=v, n=1)
+                            extra_metrics_meters[k].update(val=v, n=batch_size)
 
                 # Measure elapsed time
                 batch_time_meter.update(time.time() - end)
