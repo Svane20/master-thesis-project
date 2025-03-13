@@ -12,6 +12,7 @@ from datetime import timedelta
 
 class Phase:
     TRAIN = "train"
+    VAL = "val"
     TEST = "test"
 
 

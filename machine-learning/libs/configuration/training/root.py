@@ -57,7 +57,7 @@ class CheckpointConfig:
             "save_directory": self.save_directory,
             "save_freq": self.save_freq,
             "checkpoint_path": self.checkpoint_path,
-            "resume_from": self.resume_from
+            "resume_from": self.resume_from if self.resume_from else None
         }
 
 

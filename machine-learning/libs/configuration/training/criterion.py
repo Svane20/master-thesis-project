@@ -10,5 +10,5 @@ class CriterionConfig:
     def asdict(self):
         return {
             "name": self.name,
-            "weight_dict": self.weight_dict
+            "weight_dict": self.weight_dict if self.weight_dict else None
         }

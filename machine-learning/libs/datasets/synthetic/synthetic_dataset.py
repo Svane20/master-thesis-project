@@ -35,18 +35,16 @@ class SyntheticDataset(Dataset):
             logging.error(f"Error reading masks directory {self.masks_dir}: {e}")
             raise e
 
-        # Regex to extract key: groups (timestamp, index)
-        # Example:
-        #   Image: 2025-02-21_10-50-50_Image_0.png  -> key: "2025-02-21_10-50-50_0"
-        #   Mask:  2025-02-21_10-50-50_SkyMask_0.png -> key: "2025-02-21_10-50-50_0"
-        pattern = re.compile(r"(\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2})_.*_(\d+)\.png")
+        # Regex to extract the numeric key from the files.
+        # Matches filenames like "0000.png", "0001.jpg", "0002.jpeg" (case-insensitive).
+        pattern = re.compile(r"^(\d+)\.(png|jpg|jpeg)$", re.IGNORECASE)
 
         # Build dictionaries mapping key -> filename
         self.image_dict = {}
         for f in image_files:
             match = pattern.match(f)
             if match:
-                key = f"{match.group(1)}_{match.group(2)}"
+                key = match.group(1)  # The numeric part, e.g., "0001"
                 self.image_dict[key] = f
             else:
                 logging.warning(f"Image file {f} does not match the expected pattern.")
@@ -55,7 +53,7 @@ class SyntheticDataset(Dataset):
         for f in mask_files:
             match = pattern.match(f)
             if match:
-                key = f"{match.group(1)}_{match.group(2)}"
+                key = match.group(1)
                 self.mask_dict[key] = f
             else:
                 logging.warning(f"Mask file {f} does not match the expected pattern.")

@@ -8,10 +8,6 @@ dataset:
   root: "/mnt/shared/datasets/processed"
   batch_size: 16
   pin_memory: true
-  train:
-    num_workers: 4
-    shuffle: true
-    drop_last: true
   test:
     num_workers: 4
     shuffle: false
@@ -25,5 +21,5 @@ model:
 
 # Inference configuration
 evaluation:
-  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v2.pt"
+  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v1.pt"
   compile_model: true

@@ -1,4 +1,5 @@
 from pydantic.dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -21,8 +22,9 @@ class DatasetConfig:
     root: str
     batch_size: int
     pin_memory: bool
-    train: DatasetLoaderConfig
-    test: DatasetLoaderConfig
+    train: Optional[DatasetLoaderConfig] = None
+    val: Optional[DatasetLoaderConfig] = None
+    test: Optional[DatasetLoaderConfig] = None
 
     def asdict(self):
         return {
@@ -30,6 +32,7 @@ class DatasetConfig:
             "root": self.root,
             "batch_size": self.batch_size,
             "pin_memory": self.pin_memory,
-            "train": self.train.asdict(),
-            "test": self.test.asdict()
+            "train": self.train.asdict() if self.train else None,
+            "val": self.val.asdict() if self.val else None,
+            "test": self.test.asdict() if self.test else None,
         }
