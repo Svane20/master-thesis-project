@@ -4,12 +4,11 @@ scratch:
 
 # Model configuration
 model:
-  image_encoder:
+  encoder:
     pretrained: true
-    freeze_pretrained: false
+    freeze_pretrained: true
 
 # Deployment configuration
 deployment:
   checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v1.pt"
   destination_directory: "/mnt/shared/ml/models/unet"
-  compile_model: true

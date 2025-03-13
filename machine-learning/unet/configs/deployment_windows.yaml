@@ -4,9 +4,9 @@ scratch:
 
 # Model configuration
 model:
-  image_encoder:
+  encoder:
     pretrained: true
-    freeze_pretrained: false
+    freeze_pretrained: true
 
 # Deployment configuration
 deployment:
