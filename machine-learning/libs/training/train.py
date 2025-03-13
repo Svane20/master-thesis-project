@@ -1,5 +1,6 @@
 import torch
 import os
+from pathlib import Path
 
 from ..configuration.configuration import Config, TrainConfig
 from ..configuration.dataset import DatasetConfig
@@ -10,7 +11,11 @@ from ..training.trainer import Trainer
 from ..training.utils.train_utils import set_seeds
 
 
-def start_training(model: torch.nn.Module, config: Config) -> None:
+def start_training(
+        model: torch.nn.Module,
+        config: Config,
+        logs_directory: Path
+) -> None:
     # Get the configuration values
     scratch_config: ScratchConfig = config.scratch
     dataset_config: DatasetConfig = config.dataset
@@ -50,6 +55,7 @@ def start_training(model: torch.nn.Module, config: Config) -> None:
         train_data_loader=train_data_loader,
         test_data_loader=test_data_loader,
         config=config,
+        logs_directory=logs_directory,
     )
 
     try:

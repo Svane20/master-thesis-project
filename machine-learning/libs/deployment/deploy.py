@@ -1,6 +1,7 @@
 import torch
 
 from pathlib import Path
+import logging
 
 from ..configuration.configuration import Config
 from .utils.minimal import export_minimal_model, export_model_with_compile
@@ -43,4 +44,4 @@ def deploy_model(
         dummy_input=dummy_input,
     )
 
-    print("Production build completed successfully.")
+    logging.info("Production build completed successfully.")

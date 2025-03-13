@@ -36,6 +36,7 @@ class Trainer:
             train_data_loader: torch.utils.data.DataLoader,
             test_data_loader: torch.utils.data.DataLoader,
             config: Config,
+            logs_directory: Path,
             meters: Optional[Dict[str, Any]] = None,
             test_epoch_freq: int = 1,
     ) -> None:
@@ -45,6 +46,7 @@ class Trainer:
             train_data_loader (torch.utils.data.DataLoader): Data loader for training.
             test_data_loader (torch.utils.data.DataLoader): Data loader for testing.
             config (TrainConfig): Configuration for training.
+            logs_directory (Path): Root directory to save logs.
             meters (Optional[Dict[str, Any]]): Meters for training. Default is None.
             test_epoch_freq (int): Frequency of testing. Default is 1.
         """
@@ -62,6 +64,7 @@ class Trainer:
         self.checkpoint_config = self.train_config.checkpoint
         self.meters_conf = meters
         self.test_epoch_freq = test_epoch_freq
+        self.logs_dir = logs_directory
 
         # Logging
         makedir(self.logging_config.log_directory)
@@ -699,7 +702,7 @@ class Trainer:
         Returns:
             Logger: Logger for training.
         """
-        return Logger(self.config)
+        return Logger(self.config, self.logs_dir)
 
     def _move_to_device(self) -> None:
         """

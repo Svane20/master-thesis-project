@@ -40,7 +40,6 @@ def export_to_onnx(
             output_names=["output"],
             dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
         )
-        logging.info(f"Model exported to ONNX at {save_path}")
     except Exception as e:
         logging.error(f"ONNX export failed: {e}")
         raise
