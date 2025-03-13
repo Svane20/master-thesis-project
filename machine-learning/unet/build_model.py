@@ -102,9 +102,4 @@ def _build(configuration: Dict[str, Any]) -> nn.Module:
     Returns:
         nn.Module: Model.
     """
-    image_encoder_config = configuration.get("image_encoder", {})
-
-    return UNet(
-        pretrained=image_encoder_config.get("pretrained", True),
-        freeze_pretrained=image_encoder_config.get("freeze_pretrained", False),
-    )
+    return UNet(configuration)

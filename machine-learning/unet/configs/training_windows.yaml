@@ -89,6 +89,10 @@ training:
 
 # Model configuration
 model:
-  image_encoder:
+  encoder:
+    model:
+      pretrained_model_name_or_path: "microsoft/resnet-50"
+      output_hidden_states: true
+      out_indices: [0, 1, 2, 3, 4]
     pretrained: true
     freeze_pretrained: false
