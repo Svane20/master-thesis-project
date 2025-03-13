@@ -8,6 +8,7 @@ import wandb
 from numpy import ndarray
 import atexit
 import functools
+from pathlib import Path
 
 from ...configuration.configuration import Config
 from .train_utils import makedir
@@ -28,7 +29,7 @@ Scalar = Union[Tensor, ndarray, int, float]
 
 
 class WandbLogger:
-    def __init__(self, configuration: Config):
+    def __init__(self, configuration: Config, logs_directory: Path) -> None:
         wandb_configuration = configuration.training.logging.wandb
         self.enabled = wandb_configuration.enabled
 
@@ -44,6 +45,7 @@ class WandbLogger:
             group=wandb_configuration.group,
             job_type=wandb_configuration.job_type,
             config=configuration.asdict(),
+            dir=logs_directory,
         )
 
     def log(self, name: str, payload: Scalar, step: int) -> None:
@@ -99,8 +101,8 @@ class WandbLogger:
 
 
 class Logger:
-    def __init__(self, train_config: Config):
-        self.wandb_logger = WandbLogger(train_config)
+    def __init__(self, train_config: Config, logs_directory: Path) -> None:
+        self.wandb_logger = WandbLogger(train_config, logs_directory)
 
     def log(self, name: str, payload: Scalar, step: int) -> None:
         """
