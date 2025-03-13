@@ -1,105 +1,14 @@
-# Deployment on Kubernetes
+# Running Kubernetes
 
-## Flamenco
+1. Start Docker Desktop
 
-### Create namespace
-
-````bash
-kubectl create namespace flamenco
-````
-
-### Deploy NFS Server
+2. Run this command to start Minikube with the Flannel CNI:
 
 ````bash
-kubectl apply -f flamenco-storage-pvc.yaml
+minikube start --cni=flannel
 ````
 
-### Deploy Flamenco Manager
-
-````bash
-kubectl apply -f flamenco-manager.yaml
-````
-
-### Deploy Flamenco Worker
-
-````bash
-kubectl apply -f flamenco-worker.yaml
-````
-
-### Access Flamenco Manager
-
-````bash
-kubectl port-forward svc/flamenco-manager 8080:8080 --namespace flamenco
-````
-
-### Add Blender file to NFS storage
-
-1. Add directory in NFS storage
-
-````bash
-kubectl exec -it flamenco-manager-0 -n flamenco -- mkdir -p /var/flamenco/output/jobs
-````
-
-2. Copy Blender file to NFS storage
-
-````bash
-kubectl cp test.blend flamenco-manager-0:/var/flamenco/output/jobs/test.blend -n flamenco
-````
-
-## Minio
-
-### Create namespace
-
-```bash
-kubectl create namespace minio
-```
-
-### Install Minio
-
-```bash
-helm repo add minio https://charts.min.io/
-helm repo update
-```
-
-### Deploy secrets
-
-```bash
-kubectl apply -f minio-secret.yaml
-```
-
-### Deploy Minio
-
-```bash
-helm install minio minio/minio --namespace minio -f minio-values.yaml
-```
-
-### Upgrade Minio
-
-```bash
-helm upgrade minio minio/minio --namespace minio -f minio-values.yaml
-```
-
-### Access Minio
-
-```bash
-kubectl port-forward svc/minio-console 9001:9001 --namespace minio
-```
-
-### Setup Minio Ingress
-
-```bash
-kubectl apply -f minio-ingress.yaml
-```
-
-### Uninstall Minio
-
-```bash
-helm uninstall minio --namespace minio
-```
-
-# Monitoring
-
-## Prometheus & Grafana
+# Prometheus & Grafana
 
 1. Enable metrics-server in Minikube
 
@@ -133,16 +42,29 @@ helm install grafana grafana/grafana --namespace monitoring --create-namespace
 kubectl apply -f monitoring-ingress.yaml
 ```
 
-# WebAPI
+## Minikube Tunnel (Ingress)
 
-## Deploy
+1. Enable Ingress and Ingress-DNS:
 
-```bash
-kubectl apply -f web-service.yaml
-```
+````bash
+minikube addons enable ingress
+minikube addons enable ingress-dns
+````
 
-## Upgrade
+2. Add the following line to the `C:\Windows\System32\drivers\etc\hosts` file:
 
-```bash
-kubectl rollout restart deployment blender-web-api
-```
+````text
+127.0.0.1 grafana.local
+127.0.0.1 prometheus.local
+````
+
+3. Run this command to enable the MiniKube tunnel:
+
+````bash
+minikube tunnel
+````
+
+4. Visit the following URLs:
+
+- [Grafana](https://grafana.local)
+- [Prometheus](https://prometheus.local)

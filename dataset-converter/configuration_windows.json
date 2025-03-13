@@ -1,6 +1,0 @@
-{
-  "source_directory": "D:/OneDrive/Master Thesis/datasets/raw/synthetic-data",
-  "destination_directory": "D:/OneDrive/Master Thesis/datasets/processed/synthetic-data",
-  "num_workers": 10,
-  "train_ratio": 0.8
-}

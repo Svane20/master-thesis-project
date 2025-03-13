@@ -1,6 +1,0 @@
-services:
-  flamenco-api:
-    container_name: flamenco-api
-    build: ./web-services/flamenco-api
-    ports:
-      - "8000:8000"

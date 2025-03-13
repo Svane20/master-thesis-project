@@ -21,7 +21,7 @@ transforms = Compose(
     ],
 )
 
-checkpoint_path = "unet_resnet_34_v2.pt"
+checkpoint_path = "unet_v1.pt"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = build_model(checkpoint_path, device=str(device), mode="eval")
 
