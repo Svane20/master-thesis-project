@@ -27,6 +27,7 @@ class Config:
             "scratch": self.scratch.asdict() if self.scratch is not None else None,
             "dataset": self.dataset.asdict() if self.dataset is not None else None,
             "training": self.training.asdict() if self.training is not None else None,
+            "model": self.model if self.model is not None else None,
         }
 
 

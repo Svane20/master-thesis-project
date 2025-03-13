@@ -6,7 +6,7 @@ from ..configuration.configuration import Config, TrainConfig
 from ..configuration.dataset import DatasetConfig
 from ..configuration.scratch import ScratchConfig
 from ..datasets.synthetic.data_loaders import create_data_loader
-from ..datasets.synthetic.transforms import get_train_transforms, get_test_transforms
+from ..datasets.synthetic.transforms import get_train_transforms, get_val_transforms
 from ..training.trainer import Trainer
 from ..training.utils.train_utils import set_seeds
 
@@ -39,21 +39,21 @@ def start_training(
         drop_last=config.dataset.train.drop_last,
         transforms=get_train_transforms(scratch_config.resolution)
     )
-    test_data_loader = create_data_loader(
-        root_directory=os.path.join(root_path, "test"),
+    val_data_loader = create_data_loader(
+        root_directory=os.path.join(root_path, "val"),
         batch_size=dataset_config.batch_size,
-        num_workers=config.dataset.test.num_workers,
+        num_workers=config.dataset.val.num_workers,
         pin_memory=dataset_config.pin_memory,
-        shuffle=config.dataset.test.shuffle,
-        drop_last=config.dataset.test.drop_last,
-        transforms=get_test_transforms(scratch_config.resolution)
+        shuffle=config.dataset.val.shuffle,
+        drop_last=config.dataset.val.drop_last,
+        transforms=get_val_transforms(scratch_config.resolution)
     )
 
     # Set up the trainer
     trainer = Trainer(
         model=model,
         train_data_loader=train_data_loader,
-        test_data_loader=test_data_loader,
+        val_data_loader=val_data_loader,
         config=config,
         logs_directory=logs_directory,
     )

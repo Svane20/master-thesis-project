@@ -14,15 +14,15 @@ dataset:
     num_workers: 4
     shuffle: true
     drop_last: true
-  test:
+  val:
     num_workers: 4
     shuffle: false
     drop_last: false
 
 # Training configuration
 training:
-  max_epochs: 200
-  warmup_epochs: 20 # 5-10% of max_epochs
+  max_epochs: 100
+  warmup_epochs: 10 # 5-10% of max_epochs
   accelerator: cuda
   seed: 42
   compile_model: true
@@ -59,11 +59,11 @@ training:
 
   # Early stopping configuration
   early_stopping:
-    enabled: false
+    enabled: true
     verbose: true
     patience: 30
     min_delta: 0.0
-    monitor: "losses/val_core_loss"
+    monitor: "mae"
     mode: "min"
 
   # Logging configuration
@@ -84,11 +84,11 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v3.pt"
+    checkpoint_path: "unet_v1.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration
 model:
-  image_encoder:
+  encoder:
     pretrained: true
     freeze_pretrained: false

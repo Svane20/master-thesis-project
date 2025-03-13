@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torchvision.models import resnet34, ResNet34_Weights
 
-from typing import List
+from typing import List, Dict, Any
 
 
 # ----------------------------
@@ -15,8 +15,11 @@ class ResNetEncoder(nn.Module):
     and skip connections.
     """
 
-    def __init__(self, pretrained: bool = True, freeze_pretrained: bool = False):
+    def __init__(self, config: Dict[str, Any]):
         super().__init__()
+        pretrained = config['pretrained']
+        freeze_pretrained = config['freeze_pretrained']
+
         resnet = resnet34(weights=ResNet34_Weights.DEFAULT if pretrained else None)
         self.encoder0 = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu)  # Output: 64 channels, H/2
         self.encoder1 = nn.Sequential(resnet.maxpool, resnet.layer1)  # Output: 64 channels, H/4
@@ -118,9 +121,9 @@ class UNet(nn.Module):
     UNet model that combines the ResNet-based encoder and the decoder.
     """
 
-    def __init__(self, pretrained: bool = True, freeze_pretrained: bool = False):
+    def __init__(self, config: Dict[str, Any]):
         super().__init__()
-        self.encoder = ResNetEncoder(pretrained=pretrained, freeze_pretrained=freeze_pretrained)
+        self.encoder = ResNetEncoder(config["encoder"])
         self.decoder = ResNetDecoder()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -133,8 +136,15 @@ class UNet(nn.Module):
 # Example Usage
 # ----------------------------
 if __name__ == '__main__':
+    config = {
+        "encoder": {
+            "pretrained": True,
+            "freeze_pretrained": False
+        }
+    }
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    model = UNet(pretrained=True).to(device)
+    model = UNet(config).to(device)
 
     dummy_input = torch.randn(1, 3, 512, 512).to(device)
     output = model(dummy_input)

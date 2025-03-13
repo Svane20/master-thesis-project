@@ -4,6 +4,8 @@ from pathlib import Path
 from configuration.base import get_configurations
 from custom_logging.custom_logger import setup_logging
 
+VALID_EXTENSIONS = {".png", ".jpg", ".jpeg"}
+
 
 def validate_base_directory(source_dir: Path) -> None:
     """
@@ -28,33 +30,33 @@ def validate_base_directory(source_dir: Path) -> None:
             if not images_folder.exists():
                 logging.error(f"Missing images folder in {folder}")
                 valid = False
-
             if not masks_folder.exists():
                 logging.error(f"Missing masks folder in {folder}")
                 valid = False
-
                 continue
 
-            # Verify every image has a corresponding mask.
-            for image_file in images_folder.glob("*.png"):
-                expected_mask_name = image_file.name.replace("Image_", "SkyMask_", 1)
-                expected_mask = masks_folder / expected_mask_name
+            # Collect files using allowed extensions.
+            image_files = [f for f in images_folder.iterdir() if f.is_file() and f.suffix.lower() in VALID_EXTENSIONS]
+            mask_files = [f for f in masks_folder.iterdir() if f.is_file() and f.suffix.lower() in VALID_EXTENSIONS]
 
-                if not expected_mask.exists():
+            # Build dictionaries mapping the file stem (e.g. "0001") to the file.
+            image_dict = {f.stem: f for f in image_files}
+            mask_dict = {f.stem: f for f in mask_files}
+
+            # Verify every image has a corresponding mask.
+            for stem, image_file in image_dict.items():
+                if stem not in mask_dict:
                     logging.error(f"Missing mask for image {image_file.name} in folder {folder.name}")
                     valid = False
 
             # Verify every mask has a corresponding image.
-            for mask_file in masks_folder.glob("*.png"):
-                expected_image_name = mask_file.name.replace("SkyMask_", "Image_", 1)
-                expected_image = images_folder / expected_image_name
-
-                if not expected_image.exists():
+            for stem, mask_file in mask_dict.items():
+                if stem not in image_dict:
                     logging.error(f"Missing image for mask {mask_file.name} in folder {folder.name}")
                     valid = False
 
     if valid:
-        logging.info("Base directory validation succeeded: Every image has a mask and every mask has an image.")
+        logging.info("Base directory validation succeeded: Every image has a corresponding mask and vice versa.")
     else:
         logging.error("Base directory validation failed: Some images or masks are missing corresponding pairs.")
 
@@ -82,47 +84,44 @@ def validate_destination_directory(destination_dir: Path) -> None:
     """
     valid = True
 
-    for subset in ["train", "test"]:
-        subset_folder = destination_dir / subset
-        if not subset_folder.exists():
-            logging.error(f"Missing {subset} folder in {destination_dir}")
-            valid = False
-            continue
+    for folder in destination_dir.iterdir():
+        if folder.is_dir():
+            images_folder = folder / "images"
+            masks_folder = folder / "masks"
 
-        images_folder = subset_folder / "images"
-        masks_folder = subset_folder / "masks"
-
-        if not images_folder.exists():
-            logging.error(f"Missing images folder in {subset_folder}")
-            valid = False
-
-        if not masks_folder.exists():
-            logging.error(f"Missing masks folder in {subset_folder}")
-            valid = False
-            continue
-
-        # Verify every image has a corresponding mask.
-        for image_file in images_folder.glob("*.png"):
-            expected_mask_name = image_file.name.replace("Image_", "SkyMask_", 1)
-            expected_mask = masks_folder / expected_mask_name
-            if not expected_mask.exists():
-                logging.error(f"Missing mask for image {image_file.name} in folder {subset_folder.name}")
+            # Check that the expected subdirectories exist.
+            if not images_folder.exists():
+                logging.error(f"Missing images folder in {folder}")
                 valid = False
-
-        # Verify every mask has a corresponding image.
-        for mask_file in masks_folder.glob("*.png"):
-            expected_image_name = mask_file.name.replace("SkyMask_", "Image_", 1)
-            expected_image = images_folder / expected_image_name
-            if not expected_image.exists():
-                logging.error(f"Missing image for mask {mask_file.name} in folder {subset_folder.name}")
+            if not masks_folder.exists():
+                logging.error(f"Missing masks folder in {folder}")
                 valid = False
+                continue
+
+            # Collect files using allowed extensions.
+            image_files = [f for f in images_folder.iterdir() if f.is_file() and f.suffix.lower() in VALID_EXTENSIONS]
+            mask_files = [f for f in masks_folder.iterdir() if f.is_file() and f.suffix.lower() in VALID_EXTENSIONS]
+
+            # Build dictionaries mapping the file stem (e.g. "0001") to the file.
+            image_dict = {f.stem: f for f in image_files}
+            mask_dict = {f.stem: f for f in mask_files}
+
+            # Verify every image has a corresponding mask.
+            for stem, image_file in image_dict.items():
+                if stem not in mask_dict:
+                    logging.error(f"Missing mask for image {image_file.name} in folder {folder.name}")
+                    valid = False
+
+            # Verify every mask has a corresponding image.
+            for stem, mask_file in mask_dict.items():
+                if stem not in image_dict:
+                    logging.error(f"Missing image for mask {mask_file.name} in folder {folder.name}")
+                    valid = False
 
     if valid:
-        logging.info(
-            "Destination directory validation succeeded: Every image has a mask and every mask has an image in both test and train subfolders.")
+        logging.info("Base directory validation succeeded: Every image has a corresponding mask and vice versa.")
     else:
-        logging.error(
-            "Destination directory validation failed: Some images or masks are missing corresponding pairs in the test and train subfolders.")
+        logging.error("Base directory validation failed: Some images or masks are missing corresponding pairs.")
 
 
 if __name__ == '__main__':

@@ -34,21 +34,21 @@ class Trainer:
             self,
             model: nn.Module,
             train_data_loader: torch.utils.data.DataLoader,
-            test_data_loader: torch.utils.data.DataLoader,
+            val_data_loader: torch.utils.data.DataLoader,
             config: Config,
             logs_directory: Path,
             meters: Optional[Dict[str, Any]] = None,
-            test_epoch_freq: int = 1,
+            val_epoch_freq: int = 1,
     ) -> None:
         """
         Args:
             model (nn.Module): Model to train.
             train_data_loader (torch.utils.data.DataLoader): Data loader for training.
-            test_data_loader (torch.utils.data.DataLoader): Data loader for testing.
+            val_data_loader (torch.utils.data.DataLoader): Data loader for validation.
             config (TrainConfig): Configuration for training.
             logs_directory (Path): Root directory to save logs.
             meters (Optional[Dict[str, Any]]): Meters for training. Default is None.
-            test_epoch_freq (int): Frequency of testing. Default is 1.
+            val_epoch_freq (int): Frequency of validation. Default is 1.
         """
         # Timers
         self._setup_timers()
@@ -63,7 +63,7 @@ class Trainer:
         self.early_stopping_config = self.train_config.early_stopping
         self.checkpoint_config = self.train_config.checkpoint
         self.meters_conf = meters
-        self.test_epoch_freq = test_epoch_freq
+        self.val_epoch_freq = val_epoch_freq
         self.logs_dir = logs_directory
 
         # Logging
@@ -82,7 +82,7 @@ class Trainer:
 
         # Data loaders
         self.train_data_loader = train_data_loader
-        self.test_data_loader = test_data_loader
+        self.val_data_loader = val_data_loader
 
         # Timers
         self.time_elapsed_meter = DurationMeter(name="Time Elapsed", device=self.device, fmt=":.2f")
@@ -95,37 +95,37 @@ class Trainer:
         Run the training.
         """
         train_data_loader = self.train_data_loader
-        test_data_loader = self.test_data_loader
+        val_data_loader = self.val_data_loader
 
         try:
             while self.epoch < self.max_epochs:
                 train_stats, train_losses = self._train_one_epoch(train_data_loader)
-                test_stats, test_metrics, test_losses = self._test_one_epoch(test_data_loader)
+                val_stats, val_metrics, val_losses = self._val_one_epoch(val_data_loader)
 
-                # Testing metric
-                test_metric_key = self.early_stopping_config.monitor \
+                # Validation metric
+                val_metric_key = self.early_stopping_config.monitor \
                     if self.early_stopping_config.enabled \
-                    else f"losses/{Phase.TEST}_{CORE_LOSS_KEY}"
-                assert test_metric_key in test_losses, (
-                    f"Testing metric {test_metric_key} not found in test losses. "
-                    f"Available keys: {test_losses.keys()}")
-                test_metric = test_losses.get(test_metric_key, 0.0)
+                    else "mae"
+                assert val_metric_key in val_metrics, (
+                    f"Val metric {val_metric_key} not found in val metrics. "
+                    f"Available keys: {val_metrics.keys()}")
+                val_metric = val_metrics.get(val_metric_key, 0.0)
 
                 # Step the scheduler
-                self.scheduler.step(test_metric)
+                self.scheduler.step(val_metric)
 
-                # Combine train and test losses
-                combined_losses = {**train_losses, **test_losses}
+                # Combine train and val losses
+                combined_losses = {**train_losses, **val_losses}
 
                 # Log metrics
-                epoch_duration_est = self.est_epoch_time[Phase.TRAIN] + self.est_epoch_time[Phase.TEST]
+                epoch_duration_est = self.est_epoch_time[Phase.TRAIN] + self.est_epoch_time[Phase.VAL]
                 payload = {
                     "overview/epoch": self.epoch,
                     "overview/epoch_duration": epoch_duration_est,
                     "overview/learning_rate": self.optimizer.param_groups[0]["lr"],
                     **{f"train/{k}": v for k, v in train_stats.items()},
-                    **{f"test/{k}": v for k, v in test_stats.items()},
-                    **{f"metrics/{k}": v for k, v in test_metrics.items()},
+                    **{f"val/{k}": v for k, v in val_stats.items()},
+                    **{f"metrics/{k}": v for k, v in val_metrics.items()},
                     **{f"{k}": v for k, v in combined_losses.items()}
                 }
                 self.logger.log_dict(
@@ -142,7 +142,7 @@ class Trainer:
                 current_epoch = self.epoch + 1
                 if self.early_stopping is not None:
                     # Update early stopping
-                    self.early_stopping.step(test_metric)
+                    self.early_stopping.step(val_metric)
 
                     # Check for improvement
                     if self.early_stopping.has_improved:
@@ -309,25 +309,25 @@ class Trainer:
 
         return stats, losses
 
-    def _test_one_epoch(
+    def _val_one_epoch(
             self,
             data_loader: torch.utils.data.DataLoader
     ) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]:
         """
-        Test the model for one epoch.
+        Validate the model for one epoch.
 
         Args:
-            data_loader (torch.utils.data.DataLoader): Data loader for testing.
+            data_loader (torch.utils.data.DataLoader): Data loader for validation.
 
         Returns:
-            Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]: Testing metrics, matting metrics and losses.
+            Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]: Validation metrics, matting metrics and losses.
         """
         # Init stat meters
         batch_time_meter = AverageMeter(name="Batch Time", device=str(self.device), fmt=":.2f")
         data_time_meter = AverageMeter(name="Data Time", device=str(self.device), fmt=":.2f")
         mem_meter = MemMeter(name="Mem (GB)", device=str(self.device), fmt=":.2f")
         data_times = []
-        phase = Phase.TEST
+        phase = Phase.VAL
 
         # Init loss meters
         loss_meter = AverageMeter(name="Loss", device=str(self.device), fmt=":.2e")
@@ -352,14 +352,14 @@ class Trainer:
                 mem_meter,
             ],
             real_meters=self._get_meters([phase]),
-            prefix="Test | Epoch: [{}]".format(self.epoch),
+            prefix="Val | Epoch: [{}]".format(self.epoch),
         )
 
         stats = {}
         losses = {}
         metrics = {}
 
-        # Model testing loop
+        # Model validation loop
         self.model.eval()
         end = time.time()
 
@@ -417,7 +417,7 @@ class Trainer:
                 if batch_idx % self.logging_config.log_freq == 0:
                     progress.display(batch_idx)
             except Exception as e:
-                logging.error(f"Error during testing: {e}")
+                logging.error(f"Error during validation: {e}")
                 raise e
 
         # Estimate epoch time
@@ -441,7 +441,7 @@ class Trainer:
         stats["mem"] = mem_meter.avg
         stats["est_epoch_time"] = self.est_epoch_time[phase]
 
-        logging.info(f"Test metrics: {stats}")
+        logging.info(f"Val metrics: {stats}")
 
         # Reset meters
         self._reset_meters([phase])
@@ -525,7 +525,7 @@ class Trainer:
             loss = losses.pop(CORE_LOSS_KEY)
 
         metrics = {}
-        if phase == Phase.TEST:
+        if phase == Phase.VAL:
             # Calculate metrics
             metrics = compute_training_metrics(outputs, targets)
 
@@ -769,7 +769,7 @@ class Trainer:
         """
         self.start_time = time.time()
         self.ckpt_time_elapsed = 0
-        self.est_epoch_time = dict.fromkeys([Phase.TRAIN, Phase.TEST], 0)
+        self.est_epoch_time = dict.fromkeys([Phase.TRAIN, Phase.VAL], 0)
 
     def _log_timers(self, phase: str) -> None:
         """
@@ -780,19 +780,19 @@ class Trainer:
         """
         time_remaining = 0
         epochs_remaining = self.max_epochs - self.epoch - 1
-        test_epochs_remaining = sum(
-            n % self.test_epoch_freq == 0 for n in range(self.epoch, self.max_epochs)
+        val_epochs_remaining = sum(
+            n % self.val_epoch_freq == 0 for n in range(self.epoch, self.max_epochs)
         )
 
-        if (self.max_epochs - 1) % self.test_epoch_freq != 0:
-            test_epochs_remaining += 1
+        if (self.max_epochs - 1) % self.val_epoch_freq != 0:
+            val_epochs_remaining += 1
 
-        if phase == Phase.TEST:
-            test_epochs_remaining -= 1
+        if phase == Phase.VAL:
+            val_epochs_remaining -= 1
 
         time_remaining += (
                 epochs_remaining * self.est_epoch_time[Phase.TRAIN]
-                + test_epochs_remaining * self.est_epoch_time[Phase.TEST]
+                + val_epochs_remaining * self.est_epoch_time[Phase.VAL]
         )
 
         logging.info(f"Estimated time remaining: {human_readable_time(time_remaining)}")
