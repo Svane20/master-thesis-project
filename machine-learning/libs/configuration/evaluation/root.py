@@ -1,7 +1,7 @@
 from pydantic.dataclasses import dataclass
 
+
 @dataclass
-class DeploymentConfig:
+class EvaluationConfig:
     checkpoint_path: str
-    destination_directory: str
     compile_model: bool
