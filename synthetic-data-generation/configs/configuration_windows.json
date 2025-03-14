@@ -55,7 +55,7 @@
       "feature_set": "SUPPORTED",
       "device": "GPU",
       "tile_size": 4096,
-      "samples": 32,
+      "samples": 64,
       "use_denoising": true,
       "denoising_use_gpu": true,
       "use_adaptive_sampling": true,
