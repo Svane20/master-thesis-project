@@ -31,7 +31,7 @@
     "seed": null
   },
   "run_configuration": {
-    "max_runs": 40,
+    "max_runs": 80,
     "delay": 5,
     "run_path": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/logs/run.log",
     "app_path": "C:/Users/svane/Desktop/Thesis/master-thesis-project/synthetic-data-generation/logs/app.log",
@@ -55,7 +55,7 @@
       "feature_set": "SUPPORTED",
       "device": "GPU",
       "tile_size": 4096,
-      "samples": 64,
+      "samples": 32,
       "use_denoising": true,
       "denoising_use_gpu": true,
       "use_adaptive_sampling": true,
