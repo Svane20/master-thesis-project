@@ -1,4 +1,5 @@
-from ..transforms import Compose, Resize, RandomCrop, RandomHorizontalFlip, ToTensor, Normalize, Transform
+from libs.datasets.transforms import Compose, Resize, RandomSkyCrop, RandomHorizontalFlip, ToTensor, Normalize, \
+    Transform
 
 MEAN = (0.485, 0.456, 0.406)
 STD = (0.229, 0.224, 0.225)
@@ -17,7 +18,7 @@ def get_train_transforms(resolution: int, resize: int = 1000) -> Transform:
     """
     return Compose([
         Resize(size=(resize, resize)),
-        RandomCrop(size=(resolution, resolution)),
+        RandomSkyCrop(size=(resolution, resolution)),
         RandomHorizontalFlip(p=0.5),
         ToTensor(),
         Normalize(mean=MEAN, std=STD)

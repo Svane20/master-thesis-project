@@ -7,7 +7,7 @@ from PIL import Image
 import numpy as np
 
 from ..configuration.configuration import Config
-from ..datasets.synthetic.transforms import get_test_transforms
+from ..datasets.transforms import Transform
 from ..replacements.foreground_estimation import get_foreground_estimation
 from ..replacements.replacement import replace_background
 from ..training.utils.logger import setup_logging
@@ -21,6 +21,7 @@ setup_logging(__name__)
 def run_prediction(
         configuration: Config,
         model: torch.nn.Module,
+        transforms: Transform,
         device: torch.device,
         output_dir: Path,
 ) -> None:
@@ -47,7 +48,7 @@ def run_prediction(
         image=image,
         mask=mask,
         model=model,
-        transform=get_test_transforms(configuration.scratch.resolution),
+        transform=transforms,
         device=device
     )
 

@@ -1,32 +1,23 @@
 import torch
-import os
 from pathlib import Path
+import os
 
-from ..configuration.configuration import Config, TrainConfig
+from ..configuration.configuration import Config
 from ..configuration.dataset import DatasetConfig
-from ..configuration.scratch import ScratchConfig
 from ..datasets.synthetic.data_loaders import create_data_loader
-from ..datasets.synthetic.transforms import get_train_transforms, get_val_transforms
+from ..datasets.transforms import Transform
 from ..training.trainer import Trainer
-from ..training.utils.train_utils import set_seeds
 
 
 def start_training(
         model: torch.nn.Module,
         config: Config,
+        train_transforms: Transform,
+        val_transforms: Transform,
         logs_directory: Path
 ) -> None:
     # Get the configuration values
-    scratch_config: ScratchConfig = config.scratch
     dataset_config: DatasetConfig = config.dataset
-    training_config: TrainConfig = config.training
-
-    # Clear the CUDA cache
-    if torch.cuda.is_available():
-        torch.cuda.empty_cache()
-
-    # Set seed for reproducibility
-    set_seeds(training_config.seed)
 
     # Set up the data loaders
     root_path = os.path.join(config.dataset.root, config.dataset.name)
@@ -37,7 +28,7 @@ def start_training(
         pin_memory=config.dataset.pin_memory,
         shuffle=config.dataset.train.shuffle,
         drop_last=config.dataset.train.drop_last,
-        transforms=get_train_transforms(scratch_config.resolution)
+        transforms=train_transforms
     )
     val_data_loader = create_data_loader(
         root_directory=os.path.join(root_path, "val"),
@@ -46,7 +37,7 @@ def start_training(
         pin_memory=dataset_config.pin_memory,
         shuffle=config.dataset.val.shuffle,
         drop_last=config.dataset.val.drop_last,
-        transforms=get_val_transforms(scratch_config.resolution)
+        transforms=val_transforms
     )
 
     # Set up the trainer

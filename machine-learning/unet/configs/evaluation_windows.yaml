@@ -4,7 +4,7 @@ scratch:
 
 # Dataset configuration
 dataset:
-  name: "synthetic-data"
+  name: "synthetic-data-new"
   root: "D:/OneDrive/Master Thesis/datasets/processed"
   batch_size: 16
   pin_memory: true

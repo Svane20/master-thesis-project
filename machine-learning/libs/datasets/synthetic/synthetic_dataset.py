@@ -1,10 +1,10 @@
-from torch import Tensor
+import torch
 from torch.utils.data import Dataset
+from torchvision.transforms.functional import to_tensor
 
 import os
-import re
-import logging
 from PIL import Image
+from typing import Tuple
 
 from ..transforms import Transform
 
@@ -14,7 +14,7 @@ class SyntheticDataset(Dataset):
     Dataset class for synthetic data.
     """
 
-    def __init__(self, root_directory: str, transforms: Transform = None):
+    def __init__(self, root_directory: str, transforms: Transform = None) -> None:
         """
         Args:
             root_directory (str): Path to the root directory.
@@ -22,87 +22,24 @@ class SyntheticDataset(Dataset):
         """
         self.images_dir = os.path.join(root_directory, "images")
         self.masks_dir = os.path.join(root_directory, "masks")
-
-        try:
-            image_files = os.listdir(self.images_dir)
-        except Exception as e:
-            logging.error(f"Error reading images directory {self.images_dir}: {e}")
-            raise e
-
-        try:
-            mask_files = os.listdir(self.masks_dir)
-        except Exception as e:
-            logging.error(f"Error reading masks directory {self.masks_dir}: {e}")
-            raise e
-
-        # Regex to extract the numeric key from the files.
-        # Matches filenames like "0000.png", "0001.jpg", "0002.jpeg" (case-insensitive).
-        pattern = re.compile(r"^(\d+)\.(png|jpg|jpeg)$", re.IGNORECASE)
-
-        # Build dictionaries mapping key -> filename
-        self.image_dict = {}
-        for f in image_files:
-            match = pattern.match(f)
-            if match:
-                key = match.group(1)  # The numeric part, e.g., "0001"
-                self.image_dict[key] = f
-            else:
-                logging.warning(f"Image file {f} does not match the expected pattern.")
-
-        self.mask_dict = {}
-        for f in mask_files:
-            match = pattern.match(f)
-            if match:
-                key = match.group(1)
-                self.mask_dict[key] = f
-            else:
-                logging.warning(f"Mask file {f} does not match the expected pattern.")
-
-        self.keys = sorted(set(self.image_dict.keys()) & set(self.mask_dict.keys()))
-        if not self.keys:
-            raise RuntimeError("No matching image-mask pairs found.")
+        self.image_files = sorted(os.listdir(self.images_dir))
+        self.mask_files = sorted(os.listdir(self.masks_dir))
 
         self.transforms = transforms
 
     def __len__(self):
-        return len(self.keys)
+        return len(self.image_files)
 
-    def __getitem__(self, index: int):
-        key = self.keys[index]
-        image_filename = self.image_dict[key]
-        mask_filename = self.mask_dict[key]
-
-        image_path = os.path.join(self.images_dir, image_filename)
-        mask_path = os.path.join(self.masks_dir, mask_filename)
-
-        try:
-            image = Image.open(image_path).convert("RGB")
-        except Exception as e:
-            logging.error(f"Error opening image file {image_path}: {e}")
-            raise e
-
-        try:
-            mask_rgba = Image.open(mask_path).convert("RGBA")
-        except Exception as e:
-            logging.error(f"Error opening mask file {mask_path}: {e}")
-            raise e
-
-        # Preprocess mask by extracting the alpha channel
-        alpha_channel = mask_rgba.getchannel("A")
-        mask = alpha_channel
+    def __getitem__(self, index: int) -> Tuple[torch.Tensor, torch.Tensor]:
+        image_path = os.path.join(self.images_dir, self.image_files[index])
+        mask_path = os.path.join(self.masks_dir, self.mask_files[index])
+        image = Image.open(image_path).convert("RGB")
+        mask = Image.open(mask_path).convert("L")
 
         if self.transforms:
             image, mask = self.transforms(image, mask)
-
-            if isinstance(image, Tensor) and isinstance(mask, Tensor):
-                if image.shape[-2:] != mask.shape[-2:]:
-                    raise ValueError(
-                        f"Transformed tensor dimensions do not match for key {key}: image shape {image.shape} vs. mask shape {mask.shape}"
-                    )
-            elif hasattr(image, "size") and hasattr(mask, "size"):
-                if image.size != mask.size:
-                    raise ValueError(
-                        f"Transformed image sizes do not match for key {key}: image size {image.size} vs. mask size {mask.size}"
-                    )
+        else:
+            image = to_tensor(image)
+            mask = to_tensor(mask)
 
         return image, mask

@@ -4,6 +4,7 @@ import torchvision.transforms.functional as F
 import random
 from PIL import Image
 from typing import Callable, List, Tuple, Union
+import numpy as np
 
 Transform = Callable[
     [Image.Image, Image.Image],
@@ -31,17 +32,22 @@ class RandomHorizontalFlip(object):
         return image, mask
 
 
-class RandomCrop(object):
+class RandomSkyCrop(object):
     """
-    Randomly crop the image and mask to a specified size.
+    Randomly crop the image and mask to a specified size ensuring that the crop
+    contains at least a minimum fraction of non-zero (e.g., sky) pixels in the mask.
     """
 
-    def __init__(self, size: Tuple[int, int]):
+    def __init__(self, size: Tuple[int, int], min_mask_ratio: float = 0.1, max_attempts: int = 10):
         """
         Args:
-            size (Tuple[int, int]): Desired output size.
+            size (Tuple[int, int]): Desired output size (height, width).
+            min_mask_ratio (float): Minimum ratio of non-zero pixels in the cropped mask.
+            max_attempts (int): Number of attempts to find a valid crop before giving up.
         """
         self.crop_height, self.crop_width = size
+        self.min_mask_ratio = min_mask_ratio
+        self.max_attempts = max_attempts
 
     def __call__(self, image: Image, mask: Image) -> Tuple[Image, Image]:
         w, h = image.size
@@ -49,13 +55,23 @@ class RandomCrop(object):
         if h < self.crop_height or w < self.crop_width:
             raise ValueError("Image is smaller than the crop size.")
 
-        top = random.randint(0, h - self.crop_height)
-        left = random.randint(0, w - self.crop_width)
+        for _ in range(self.max_attempts):
+            top = random.randint(0, h - self.crop_height)
+            left = random.randint(0, w - self.crop_width)
 
-        image = image.crop((left, top, left + self.crop_width, top + self.crop_height))
-        mask = mask.crop((left, top, left + self.crop_width, top + self.crop_height))
+            # Crop both image and mask
+            image_crop = image.crop((left, top, left + self.crop_width, top + self.crop_height))
+            mask_crop = mask.crop((left, top, left + self.crop_width, top + self.crop_height))
 
-        return image, mask
+            # Convert mask crop to numpy array to compute the ratio of non-zero pixels
+            mask_np = np.array(mask_crop)
+            nonzero_ratio = np.count_nonzero(mask_np) / mask_np.size
+
+            if nonzero_ratio >= self.min_mask_ratio:
+                return image_crop, mask_crop
+
+        # If no valid crop is found after max_attempts, return the last crop
+        return image_crop, mask_crop
 
 
 class Resize(object):
