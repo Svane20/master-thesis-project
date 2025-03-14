@@ -96,8 +96,8 @@ def move_rendered_images_to_playground(
     Raises:
         Exception: If the image moving fails.
     """
-    file_extension = FileExtension.PNG.value
-    rendered_images = Path(configuration.output_path).glob(f"*.{file_extension}")
+    file_extensions = [f".{FileExtension.PNG.value}", f".{FileExtension.JPG.value}"]
+    rendered_images = [f for f in Path(configuration.output_path).iterdir() if f.suffix in file_extensions]
 
     image_prefix = configuration.image_output_configuration.title
     id_mask_prefix = configuration.id_mask_output_configuration.title
@@ -105,6 +105,8 @@ def move_rendered_images_to_playground(
 
     logging.info("Moving rendered images and masks...")
 
+    png_file_extension = FileExtension.PNG.value
+    jpg_file_extension = FileExtension.JPG.value
     for image in rendered_images:
         try:
             if image_prefix in image.name:
@@ -113,7 +115,7 @@ def move_rendered_images_to_playground(
                     Constants.IMAGES_DIRNAME,
                     image_prefix,
                     iteration,
-                    file_extension
+                    jpg_file_extension,
                 )
                 shutil.move(str(image), filepath)
                 logging.info(f"Moved {image.name} to {filepath}")
@@ -123,7 +125,7 @@ def move_rendered_images_to_playground(
                     Constants.MASKS_DIRNAME,
                     id_mask_prefix,
                     iteration,
-                    file_extension
+                    png_file_extension
                 )
                 shutil.move(str(image), filepath)
                 logging.info(f"Moved {image.name} to {filepath}")
@@ -133,7 +135,7 @@ def move_rendered_images_to_playground(
                     Constants.MASKS_DIRNAME,
                     environment_prefix,
                     iteration,
-                    file_extension
+                    png_file_extension
                 )
                 shutil.move(str(image), filepath)
                 logging.info(f"Moved {image.name} to {filepath}")
