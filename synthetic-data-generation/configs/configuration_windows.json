@@ -119,7 +119,10 @@
         "coniferous",
         "deciduous"
       ],
-      "exclude": null
+      "exclude": [
+        "deciduous_biome05",
+        "deciduous_biome16"
+      ]
     },
     "grass_configuration": {
       "directory": "C:/Users/svane/AppData/Roaming/Blender Foundation/Blender/data/scatter library/_biomes_/Grassblade",
