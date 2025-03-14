@@ -24,7 +24,7 @@
     }
   ],
   "constants": {
-    "playground_directory": "/mnt/shared/datasets/raw/synthetic-data",
+    "playground_directory": "/mnt/shared/datasets/raw/synthetic-data-new",
     "save_blend_files": false,
     "render_images": true,
     "num_iterations": 8,
@@ -55,7 +55,7 @@
       "feature_set": "SUPPORTED",
       "device": "GPU",
       "tile_size": 4096,
-      "samples": 32,
+      "samples": 64,
       "use_denoising": true,
       "denoising_use_gpu": true,
       "use_adaptive_sampling": true,
@@ -74,8 +74,8 @@
       "image_output_configuration": {
         "title": "Image",
         "use_node_format": false,
-        "file_format": "PNG",
-        "color_mode": "RGBA",
+        "file_format": "JPEG",
+        "color_mode": "RGB",
         "path": "Image"
       },
       "object_index_output_configuration": {
@@ -96,7 +96,7 @@
         "title": "SkyMask",
         "use_node_format": false,
         "file_format": "PNG",
-        "color_mode": "RGBA",
+        "color_mode": "BW",
         "path": "SkyMask"
       }
     }
@@ -120,15 +120,8 @@
         "deciduous"
       ],
       "exclude": [
-        "coniferous_biome02",
-        "coniferous_biome03",
-        "coniferous_biome04",
-        "coniferous_biome13",
-        "coniferous_biome16",
-        "deciduous_biome02",
-        "deciduous_biome04",
-        "deciduous_biome08",
-        "deciduous_biome11"
+        "deciduous_biome05",
+        "deciduous_biome16"
       ]
     },
     "grass_configuration": {
@@ -202,33 +195,7 @@
   "sky_configuration": {
     "directory": "/mnt/shared/blender_data/renderer/assets/hdris/pure_skies",
     "include": null,
-    "exclude": [
-      "kloppenheim_01_puresky",
-      "kloppenheim_02_puresky",
-      "kloppenheim_03_puresky",
-      "kloppenheim_05_puresky",
-      "kloppenheim_06_puresky",
-      "kloppenheim_07_puresky",
-      "kloofendal_38d_partly_cloudy_puresky",
-      "kloofendal_43d_clear_puresky",
-      "kloofendal_48d_partly_cloudy_puresky",
-      "qwantani_puresky",
-      "table_mountain_1_puresky",
-      "sunflowers_puresky",
-      "syferfontein_0d_clear_puresky",
-      "syferfontein_1d_clear_puresky",
-      "syferfontein_6d_clear_puresky",
-      "syferfontein_18d_clear_puresky",
-      "rocky_ridge_puresky",
-      "overcast_soil_puresky",
-      "table_mountain_2_puresky",
-      "industrial_sunset_puresky",
-      "industrial_sunset_02_puresky",
-      "rustig_koppie_puresky",
-      "pizzo_pernice_puresky",
-      "quarry_01_puresky",
-      "mud_road_puresky"
-    ],
+    "exclude": null,
     "temperature": {
       "min": 5000,
       "max": 6500

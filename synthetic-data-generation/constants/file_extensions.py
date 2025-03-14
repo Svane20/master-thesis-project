@@ -12,6 +12,7 @@ class FileExtension(str, Enum):
         HDR: Represents an '.hdr' HDR image file.
     """
     PNG = "png"
+    JPG = "jpg"
     BLEND = "blend"
     EXR = "exr"
     HDR = "hdr"

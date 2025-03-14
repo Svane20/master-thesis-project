@@ -46,15 +46,6 @@ def setup_outputs(
 ) -> None:
     """
     Set up rendering outputs for image, object index, and environment masks.
-
-    Args:
-        scene (bpy.context.scene): The Blender scene object.
-        engine_type (EngineType): The render engine type.
-        outputs_configuration (OutputsConfiguration): The outputs configuration settings.
-        render_image (bool, optional): Whether to render the image. Defaults to True.
-        render_object_index (bool, optional): Whether to render the object index. Defaults to True.
-        render_environment (bool, optional): Whether to render the environment. Defaults to True.
-        output_path (Path, optional): The output path for the rendered files. Defaults to OUTPUT_DIRECTORY.
     """
     logging.info("Setting up rendering outputs...")
 
@@ -68,8 +59,8 @@ def setup_outputs(
     view_layer.use_pass_z = False
 
     logging.debug(f"Passes configured", extra={
-        "Object Index": view_layer.use_pass_object_index,
-        "Environment": view_layer.use_pass_environment
+        "Grass Mask": view_layer.use_pass_object_index,
+        "Sky Mask": view_layer.use_pass_environment
     })
 
     scene.render.use_persistent_data = True
@@ -78,9 +69,10 @@ def setup_outputs(
     node_tree: bpy.types.CompositorNodeTree = scene.node_tree
     render_layers: bpy.types.CompositorNodeRLayers = node_tree.nodes.get(Constants.RENDER_LAYERS)
 
-    output_file_node: bpy.types.CompositorNodeOutputFile = node_tree.nodes.get(
-        Constants.FILE_OUTPUT) or node_tree.nodes.new(
-        type=Constants.COMPOSITOR_NODE_OUTPUT_FILE)
+    output_file_node: bpy.types.CompositorNodeOutputFile = (
+            node_tree.nodes.get(Constants.FILE_OUTPUT)
+            or node_tree.nodes.new(type=Constants.COMPOSITOR_NODE_OUTPUT_FILE)
+    )
     output_file_node.inputs.clear()
     output_file_node.base_path = output_path
     logging.debug(f"Output file node set to: {output_file_node.base_path}")
@@ -121,8 +113,8 @@ def setup_outputs(
 
     logging.info("Render outputs configured.", extra={
         "Render Image": render_image,
-        "Render Object Index": view_layer.use_pass_object_index,
-        "Render Environment": view_layer.use_pass_environment
+        "Render Grass Mask": view_layer.use_pass_object_index,
+        "Render Sky Mask": view_layer.use_pass_environment
     })
 
 
@@ -245,73 +237,45 @@ def _setup_environment_mask_output(
         environment_output_configuration: NodeOutputConfiguration
 ) -> None:
     """
-    Generate a strictly binary (0 or 1) sky/HDRI mask.
-
-    The resulting RGBA image has:
-        - White RGB channels,
-        - An alpha channel that is 1.0 for sky/HDRI and 0.0 for foreground/geometry.
+    Generate a strictly binary (0 or 255) sky/HDRI mask using the Env pass.
 
     Args:
         node_tree (bpy.types.CompositorNodeTree): The compositor node tree.
         output_file_node (bpy.types.CompositorNodeOutputFile): The output file node.
         render_layers (bpy.types.CompositorNodeRLayers): The render layers node.
-        environment_output_configuration (NodeOutputConfiguration): The configuration for the environment output.
+        environment_output_configuration (NodeOutputConfiguration): The configuration for the
     """
-    logging.debug("Setting up binary environment (sky/HDRI) mask output.")
+    logging.debug("Setting up sky mask output using the Env pass.")
 
     environment_title = environment_output_configuration.title
 
-    # Create a new file slot for the sky mask.
+    # Create and configure the file output slot for the sky mask.
     output_file_node.file_slots.new(environment_title)
-    env_mask_file_slot = output_file_node.file_slots[environment_title]
-    env_mask_file_slot.use_node_format = environment_output_configuration.use_node_format
-    env_mask_file_slot.format.file_format = environment_output_configuration.file_format
-    env_mask_file_slot.format.color_mode = environment_output_configuration.color_mode
-    env_mask_file_slot.path = environment_output_configuration.path
+    hdri_mask_file_slot = output_file_node.file_slots[environment_title]
+    hdri_mask_file_slot.use_node_format = environment_output_configuration.use_node_format
+    hdri_mask_file_slot.format.file_format = environment_output_configuration.file_format
+    hdri_mask_file_slot.format.color_mode = environment_output_configuration.color_mode
+    hdri_mask_file_slot.path = environment_output_configuration.path
 
-    # Get the environment pass from the Render Layers node.
+    # Get the environment (sky) pass from the render layers.
     env_output = render_layers.outputs.get(Constants.ENV)
     if not env_output:
         logging.error("Render Layers node does not contain an 'Env' output.")
         return
 
-    # Convert the environment pass from RGB to grayscale.
-    rgb_to_bw_node = node_tree.nodes.new(type=Constants.COMPOSITOR_NODE_RGB_TO_BW)
-    rgb_to_bw_node.label = "Sky RGB to BW"
-    node_tree.links.new(env_output, rgb_to_bw_node.inputs[Constants.IMAGE])
+    # Convert the Env pass to grayscale.
+    rgb_to_bw = node_tree.nodes.new(type=Constants.COMPOSITOR_NODE_RGB_TO_BW)
+    node_tree.links.new(env_output, rgb_to_bw.inputs[0])
 
-    # Stretch the grayscale range using a Map Value node.
-    map_value = node_tree.nodes.new(type=Constants.COMPOSITOR_NODE_MAP_VALUE)
-    map_value.label = "Map Value for ENV"
-    map_value.offset = [0.0]
-    map_value.size = [2.0]  # Increase contrast; adjust as needed.
-    map_value.use_min = True
-    map_value.min = [0.0]
-    map_value.use_max = True
-    map_value.max = [1.0]
-    node_tree.links.new(rgb_to_bw_node.outputs[Constants.VAL], map_value.inputs[Constants.VALUE])
+    # Map the grayscale output from [0,1] to [0,255] (preserving soft transitions).
+    map_range_node = node_tree.nodes.new(type=Constants.COMPOSITOR_NODE_MAP_RANGE)
+    map_range_node.inputs[Constants.FROM_MIN].default_value = 0.0
+    map_range_node.inputs[Constants.FROM_MAX].default_value = 1.0
+    map_range_node.inputs[Constants.TO_MIN].default_value = 0.0
+    map_range_node.inputs[Constants.TO_MAX].default_value = 255.0
+    node_tree.links.new(rgb_to_bw.outputs[0], map_range_node.inputs[Constants.VALUE])
 
-    # Use a ColorRamp with a narrow transition.
-    color_ramp = node_tree.nodes.new(type=Constants.COMPOSITOR_NODE_VAL_TO_RGB)
-    color_ramp.label = "Refined Alpha Mask Ramp"
-    color_ramp.color_ramp.interpolation = Constants.LINEAR
+    # Connect the mapped output to the file output node.
+    node_tree.links.new(map_range_node.outputs[Constants.VALUE], output_file_node.inputs[environment_title])
 
-    element0 = color_ramp.color_ramp.elements[0]
-    element0.position = 0.0
-    element0.color = (0, 0, 0, 1)
-    # Create a second element very close to the first to create a tight transition.
-    element1 = color_ramp.color_ramp.elements.new(0.3)  # Adjust this value for sharpness.
-    element1.color = (1, 1, 1, 1)
-    node_tree.links.new(map_value.outputs[Constants.VALUE], color_ramp.inputs[Constants.FAC])
-
-    # Combine into an RGBA image.
-    combine_rgba = node_tree.nodes.new(type=Constants.COMPOSITOR_NODE_COMB_RGBA)
-    combine_rgba.label = "Combine RGBA for Soft Binary Matte"
-    combine_rgba.inputs[Constants.R].default_value = 1.0
-    combine_rgba.inputs[Constants.G].default_value = 1.0
-    combine_rgba.inputs[Constants.B].default_value = 1.0
-    node_tree.links.new(color_ramp.outputs[Constants.IMAGE], combine_rgba.inputs[Constants.A])
-
-    node_tree.links.new(combine_rgba.outputs[Constants.IMAGE], output_file_node.inputs[environment_title])
-
-    logging.debug(f"Sky mask output set up at '{environment_title}'")
+    logging.debug(f"Linked {environment_title} output as a sky mask using the Env pass, thresholding, and map range.")
