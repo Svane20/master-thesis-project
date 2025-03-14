@@ -80,7 +80,9 @@ def main():
         # Log the duration of the current run
         hours, remainder = divmod(run_duration, 3600)
         minutes, seconds = divmod(remainder, 60)
-        logging.info(f"Run {i + 1} took {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds.")
+        logging.info(
+            f"Run {i + 1}/{max_runs} took {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds."
+        )
 
         # Log the cumulative runtime so far
         run_hours, run_remainder = divmod(current_run_time, 3600)
