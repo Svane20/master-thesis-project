@@ -24,28 +24,22 @@ def run_prediction(
         device: torch.device,
         output_dir: Path,
 ) -> None:
-    # Directories
-    root_directory = Path(__file__).parent.parent.parent
-
-    # Get test transforms
+    # Get the test images and masks directories
     dataset_path = Path(configuration.dataset.root) / configuration.dataset.name
-    transforms = get_test_transforms(configuration.scratch.resolution)
+    test_dir = dataset_path / "test"
+    images_dir = test_dir / "images"
+    masks_dir = test_dir / "masks"
 
-    # List all image files in the validation images folder
-    images_dir = dataset_path / "test" / "images"
-    image_files = list(images_dir.glob("*.png"))
-
-    # Choose a random image file
+    # Select a random image from the test set
+    image_files = [f for f in images_dir.iterdir() if f.suffix in [".png", ".jpg", ".jpeg"]]
     chosen_image_path = random.choice(image_files)
     image = Image.open(chosen_image_path).convert("RGB")
     image_array = np.asarray(image)
 
-    # Derive the corresponding mask path by replacing "Image" with "SkyMask" in the filename
-    mask_filename = chosen_image_path.stem.replace("Image", "SkyMask") + ".png"
-    mask_path = dataset_path / "test" / "masks" / mask_filename
+    # Get the corresponding mask based on the stem of the image path
+    mask_path = masks_dir / f"{chosen_image_path.stem}.png"
     mask_rgba = Image.open(mask_path).convert("RGBA")
-    alpha_channel = mask_rgba.getchannel("A")
-    mask = alpha_channel
+    mask = mask_rgba.getchannel("A")
     mask_array = np.asarray(mask)
 
     # Predict the mask
@@ -53,12 +47,12 @@ def run_prediction(
         image=image,
         mask=mask,
         model=model,
-        transform=transforms,
+        transform=get_test_transforms(configuration.scratch.resolution),
         device=device
     )
 
     # Save the predicted mask
-    torchvision.utils.save_image(raw_mask, f"{output_dir}/output.png")
+    torchvision.utils.save_image(raw_mask, output_dir / "output.png")
 
     # Normalize the alpha mask to [0, 1]
     if predicted_mask.shape[2] == 4:
@@ -92,11 +86,9 @@ def run_prediction(
     )
 
     # Replace the background with a new sky
-    new_sky_path = root_directory / "libs" / "replacements" / "skies" / "new_sky.webp"
     replace_background(
-        new_sky_path,
-        foreground,
-        predicted_mask,
+        foreground=foreground,
+        alpha_mask=predicted_mask,
         save_dir=output_dir,
         save_image=True,
     )

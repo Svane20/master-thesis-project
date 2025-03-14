@@ -7,7 +7,6 @@ import logging
 
 
 def replace_background(
-        background_image_path: Path,
         foreground: np.ndarray,
         alpha_mask: np.ndarray,
         save_dir: Path,
@@ -24,7 +23,6 @@ def replace_background(
     the original sky_foreground is preserved. Soft transitions are handled by the continuous mask.
 
     Args:
-        background_image_path (Path): Path to the new sky image.
         foreground (np.ndarray): The refined extraction of the sky (and retained non-sky regions)
                                      from the original image (shape: H x W x 3).
         alpha_mask (np.ndarray): Continuous alpha mask with values in [0, 1] (sky = 1).
@@ -34,6 +32,9 @@ def replace_background(
     Returns:
         np.ndarray: The composited image where the new sky replaces the original sky.
     """
+    root_directory = Path(__file__).parent.parent.parent
+    background_image_path = root_directory / "libs" / "replacements" / "skies" / "new_sky.webp"
+
     # Ensure the new background (sky) image exists
     if not background_image_path.exists():
         raise FileNotFoundError(f"Image not found: {background_image_path}")

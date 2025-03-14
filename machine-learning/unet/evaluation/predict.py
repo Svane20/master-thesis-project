@@ -1,11 +1,14 @@
 from pathlib import Path
+import os
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 from libs.configuration.configuration import ConfigurationMode
 from libs.evaluation.predict import run_prediction
 from libs.utils.device import get_device
 
-from build_model import build_model_for_evaluation
-from utils import load_config_and_checkpoint_path
+from unet.build_model import build_model_for_evaluation
+from unet.utils import load_config_and_checkpoint_path
 
 
 def main() -> None:
