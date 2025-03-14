@@ -237,11 +237,13 @@ def _setup_environment_mask_output(
         environment_output_configuration: NodeOutputConfiguration
 ) -> None:
     """
-    Generate a strictly binary (0 or 255) sky/HDRI mask without using film_transparent.
-    The mask is built from the environment (Env) pass:
-        - It converts the Env pass to grayscale,
-        - Applies a threshold to separate sky from any non-sky (if any),
-        - Then maps the result to 0 or 255.
+    Generate a strictly binary (0 or 255) sky/HDRI mask using the Env pass.
+
+    Args:
+        node_tree (bpy.types.CompositorNodeTree): The compositor node tree.
+        output_file_node (bpy.types.CompositorNodeOutputFile): The output file node.
+        render_layers (bpy.types.CompositorNodeRLayers): The render layers node.
+        environment_output_configuration (NodeOutputConfiguration): The configuration for the
     """
     logging.debug("Setting up sky mask output using the Env pass.")
 
