@@ -202,17 +202,7 @@
   "sky_configuration": {
     "directory": "/mnt/shared/blender_data/renderer/assets/hdris/pure_skies",
     "include": null,
-    "exclude": [
-      "coniferous_biome02",
-      "coniferous_biome03",
-      "coniferous_biome04",
-      "coniferous_biome13",
-      "coniferous_biome16",
-      "deciduous_biome02",
-      "deciduous_biome04",
-      "deciduous_biome08",
-      "deciduous_biome11"
-    ],
+    "exclude": null,
     "temperature": {
       "min": 5000,
       "max": 6500
