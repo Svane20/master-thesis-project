@@ -97,7 +97,7 @@ def evaluate_model(
 
     logging.info("Evaluation finished.")
     for k, v in metrics.items():
-        logging.info(f"{k}: {v}")
+        logging.info(f"{k}: {v:.3f}")
 
 
 def predict_image(
@@ -165,7 +165,7 @@ def predict_image(
 
     logging.info(f"Metrics")
     for k, v in metrics.items():
-        logging.info(f"{k}: {v}")
+        logging.info(f"{k}: {v:.3f}")
 
     # Convert alpha matte to numpy array
     pred_alpha = outputs.squeeze(0).cpu().numpy()

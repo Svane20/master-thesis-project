@@ -65,7 +65,7 @@ def save_prediction(
     ax[0, 0].axis("off")
 
     # Display metrics
-    metrics_str = "\n".join([f"{key}: {value:.4f}" for key, value in metrics.items()])
+    metrics_str = "\n".join([f"{key}: {value:.3f}" for key, value in metrics.items()])
     ax[0, 1].text(
         0.5, 0.5, metrics_str, fontsize=14, ha="center", va="center",
         bbox=dict(facecolor="white", alpha=0.8, edgecolor="black")

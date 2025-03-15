@@ -49,7 +49,8 @@ def compute_training_metrics(pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, 
 def compute_evaluation_metrics(
         preds: torch.Tensor,
         gts: torch.Tensor,
-        grad_filter: torch.Tensor
+        grad_filter: torch.Tensor,
+        multiplier: float = 1e3,
 ) -> Dict[str, float]:
     """
     Compute evaluation metrics for a batch of alpha matte predictions.
@@ -58,6 +59,7 @@ def compute_evaluation_metrics(
         preds (torch.Tensor): Predicted alpha mattes (B, C, H, W).
         gts (torch.Tensor): Ground truth alpha mattes (B, C, H, W).
         grad_filter (torch.Tensor): Gradient filter.
+        multiplier (float, optional): Multiplier for computing metrics. Defaults to 1e3.
 
     Returns:
         Dict[str, float]: Dictionary of averaged metrics for the batch.
@@ -72,29 +74,29 @@ def compute_evaluation_metrics(
     conn_list = []
 
     for pred, gt in zip(preds, gts):
-        l1_dist = F.l1_loss(pred, gt)
-        l2_dist = F.mse_loss(pred, gt)
+        l1_dist = F.l1_loss(pred, gt) * multiplier
+        l2_dist = F.mse_loss(pred, gt) * multiplier
+        grad = _compute_grad(pred, gt, grad_filter) * multiplier
         sad = _compute_sad(pred, gt)
-        grad = _compute_grad(pred, gt, grad_filter)
         conn = _compute_connectivity(pred, gt)
 
         l1_list.append(l1_dist)
         l2_list.append(l2_dist)
-        sad_list.append(sad)
         grad_list.append(grad)
+        sad_list.append(sad)
         conn_list.append(conn)
 
     l1_dist = torch.stack(l1_list, dim=0)
     l2_dist = torch.stack(l2_list, dim=0)
-    sad_error = torch.stack(sad_list, dim=0)
     grad_error = torch.stack(grad_list, dim=0)
+    sad_error = torch.stack(sad_list, dim=0)
     conn_error = torch.stack(conn_list, dim=0)
 
     return {
         "mae": l1_dist.mean().item(),
         "mse": l2_dist.mean().item(),
-        "sad": sad_error.mean().item(),
         "grad": grad_error.mean().item(),
+        "sad": sad_error.mean().item(),
         "conn": conn_error.mean().item()
     }
 
