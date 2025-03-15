@@ -173,10 +173,7 @@ class Trainer:
                 # Update epoch
                 self.epoch += 1
 
-            # Total Training Time
-            total_training_time = self.time_elapsed_meter.val
-            self.logger.log(name="total_training_time", payload=total_training_time, step=self.max_epochs)
-            logging.info(f"Total training time: {human_readable_time(total_training_time)}")
+            logging.info(f"Total training time: {human_readable_time(self.time_elapsed_meter.val)}")
         except Exception as e:
             logging.error(f"Error during training: {e}")
             self.logger.finish()
