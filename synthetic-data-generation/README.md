@@ -79,7 +79,7 @@ sudo sh -c "sync; echo 3 > /proc/sys/vm/drop_caches"
 1. Run the following command to get the count for each directory:
 
 ````text
-Get-ChildItem -Path "D:\OneDrive\Master Thesis\datasets\raw\synthetic-data" -Directory | ForEach-Object {
+Get-ChildItem -Path "D:\OneDrive\Master Thesis\datasets\raw\synthetic-data-new" -Directory | ForEach-Object {
     $images = Get-ChildItem -Path "$($_.FullName)\images" -File
     Write-Output "$($_.Name): $($images.Count) file(s)"
 }
@@ -88,7 +88,7 @@ Get-ChildItem -Path "D:\OneDrive\Master Thesis\datasets\raw\synthetic-data" -Dir
 2. Run the following command to get the total count:
 
 ````text
-$rootDir = "D:\OneDrive\Master Thesis\datasets\raw\synthetic-data"
+$rootDir = "D:\OneDrive\Master Thesis\datasets\raw\synthetic-data-new"
 $totalCount = 0
 
 Get-ChildItem -Path $rootDir -Directory | ForEach-Object {
@@ -105,5 +105,5 @@ Write-Output "Total files in all 'images' folders: $totalCount"
 1. Run the following command to get the total count:
 
 ````text
-find /mnt/shared/datasets/raw/synthetic-data/*/images -maxdepth 1 -type f 2>/dev/null | wc -l
+find /mnt/shared/datasets/raw/synthetic-data-new/*/images -maxdepth 1 -type f 2>/dev/null | wc -l
 ````
