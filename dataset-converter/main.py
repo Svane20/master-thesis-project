@@ -2,6 +2,7 @@ from pathlib import Path
 import logging
 import shutil
 from typing import Dict
+from tqdm.auto import tqdm
 
 from configuration.root import get_configurations
 from custom_logging.custom_logger import setup_logging
@@ -69,7 +70,7 @@ def process_data(source_directory: Path, destination_directory: Path) -> None:
 
     # Process the data
     counter = 0
-    for sample in samples.values():
+    for sample in tqdm(samples.values(), total=total_samples, desc="Processing samples"):
         img = sample.get("image")
         msk = sample.get("mask")
 
@@ -81,15 +82,9 @@ def process_data(source_directory: Path, destination_directory: Path) -> None:
             continue
 
         new_base = f"{counter:04d}"
-        image_file = images_dest / f"{new_base}{img.suffix}"
-        mask_file = masks_dest / f"{new_base}{msk.suffix}"
+        shutil.copy(img, images_dest / f"{new_base}{img.suffix}")
+        shutil.copy(msk, masks_dest / f"{new_base}{msk.suffix}")
 
-        shutil.copy(img, image_file)
-        shutil.copy(msk, mask_file)
-
-        logging.info(
-            f"({counter + 1}/{total_samples}) Copied '{img.relative_to(source_directory)}' and '{msk.relative_to(source_directory)}' "
-            f"to '{image_file.relative_to(destination_directory)}' and '{mask_file.relative_to(destination_directory)}'.")
         counter += 1
 
     # Validate that all samples were processed
