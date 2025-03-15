@@ -12,4 +12,3 @@ model:
 deployment:
   checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/unet_v1.pt"
   destination_directory: "D:/OneDrive/Master Thesis/ml/models/unet"
-  compile_model: false
