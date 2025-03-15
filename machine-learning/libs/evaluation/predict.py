@@ -39,8 +39,7 @@ def run_prediction(
 
     # Get the corresponding mask based on the stem of the image path
     mask_path = masks_dir / f"{chosen_image_path.stem}.png"
-    mask_rgba = Image.open(mask_path).convert("RGBA")
-    mask = mask_rgba.getchannel("A")
+    mask = Image.open(mask_path).convert("L")
     mask_array = np.asarray(mask)
 
     # Predict the mask
