@@ -302,7 +302,7 @@ class Trainer:
         stats["batch_time"] = batch_time_meter.avg
         stats["mem"] = mem_meter.avg
 
-        logging.info(f"Train metrics: {stats}")
+        logging.info(f"Train stats: {stats}")
 
         # Reset meters
         self._reset_meters([phase])
@@ -436,13 +436,15 @@ class Trainer:
         for k, v in extra_metrics_meters.items():
             metrics[k] = v.avg
 
+        logging.info(f"Val metrics: {metrics}")
+
         # Compute average state metrics
         stats["data_time"] = data_time_meter.avg
         stats["batch_time"] = batch_time_meter.avg
         stats["mem"] = mem_meter.avg
         stats["est_epoch_time"] = self.est_epoch_time[phase]
 
-        logging.info(f"Val metrics: {stats}")
+        logging.info(f"Val stats: {stats}")
 
         # Reset meters
         self._reset_meters([phase])
