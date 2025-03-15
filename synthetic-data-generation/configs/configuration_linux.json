@@ -120,7 +120,9 @@
         "deciduous"
       ],
       "exclude": [
+        "coniferous_biome02",
         "coniferous_biome03",
+        "coniferous_biome13",
         "deciduous_biome05",
         "deciduous_biome16"
       ]
@@ -161,7 +163,9 @@
         "directory": "/mnt/shared/blender_data/renderer/assets/models/houses",
         "include": null,
         "exclude": [
-          "_hidden"
+          "_hidden",
+          "Modern House.002",
+          "House.007"
         ]
       },
       {
