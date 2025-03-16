@@ -114,7 +114,7 @@
     "generate_trees": true,
     "tree_probability": 0.2,
     "trees_configuration": {
-      "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Vegetation",
+      "directory": "/root/.config/blender/data/scatter library/_biomes_/Vegetation",
       "include": [
         "coniferous",
         "deciduous"
@@ -129,7 +129,7 @@
       ]
     },
     "grass_configuration": {
-      "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Grassblade",
+      "directory": "/root/.config/blender/data/scatter library/_biomes_/Grassblade",
       "include": [
         "clean_grass",
         "grass_golf",
@@ -138,7 +138,7 @@
       "exclude": null
     },
     "not_grass_configuration": {
-      "directory": "/home/kasv/.config/blender/data/scatter library/_biomes_/Grassblade",
+      "directory": "/root/.config/blender/data/scatter library/_biomes_/Grassblade",
       "include": [
         "rock",
         "flowers"
