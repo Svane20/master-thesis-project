@@ -68,8 +68,8 @@ def main():
                 pass
             else:
                 logging.info(f"Error occurred during run {i + 1}: {e}")
-        else:
-            logging.info(f"Run {i + 1} completed successfully.")
+
+        logging.info(f"Run {i + 1} completed successfully.")
 
         run_end = time.time()
         run_duration = run_end - run_start
