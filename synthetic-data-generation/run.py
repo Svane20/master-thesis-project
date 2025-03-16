@@ -276,10 +276,13 @@ def setup_scene(configuration: Configuration, start_time: float) -> NDArray[np.f
     return height_map
 
 
-def start_run() -> None:
+def main() -> None:
     """The main function to render the images from multiple camera angles."""
+    # Parse the arguments
+    args = parse_args()
+
     # Get configuration
-    configuration = get_configuration(is_colab=ARGS.is_colab)
+    configuration = get_configuration(is_colab=args.is_colab)
 
     # Setup logging
     setup_logging(
@@ -404,5 +407,4 @@ def start_run() -> None:
 
 
 if __name__ == "__main__":
-    ARGS = parse_args()
-    start_run()
+    main()

@@ -43,8 +43,11 @@ def delete_logs_from_previous_runs(log_path: str) -> None:
 
 
 def main():
+    # Parse the arguments
+    args = parse_args()
+
     # Load configuration
-    configuration = get_configuration(is_colab=ARGS.is_colab)
+    configuration = get_configuration(is_colab=args.is_colab)
     max_runs = configuration.run_configuration.max_runs
     delay = configuration.run_configuration.delay
 
@@ -67,7 +70,9 @@ def main():
         logging.info(f"Starting run {i + 1} of {max_runs}...")
 
         try:
-            result = subprocess.run(["python", "run.py"], check=True)
+            cmd = ["python", "run.py"]
+            if args.is_colab:
+                cmd.append("--is_colab")
         except subprocess.CalledProcessError as e:
             # Check if the return code indicates a SIGKILL
             if e.returncode == -9:
@@ -133,5 +138,4 @@ def main():
 
 
 if __name__ == "__main__":
-    ARGS = parse_args()
     main()
