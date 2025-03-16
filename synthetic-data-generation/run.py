@@ -335,12 +335,12 @@ def start_run() -> None:
                 f"Image {current_iteration}/{total_iterations} rendered in {int(days)} days, {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds."
             )
 
-            # Log the cumulative runtime so far
+            # Log the cumulative runtime
             days_run, run_remainder = divmod(current_run_time, 86400)
             run_hours, run_remainder = divmod(run_remainder, 3600)
             run_minutes, run_seconds = divmod(run_remainder, 60)
             logging.info(
-                f"Total execution time so far: {int(days_run)} days, {int(run_hours)} hours, {int(run_minutes)} minutes and {run_seconds:.2f} seconds."
+                f"Total execution time: {int(days_run)} days, {int(run_hours)} hours, {int(run_minutes)} minutes and {run_seconds:.2f} seconds."
             )
 
             # Calculate remaining time estimate (except after the final iteration)

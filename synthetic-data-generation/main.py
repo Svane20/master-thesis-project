@@ -84,17 +84,17 @@ def main():
             f"Run {i + 1}/{max_runs} took {int(days)} days, {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds."
         )
 
-        # Log the cumulative runtime so far
+        # Log the cumulative runtime
         days_run, run_remainder = divmod(current_run_time, 86400)
         run_hours, run_remainder = divmod(run_remainder, 3600)
         run_minutes, run_seconds = divmod(run_remainder, 60)
         logging.info(
-            f"Total run time so far: {int(days_run)} days, {int(run_hours)} hours, {int(run_minutes)} minutes and {run_seconds:.2f} seconds."
+            f"Total run time: {int(days_run)} days, {int(run_hours)} hours, {int(run_minutes)} minutes and {run_seconds:.2f} seconds."
         )
 
         # Wait before the next run (except after the final iteration)
         if i < max_runs - 1:
-            # Average duration of runs so far (not including the delay)
+            # Average duration of runs (not including the delay)
             average_run_time = sum(elapsed_times) / len(elapsed_times)
             remaining_runs = max_runs - i - 1
 
