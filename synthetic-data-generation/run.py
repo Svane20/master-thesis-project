@@ -225,7 +225,7 @@ def setup_the_sky(configuration: Configuration) -> None:
     logging.info("Sky setup completed.")
 
 
-def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
+def setup_scene(configuration: Configuration, start_time: float) -> NDArray[np.float32]:
     """
     Initialize the scene.
 
@@ -235,6 +235,7 @@ def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
 
     Args:
         configuration (Configuration): The configuration for the Blender pipeline
+        start_time (float): The start time of the script execution
 
     Returns:
         Tuple[Path, NDArray[np.float32]]: The configuration and the height map.
@@ -254,7 +255,14 @@ def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
 
     setup_the_sky(configuration)
 
-    logging.info("Scene setup completed.")
+    # Calculate the elapsed time for setting up the scene
+    elapsed_time = time.perf_counter() - start_time
+    days, remainder = divmod(elapsed_time, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    logging.info(
+        f"Scene setup completed in {int(days)} days, {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds."
+    )
 
     return height_map
 
@@ -276,7 +284,7 @@ def start_run() -> None:
     logging.info("Script execution started.")
 
     # Set up the scene
-    height_map = setup_scene(configuration)
+    height_map = setup_scene(configuration, script_start_time)
 
     # Create output directory and set camera iterations
     playground_directory = get_playground_directory_with_tag(configuration=configuration)
