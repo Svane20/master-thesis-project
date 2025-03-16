@@ -64,8 +64,7 @@ def main():
             if e.returncode == -9:
                 logging.error("Process was killed by SIGKILL. Terminating the script completely.")
                 sys.exit(1)  # or break out of the loop if appropriate
-            elif e.returncode == -11:
-                # Ignore segmentation fault errors
+            elif e.returncode in (-11, 3221225477):
                 pass
             else:
                 logging.info(f"Error occurred during run {i + 1}: {e}")
