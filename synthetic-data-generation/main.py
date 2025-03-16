@@ -73,6 +73,8 @@ def main():
             cmd = ["python", "run.py"]
             if args.is_colab:
                 cmd.append("--is_colab")
+
+            result = subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError as e:
             # Check if the return code indicates a SIGKILL
             if e.returncode == -9:
