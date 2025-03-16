@@ -3,9 +3,18 @@ import logging
 import os
 import subprocess
 import sys
+import argparse
 
 from configuration.configuration import get_configuration
 from custom_logging.custom_logger import setup_logging
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run Blender pipeline")
+    parser.add_argument('--is_colab', action='store_true', default=False,
+                        help="Set if running on Colab (defaults to False)")
+
+    return parser.parse_args()
 
 
 def delete_logs_from_previous_runs(log_path: str) -> None:
@@ -124,4 +133,5 @@ def main():
 
 
 if __name__ == "__main__":
+    ARGS = parse_args()
     main()

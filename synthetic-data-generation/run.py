@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 import time
 import logging
 from scipy.stats.qmc import Halton
+import argparse
 
 from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alpha_threshold
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
@@ -24,6 +25,14 @@ from scene.camera import get_camera_iterations, get_random_camera_location, upda
 from scene.light import create_random_light
 from utils.utils import cleanup_files, get_playground_directory_with_tag, move_rendered_images_to_playground
 from custom_logging.custom_logger import setup_logging
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run Blender pipeline")
+    parser.add_argument('--is_colab', action='store_true', default=False,
+                        help="Set if running on Colab (defaults to False)")
+
+    return parser.parse_args()
 
 
 def clear_cube() -> None:
@@ -270,7 +279,7 @@ def setup_scene(configuration: Configuration, start_time: float) -> NDArray[np.f
 def start_run() -> None:
     """The main function to render the images from multiple camera angles."""
     # Get configuration
-    configuration = get_configuration()
+    configuration = get_configuration(is_colab=ARGS.is_colab)
 
     # Setup logging
     setup_logging(
@@ -395,4 +404,5 @@ def start_run() -> None:
 
 
 if __name__ == "__main__":
+    ARGS = parse_args()
     start_run()
