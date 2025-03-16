@@ -328,30 +328,32 @@ def start_run() -> None:
             elapsed_times.append(elapsed_time)  # Store elapsed time for averaging
 
             # Log the elapsed time for rendering the current image
-            hours, remainder = divmod(elapsed_time, 3600)
+            days, remainder = divmod(elapsed_time, 86400)
+            hours, remainder = divmod(remainder, 3600)
             minutes, seconds = divmod(remainder, 60)
             logging.info(
-                f"Image {current_iteration}/{total_iterations} rendered successfully "
-                f"(Execution time: {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds)"
+                f"Image {current_iteration}/{total_iterations} rendered in {int(days)} days, {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds."
             )
 
-            # Log the cumulative runtime so far
-            run_hours, run_remainder = divmod(current_run_time, 3600)
+            # Log the cumulative runtime
+            days_run, run_remainder = divmod(current_run_time, 86400)
+            run_hours, run_remainder = divmod(run_remainder, 3600)
             run_minutes, run_seconds = divmod(run_remainder, 60)
             logging.info(
-                f"Total execution time so far: {int(run_hours)} hours, {int(run_minutes)} minutes and {run_seconds:.2f} seconds."
+                f"Total execution time: {int(days_run)} days, {int(run_hours)} hours, {int(run_minutes)} minutes and {run_seconds:.2f} seconds."
             )
 
-            # Calculate remaining time estimate
-            if elapsed_times:
+            # Calculate remaining time estimate (except after the final iteration)
+            if elapsed_times and index < total_iterations - 1:
                 avg_time_per_iteration = sum(elapsed_times) / len(elapsed_times)
                 remaining_iterations = total_iterations - current_iteration
                 estimated_remaining_time = avg_time_per_iteration * remaining_iterations
-                est_hours, est_remainder = divmod(estimated_remaining_time, 3600)
+                est_days, est_remainder = divmod(estimated_remaining_time, 86400)
+                est_hours, est_remainder = divmod(est_remainder, 3600)
                 est_minutes, est_seconds = divmod(est_remainder, 60)
 
                 logging.info(
-                    f"Estimated execution time remaining: {int(est_hours)} hours, {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
+                    f"Estimated execution time remaining: {int(est_days)} days, {int(est_hours)} hours, {int(est_minutes)} minutes and {est_seconds:.2f} seconds."
                 )
     except KeyboardInterrupt:
         logging.error("Keyboard interrupt detected. Terminating the script.")
@@ -376,10 +378,11 @@ def start_run() -> None:
     # Log the total execution time of the script
     script_end_time = time.perf_counter()
     total_elapsed_time = script_end_time - script_start_time
-    total_hours, total_remainder = divmod(total_elapsed_time, 3600)
+    total_days, total_remainder = divmod(total_elapsed_time, 86400)
+    total_hours, total_remainder = divmod(total_remainder, 3600)
     total_minutes, total_seconds = divmod(total_remainder, 60)
     logging.info(
-        f"Script finished in {int(total_hours)} hours, {int(total_minutes)} minutes and {total_seconds:.2f} seconds."
+        f"Script finished in {int(total_days)} days, {int(total_hours)} hours, {int(total_minutes)} minutes and {total_seconds:.2f} seconds."
     )
 
 
