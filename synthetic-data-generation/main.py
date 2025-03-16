@@ -44,7 +44,7 @@ def delete_logs_from_previous_runs(log_path: str) -> None:
 
 def main():
     # Load configuration
-    configuration = get_configuration()
+    configuration = get_configuration(is_colab=ARGS.is_colab)
     max_runs = configuration.run_configuration.max_runs
     delay = configuration.run_configuration.delay
 
