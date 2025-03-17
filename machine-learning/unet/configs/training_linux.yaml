@@ -6,7 +6,7 @@ scratch:
 
 # Dataset configuration
 dataset:
-  name: "synthetic-data-new"
+  name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
   batch_size: 16
   pin_memory: true

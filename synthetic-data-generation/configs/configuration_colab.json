@@ -24,7 +24,7 @@
     }
   ],
   "constants": {
-    "playground_directory": "/content/drive/MyDrive/Blender/datasets/raw/synthetic-data-new",
+    "playground_directory": "/content/drive/MyDrive/Blender/datasets/raw/synthetic-data",
     "save_blend_files": false,
     "render_images": true,
     "num_iterations": 8,
