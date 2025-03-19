@@ -9,15 +9,18 @@ from typing import List
 from src.middlewares import register_middlewares
 import src.pipeline as pipeline
 from src.schemas import HealthResponse
+from src.utils.logger import setup_logging
+
+# Setup logging
+setup_logging()
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     try:
-        pipeline.load_model("unet_v1.onnx")
+        pipeline.load_model()
     except Exception as e:
         raise e
-
     yield
 
 
@@ -50,10 +53,10 @@ async def health():
     return {"status": "ok"}
 
 
-@app.post(f"{prefix}/predict")
-async def predict(files: List[UploadFile] = File(...)):
+@app.post(f"{prefix}/batch-predict")
+async def batch_predict(files: List[UploadFile] = File(...)):
     try:
-        zip_bytes = await pipeline.predict(files)
+        zip_bytes = await pipeline.batch_predict(files)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to predict: {e}")
 
@@ -61,6 +64,31 @@ async def predict(files: List[UploadFile] = File(...)):
         io.BytesIO(zip_bytes),
         media_type="application/zip",
         headers={"Content-Disposition": "attachment; filename=masks.zip"}
+    )
+
+
+@app.post(f"{prefix}/single-predict")
+async def single_predict(file: UploadFile = File(...)):
+    try:
+        png_bytes = await pipeline.single_predict(file)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to predict: {e}")
+    return StreamingResponse(
+        io.BytesIO(png_bytes),
+        media_type="image/png",
+        headers={"Content-Disposition": "attachment; filename=mask.png"}
+    )
+
+@app.post(f"{prefix}/sky-replacement")
+async def sky_replacement(file: UploadFile = File(...)):
+    try:
+        zip_bytes = await pipeline.sky_replacement(file)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to predict: {e}")
+    return StreamingResponse(
+        io.BytesIO(zip_bytes),
+        media_type="application/zip",
+        headers={"Content-Disposition": "attachment; filename=replacements.zip"}
     )
 
 

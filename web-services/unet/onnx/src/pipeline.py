@@ -1,7 +1,8 @@
 import torch
 import torchvision.transforms as T
 import onnxruntime as ort
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
+from prometheus_client import Histogram
 
 import io
 import os
@@ -10,127 +11,280 @@ from PIL import Image
 import numpy as np
 from typing import List
 import zipfile
+import logging
 
-MEAN = (0.485, 0.456, 0.406)
-STD = (0.229, 0.224, 0.225)
+from src.config import get_configuration
+from src.replacement.foreground_estimation import get_foreground_estimation
+from src.replacement.replacement import replace_background
+
+SIZE = (512, 512)
+MEAN = [0.485, 0.456, 0.406]
+STD = [0.229, 0.224, 0.225]
 
 transforms = T.Compose([
-    T.Resize(size=(512, 512)),
+    T.Resize(size=SIZE),
     T.ToTensor(),
     T.Normalize(mean=MEAN, std=STD)
 ])
 
-# Global model session
-session: ort.InferenceSession
+# Global variables for the ONNX session and cached input/output names
+session: ort.InferenceSession = None
+input_name: str = None
+output_name: str = None
+
+# Histogram for tracking inference duration
+model_startup_histogram = Histogram(
+    "model_startup_latency_seconds",
+    "Model startup latency in seconds",
+    labelnames=["model"],
+)
+
+batch_inference_histogram = Histogram(
+    "batch_inference_latency_seconds",
+    "Batch inference latency in seconds",
+    labelnames=["model"],
+)
+
+single_inference_histogram = Histogram(
+    "single_inference_latency_seconds",
+    "Single inference latency in seconds",
+    labelnames=["model"],
+)
 
 
-def load_model(model_path: str) -> None:
+def load_model() -> None:
     """
-    Load the ONNX model.
-
-    Args:
-        model_path (str): Path to the ONNX model.
-
-    Returns:
-        ort.InferenceSession: ONNX model session.
+    Load the ONNX model with dynamic provider selection (GPU if available).
+    Cache input/output names.
     """
-    global session
-    session = ort.InferenceSession(model_path)
+    global session, input_name, output_name
+
+    # Load the configuration
+    config = get_configuration()
+
+    # Configure ONNX session options
+    session_options = ort.SessionOptions()
+    session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    session_options.intra_op_num_threads = min(1, os.cpu_count() - 1)
+
+    # Select providers based on GPU availability
+    providers = ['CUDAExecutionProvider'] if torch.cuda.is_available() else ['CPUExecutionProvider']
+    try:
+        with model_startup_histogram.labels(model="onnx").time():
+            session = ort.InferenceSession(config.MODEL_PATH, providers=providers)
+
+        logging.info(f"ONNX model loaded with providers: {providers}")
+    except Exception as e:
+        logging.error("Failed to load ONNX model", exc_info=e)
+        raise
+
+    try:
+        input_name = session.get_inputs()[0].name
+        output_name = session.get_outputs()[0].name
+        logging.info(f"Cached input name: {input_name}, output name: {output_name}")
+    except Exception as e:
+        logging.error("Failed to cache input/output names", exc_info=e)
+        raise
 
 
-async def predict(files: List[UploadFile]) -> bytes:
+async def batch_predict(files: List[UploadFile]) -> bytes:
     """
     Asynchronously perform inference on a batch of images.
-
-    Args:
-        files (List[UploadFile]): List of input files.
+    Returns a ZIP archive (as bytes) containing the prediction masks.
     """
-    # Pre-process the images concurrently
+    if session is None:
+        raise HTTPException(status_code=500, detail="Model not loaded")
+
+    # Pre-process images concurrently
     batch = await _pre_process(files)
 
-    # Get input and output names from the model
-    input_name = session.get_inputs()[0].name
-    output_name = session.get_outputs()[0].name
-
-    # Offload the blocking ONNX inference call to a thread executor
+    # Offload blocking ONNX inference call to a thread
     loop = asyncio.get_running_loop()
-    outputs = await loop.run_in_executor(
-        None,
-        session.run,
-        [output_name],
-        {input_name: batch}
-    )
+    try:
+        with batch_inference_histogram.labels(model="onnx").time():
+            outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch})
+    except Exception as e:
+        logging.error("ONNX inference failed", exc_info=e)
+        raise HTTPException(status_code=500, detail=f"Inference error: {e}")
 
-    # Post-process the outputs
     masks = _post_process(outputs)
 
-    # Create a zip archive in memory and add each PNG image using the input file names
+    # Stream ZIP archive creation using a generator to minimize memory usage
+    async def zip_generator():
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for file, mask in zip(files, masks):
+                base, _ = os.path.splitext(file.filename)
+                filename = f"{base}_mask.png"
+                png_bytes = _convert_mask_to_rgb(mask)
+                zip_file.writestr(filename, png_bytes)
+        buffer.seek(0)
+        while True:
+            chunk = buffer.read(4096)
+            if not chunk:
+                break
+            yield chunk
+
+    # Collect ZIP bytes
+    zip_bytes = b"".join([chunk async for chunk in zip_generator()])
+
+    return zip_bytes
+
+
+async def single_predict(file: UploadFile) -> bytes:
+    """
+    Asynchronously perform inference on a single image.
+    Returns the PNG image bytes of the predicted mask.
+    """
+    if session is None:
+        raise HTTPException(status_code=500, detail="Model not loaded")
+
+    # Read and preprocess the single image
+    image = await _read_file(file)
+    try:
+        tensor = transforms(image)
+    except Exception as e:
+        logging.error("Error processing image", exc_info=e)
+        raise HTTPException(status_code=400, detail=f"Error processing image: {e}")
+    # Add batch dimension: shape becomes [1, 3, 512, 512]
+    batch_tensor = tensor.unsqueeze(0)
+    batch_np = batch_tensor.numpy()
+
+    loop = asyncio.get_running_loop()
+    try:
+        with single_inference_histogram.labels(model="onnx").time():
+            outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch_np})
+    except Exception as e:
+        logging.error("ONNX inference failed", exc_info=e)
+        raise HTTPException(status_code=500, detail=f"Inference error: {e}")
+
+    # Post-process outputs; _post_process returns a list, take first mask
+    masks = _post_process(outputs)
+    mask = masks[0]
+    png_bytes = _convert_mask_to_rgb(mask)
+
+    return png_bytes
+
+
+async def sky_replacement(file: UploadFile):
+    if session is None:
+        raise HTTPException(status_code=500, detail="Model not loaded")
+
+    # Read and preprocess the single image
+    image = await _read_file(file)
+    try:
+        tensor = transforms(image)
+    except Exception as e:
+        logging.error("Error processing image", exc_info=e)
+        raise HTTPException(status_code=400, detail=f"Error processing image: {e}")
+    # Add batch dimension: shape becomes [1, 3, 512, 512]
+    batch_tensor = tensor.unsqueeze(0)
+    batch_np = batch_tensor.numpy()
+
+    loop = asyncio.get_running_loop()
+    try:
+        with single_inference_histogram.labels(model="onnx").time():
+            outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch_np})
+    except Exception as e:
+        logging.error("ONNX inference failed", exc_info=e)
+        raise HTTPException(status_code=500, detail=f"Inference error: {e}")
+
+    # Post-process outputs; _post_process returns a list, take first mask
+    masks = _post_process(outputs)
+    mask = masks[0]
+
+    # Downscale the image to fit the model input size
+    image = image.resize(SIZE)
+
+    # Convert image to numpy array and normalize it
+    image_array = np.array(image.resize(SIZE)) / 255.0
+
+    # Get the foreground estimation
+    foreground = get_foreground_estimation(image_array, mask)
+
+    # Sky replacement
+    replaced = replace_background(foreground, mask)
+
+    # Convert both mask, foreground and replaced to PNG bytes.
+    mask_png = _convert_mask_to_rgb(mask)
+    foreground_png = _convert_image_to_png(foreground)
+    replaced_png = _convert_image_to_png(replaced)
+
+    # Create a ZIP archive containing both PNG files.
     zip_buffer = io.BytesIO()
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        # Use zip to iterate over files and corresponding masks
-        for file, mask in zip(files, masks):
-            base, _ = os.path.splitext(file.filename)
-            filename = f"{base}_mask.png"
-            png_bytes = _convert_mask_to_rgb(mask)
-            zip_file.writestr(filename, png_bytes)
-
+        zip_file.writestr("mask.png", mask_png)
+        zip_file.writestr("foreground.png", foreground_png)
+        zip_file.writestr("replaced.png", replaced_png)
     zip_buffer.seek(0)
+
     return zip_buffer.read()
 
 
-def _post_process(outputs: List[List[np.ndarray]]) -> List[np.ndarray]:
+def _post_process(outputs: List[np.ndarray]) -> List[np.ndarray]:
     """
-    Post-process the inference result.
-
-    Args:
-        outputs (np.ndarray): Predicted alpha masks.
-
-    Returns:
-        np.ndarray: Post-processed alpha mask
+    Post-process the ONNX model outputs.
+    Returns a list of 2D masks.
     """
     result = outputs[0]  # expected shape: (batch_size, 1, 512, 512)
+
     masks = []
     for i in range(result.shape[0]):
-        # Remove the channel dimension (which is axis 0 of each individual sample)
-        mask = np.squeeze(result[i], axis=0)  # each mask becomes (512, 512)
+        logging.info(f"Mask {i} stats - min: {result[i].min()}, max: {result[i].max()}, mean: {result[i].mean()}")
+
+        mask = np.squeeze(result[i], axis=0)  # shape: (512, 512)
         masks.append(mask)
+
     return masks
 
 
 async def _pre_process(files: List[UploadFile]) -> np.ndarray:
     """
     Asynchronously pre-process input images for inference.
-
-    Args:
-        files (List[UploadFile]): List of input files.
-
-    Returns:
-        np.ndarray: Batch tensor of pre-processed images
+    Returns a NumPy array suitable for ONNX inference.
     """
-    # Read files concurrently
     images = await asyncio.gather(*[_read_file(file) for file in files])
 
-    # Apply transforms and stack into a batch tensor (shape: [N, 3, 512, 512])
-    batch_tensor = torch.stack([transforms(image) for image in images])
+    batch_tensors = []
+    for img in images:
+        try:
+            tensor = transforms(img)
+            batch_tensors.append(tensor)
+        except Exception as e:
+            logging.error("Error processing image", exc_info=e)
+            raise HTTPException(status_code=400, detail=f"Error processing image: {e}")
 
-    # Convert to numpy array
+    # Stack tensors into batch shape: [N, 3, 512, 512]
+    batch_tensor = torch.stack(batch_tensors)
+
     return batch_tensor.numpy()
+
+
+def _convert_image_to_png(image: np.ndarray) -> bytes:
+    """
+    Convert a 3-channel image (or any properly shaped image) to PNG bytes.
+    Assumes that the image is in [0, 1] range; if not, adjust accordingly.
+    """
+    # If image is float in [0,1], convert to uint8.
+    image_uint8 = (image * 255).astype(np.uint8) if image.dtype != np.uint8 else image
+    pil_img = Image.fromarray(image_uint8)
+    buffer = io.BytesIO()
+    pil_img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer.getvalue()
 
 
 def _convert_mask_to_rgb(mask: np.ndarray) -> bytes:
     """
-    Convert a 2D grayscale mask to a 3-channel RGB PNG image.
-
-    Args:
-        mask (np.ndarray): Grayscale mask with values between 0 and 1.
-
-    Returns:
-        bytes: PNG image bytes.
+    Convert a 2D grayscale mask to a 3-channel RGB PNG image with contrast stretching.
     """
-    # Convert mask values from [0, 1] to [0, 255] and cast to uint8.
-    mask_uint8 = (mask * 255).astype(np.uint8)
-    # Stack the single channel 3 times to get a (H, W, 3) array.
-    rgb = np.stack([mask_uint8, mask_uint8, mask_uint8], axis=-1)
+    # Log mask statistics for debugging
+    logging.info(f"Mask stats - min: {mask.min()}, max: {mask.max()}, mean: {mask.mean()}")
+
+    # Contrast stretching: scale mask so that min becomes 0 and max becomes 1
+    norm_mask = (mask - mask.min()) / (mask.max() - mask.min() + 1e-8)
+    mask_uint8 = (norm_mask * 255).astype(np.uint8)
+    rgb = np.stack([mask_uint8] * 3, axis=-1)
     pil_img = Image.fromarray(rgb, mode="RGB")
     buffer = io.BytesIO()
     pil_img.save(buffer, format="PNG")
@@ -140,13 +294,11 @@ def _convert_mask_to_rgb(mask: np.ndarray) -> bytes:
 
 async def _read_file(file: UploadFile) -> Image.Image:
     """
-    Asynchronously read a file and convert it to a PIL image.
-
-    Args:
-        file (UploadFile): File to read.
-
-    Returns:
-        Image.Image: PIL image
+    Asynchronously read a file and convert it to a PIL Image.
     """
-    image_bytes = await file.read()
-    return Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    try:
+        image_bytes = await file.read()
+        return Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    except Exception as e:
+        logging.error(f"Error reading file {file.filename}: {e}", exc_info=e)
+        raise HTTPException(status_code=400, detail=f"Error reading file: {e}")
