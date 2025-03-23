@@ -513,7 +513,7 @@ class Trainer:
         outputs = self.model(inputs)
 
         # Calculate losses
-        losses = self.criterion(outputs, targets)
+        losses = self.criterion(outputs, targets, inputs)
 
         # Extract the core loss and step losses
         loss = {}

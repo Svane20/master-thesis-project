@@ -156,30 +156,35 @@ class MattingLoss(nn.Module):
         self.grad_penalty_lambda = grad_penalty_lambda
 
         # Initialize buffers to store the losses
+        self.register_buffer(name="composition_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
         self.register_buffer(name="gradient_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
         self.register_buffer(name="l1_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
         self.register_buffer(name="laplacian_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
         self.register_buffer(name=CORE_LOSS_KEY, tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
 
-    def forward(self, pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def forward(self, pred: torch.Tensor, gt: torch.Tensor, image: torch.Tensor = None) -> Dict[str, torch.Tensor]:
         """
         Compute the total loss.
         Args:
             pred (Tensor): Predicted alpha matte, shape (N,1,H,W).
             gt (Tensor): Ground truth alpha matte, shape (N,1,H,W).
+            image (Tensor): Input image for composition loss, shape (N,3,H,W).
         Returns:
             Tensor: Total loss (scalar).
         """
         # Reset buffers
+        self.composition_loss.zero_()
         self.gradient_loss.zero_()
         self.l1_loss.zero_()
         self.laplacian_loss.zero_()
         self.core_loss.zero_()
 
         # Compute losses
-        losses = self._forward(pred, gt)
+        losses = self._forward(pred, gt, image)
 
         # Update buffers
+        self.composition_loss = losses["composition"].to(dtype=self.composition_loss.dtype,
+                                                         device=self.composition_loss.device)
         self.gradient_loss = losses["gradient"].to(dtype=self.gradient_loss.dtype, device=self.gradient_loss.device)
         self.l1_loss = losses["l1"].to(dtype=self.l1_loss.dtype, device=self.l1_loss.device)
         self.laplacian_loss = losses["laplacian"].to(dtype=self.laplacian_loss.dtype, device=self.laplacian_loss.device)
@@ -206,19 +211,20 @@ class MattingLoss(nn.Module):
 
         return reduced_loss
 
-    def _forward(self, pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def _forward(self, pred: torch.Tensor, gt: torch.Tensor, image: torch.Tensor = None) -> Dict[str, torch.Tensor]:
         """
         Forward pass to compute the loss.
         Args:
             pred (torch.Tensor): Predicted alpha matte.
             gt (torch.Tensor): Ground truth alpha matte.
+            image (torch.Tensor): Input image for composition loss.
         Returns:
             Dict[str, torch.Tensor]: Dictionary of loss components
         """
-        losses = {"gradient": 0, "l1": 0, "laplacian": 0}
+        losses = {"composition": 0, "gradient": 0, "l1": 0, "laplacian": 0}
 
         # Update losses
-        self._update_losses(losses, pred, gt)
+        self._update_losses(losses, pred, gt, rgb_image=image)
 
         # Reduce losses
         losses[CORE_LOSS_KEY] = self.reduce_loss(losses)
@@ -230,6 +236,7 @@ class MattingLoss(nn.Module):
             losses: Dict[str, torch.Tensor],
             pred: torch.Tensor,
             gt: torch.Tensor,
+            rgb_image: torch.Tensor = None,
     ) -> Dict[str, torch.Tensor]:
         """
         Update the loss components.
@@ -240,6 +247,10 @@ class MattingLoss(nn.Module):
         Returns:
             Dict[str, torch.Tensor]: Updated dictionary of loss components.
         """
+        # Composition loss.
+        if rgb_image is not None:
+            losses['composition'] = composition_loss(pred, gt, image=rgb_image)
+
         # Gradient loss.
         losses['gradient'] = gradient_loss(
             pred,
@@ -263,18 +274,20 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     predictions = torch.rand((4, 1, 256, 256), dtype=dtype, requires_grad=True).to(device)
     targets = torch.rand((4, 1, 256, 256), dtype=dtype).to(device)
-    images = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
-    config = {"gradient": 1.0, "l1": 1.0, "laplacian": 1.0}
+    inputs = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
+    config = {"composition": 1.0, "gradient": 0.25, "l1": 1.0, "laplacian": 0.5}
+
+    loss_fn = MattingLoss(weight_dict=config, device=device, dtype=dtype)
 
     with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=dtype):
         # Compute the loss
-        loss_fn = MattingLoss(weight_dict=config, device=device, dtype=dtype)
-        losses = loss_fn(predictions, targets, images)
+        losses = loss_fn(predictions, targets, inputs)
 
         # Print the losses
+        print(f"Composition Loss: {losses['composition']:.4f}")
+        print(f"Gradient Loss: {losses['gradient']:.4f}")
         print(f"L1 Loss: {losses['l1']:.4f}")
         print(f"Laplacian Loss: {losses['laplacian']:.4f}")
-        print(f"Gradient Loss: {losses['gradient']:.4f}")
         print(f"Core Loss: {losses[CORE_LOSS_KEY]:.4f}\n")
 
         # Print state_dict
@@ -295,9 +308,10 @@ if __name__ == "__main__":
         print(f"{key}: {value:.4f}")
 
     # Step 5: Verify that buffers match
-    assert torch.allclose(loss_fn.l1_loss, new_loss_fn.l1_loss), "L1 loss mismatch"
-    assert torch.allclose(loss_fn.laplacian_loss, new_loss_fn.laplacian_loss), "Laplacian loss mismatch"
+    assert torch.allclose(loss_fn.composition_loss, new_loss_fn.composition_loss), "Composition loss mismatch"
     assert torch.allclose(loss_fn.gradient_loss, new_loss_fn.gradient_loss), "Gradient loss mismatch"
+    assert torch.allclose(loss_fn.laplacian_loss, new_loss_fn.laplacian_loss), "Laplacian loss mismatch"
+    assert torch.allclose(loss_fn.l1_loss, new_loss_fn.l1_loss), "L1 loss mismatch"
     assert torch.allclose(loss_fn.core_loss, new_loss_fn.core_loss), "Core loss mismatch"
 
     print("\nState dict successfully loaded and verified!")
