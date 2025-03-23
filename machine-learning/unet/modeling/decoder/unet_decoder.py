@@ -62,6 +62,9 @@ class UNetDecoder(nn.Module):
         self.up1 = nn.ConvTranspose2d(decoder_channels[2], decoder_channels[3], kernel_size=2, stride=2)
         self.fuse1 = AttentionFusionBlock(decoder_channels[3] + encoder_channels[0], final_channels)
 
+        self.up0 = nn.ConvTranspose2d(final_channels, final_channels, kernel_size=2, stride=2)
+        self.fuse0 = AttentionFusionBlock(final_channels, final_channels)
+
         self.final_conv = nn.Conv2d(final_channels, 1, kernel_size=1)
 
         # Detail branch: additional branch to refine high-resolution details.
@@ -109,19 +112,20 @@ class UNetDecoder(nn.Module):
         d1 = torch.cat([d1, skip_connections[0]], dim=1)  # skip_connections[0]: e0 (e.g., 64 channels)
         d1 = self.fuse1(d1)
 
+        # 5) Final upsampling from H/2 -> H/1
+        d0 = self.up0(d1)
+        d0 = self.fuse0(d0)
+
         # Detail Branch: refine high-resolution features with the original image.
         detail = self.detail_branch(image)
-        if detail.shape[-2:] != d1.shape[-2:]:
-            detail = F.interpolate(detail, size=d1.shape[-2:], mode='bilinear', align_corners=False)
+        if detail.shape[-2:] != d0.shape[-2:]:
+            detail = F.interpolate(detail, size=d0.shape[-2:], mode='bilinear', align_corners=False)
 
-        # Fuse the detail branch output with d1.
-        d1 = torch.cat([d1, detail], dim=1)
-        d1 = self.detail_fuse(d1)
+        # Fuse the detail branch output with final decoder feature
+        d0 = torch.cat([d0, detail], dim=1)
+        d0 = self.detail_fuse(d0)
 
-        # Final prediction and adjust to target size if needed.
-        out = self.final_conv(d1)
-        out = F.interpolate(out, size=self.in_channels, mode='bilinear', align_corners=False)
-        return torch.sigmoid(out)
+        return torch.sigmoid(self.final_conv(d0))
 
 
 if __name__ == "__main__":
