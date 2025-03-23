@@ -7,7 +7,7 @@ from unet.modeling.backbone.resnet34 import ResNet34
 from unet.modeling.decoder.capture_details import Detail_Capture
 
 
-class UnetMatte(nn.Module):
+class ResNetMatte(nn.Module):
     def __init__(self, config: Dict[str, Any]):
         super().__init__()
         encoder_config = config['encoder']
@@ -41,6 +41,6 @@ if __name__ == '__main__':
         }
     }
 
-    model = UnetMatte(config).to(device)
+    model = ResNetMatte(config).to(device)
     output = model(dummy_input)
     print("Output shape:", output.shape) # Expected shape: torch.Size([1, 1, 512, 512])

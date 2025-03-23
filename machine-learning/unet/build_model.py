@@ -8,7 +8,7 @@ from typing import Dict, Any
 from libs.training.utils.checkpoint_utils import load_checkpoint
 from libs.utils.device import compile_model
 
-from unet.modeling.meta_arch.unetmatte import UnetMatte
+from unet.modeling.meta_arch.resnetmatte import ResNetMatte
 
 
 def build_model_for_train(configuration: Dict[str, Any]) -> nn.Module:
@@ -102,4 +102,4 @@ def _build(configuration: Dict[str, Any]) -> nn.Module:
     Returns:
         nn.Module: Model.
     """
-    return UnetMatte(configuration)
+    return ResNetMatte(configuration)

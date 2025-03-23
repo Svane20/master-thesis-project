@@ -4,10 +4,13 @@ from torchvision.models import resnet34, ResNet34_Weights
 
 
 class ResNet34(nn.Module):
+    """
+    ResNet-34 model modified for the UNet architecture.
+    """
     def __init__(self, pretrained: bool = True):
         """
         Args:
-            pretrained (bool): If True, returns a model pretrained on ImageNet
+            pretrained (bool): If True, use the pretrained weights.
         """
         super().__init__()
 
