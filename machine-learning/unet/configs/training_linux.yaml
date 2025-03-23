@@ -29,7 +29,7 @@ training:
 
   # Criterion configuration
   criterion:
-    name: "MattingLossV2"
+    name: "MattingLoss"
     weight_dict:
       gradient: 0.5
       l1: 1.0
@@ -82,16 +82,15 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v2.pt"
+    checkpoint_path: "unet_v3.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration
 model:
   encoder:
     pretrained: true
-    image_channels: 3
   decoder:
     in_channels: 512
-    image_channels: 3
-    convstream_out: [ 48, 96, 192, 384 ]
-    fusion_out: [ 256, 128, 64, 32, 16 ]
+    encoder_channels: [64, 64, 128, 256, 512]
+    decoder_channels: [256, 128, 64, 64]
+    final_channels: 64

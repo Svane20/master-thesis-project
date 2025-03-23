@@ -29,10 +29,8 @@ training:
 
   # Criterion configuration
   criterion:
-    name: "MattingLossV2"
+    name: "MattingLoss"
     weight_dict:
-      boundary: 0.5
-      composition: 1.0
       gradient: 0.5
       l1: 1.0
       laplacian: 1.0
@@ -91,4 +89,8 @@ training:
 model:
   encoder:
     pretrained: true
-    freeze_pretrained: false
+  decoder:
+    in_channels: 512
+    encoder_channels: [64, 64, 128, 256, 512]
+    decoder_channels: [256, 128, 64, 64]
+    final_channels: 64

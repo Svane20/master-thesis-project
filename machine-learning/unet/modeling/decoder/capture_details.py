@@ -11,11 +11,13 @@ class Detail_Capture(nn.Module):
     Detail Capture Decoder that fuses deep encoder features with multiscale detail features.
     """
 
-    def __init__(self,
-                 in_channels=512,  # Encoder bottleneck channels
-                 image_channels: int = 4,
-                 convstream_out: List[int] = [48, 96, 192, 384],
-                 fusion_out: List[int] = [256, 128, 64, 32, 16]):
+    def __init__(
+            self,
+            in_channels=512,  # Encoder bottleneck channels
+            image_channels: int = 4,
+            convstream_out: List[int] = [48, 96, 192, 384],
+            fusion_out: List[int] = [256, 128, 64, 32, 16]
+    ):
         super().__init__()
 
         self.convstream = ConvStream(in_channels=image_channels, out_channels=convstream_out)
