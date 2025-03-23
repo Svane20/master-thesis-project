@@ -89,7 +89,9 @@ training:
 model:
   encoder:
     pretrained: true
+    image_channels: 3
   decoder:
     in_channels: 512
-    convstream_out: [48, 96, 192, 384]
-    fusion_out: [256, 128, 64, 32, 16]
+    image_channels: 3
+    convstream_out: [ 48, 96, 192, 384 ]
+    fusion_out: [ 256, 128, 64, 32, 16 ]
