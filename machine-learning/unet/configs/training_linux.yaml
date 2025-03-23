@@ -31,8 +31,6 @@ training:
   criterion:
     name: "MattingLossV2"
     weight_dict:
-      boundary: 0.5
-      composition: 1.0
       gradient: 0.5
       l1: 1.0
       laplacian: 1.0
@@ -84,11 +82,14 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v1.pt"
+    checkpoint_path: "unet_v2.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration
 model:
   encoder:
     pretrained: true
-    freeze_pretrained: false
+  decoder:
+    in_channels: 512
+    convstream_out: [48, 96, 192, 384]
+    fusion_out: [256, 128, 64, 32, 16]

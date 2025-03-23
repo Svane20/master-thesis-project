@@ -14,7 +14,7 @@ import json
 import platform
 
 from ..configuration.configuration import Config
-from .criterions import CORE_LOSS_KEY, MattingLossV2
+from .criterions import CORE_LOSS_KEY, MattingLoss
 from .early_stopping import EarlyStopping
 from .optimizers import construct_optimizer, GradientClipper
 from .schedulers import SchedulerWrapper
@@ -513,7 +513,7 @@ class Trainer:
         outputs = self.model(inputs)
 
         # Calculate losses
-        losses = self.criterion(outputs, targets, inputs)
+        losses = self.criterion(outputs, targets)
 
         # Extract the core loss and step losses
         loss = {}
@@ -646,7 +646,7 @@ class Trainer:
         print_model_summary(self.model, self.logging_config.log_directory)
 
         # Criterion, optimizer, scheduler
-        self.criterion = MattingLossV2(
+        self.criterion = MattingLoss(
             weight_dict=self.criterion_config.weight_dict,
             dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
             device=self.device
