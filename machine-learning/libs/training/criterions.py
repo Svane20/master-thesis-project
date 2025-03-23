@@ -149,7 +149,7 @@ class MattingLoss(nn.Module):
         # Normalize weights
         total_weight = sum(weight_dict.values())
         self.weight_dict = {k: v / total_weight for k, v in weight_dict.items()}
-        for key in ["gradient", "l1", "laplacian"]:
+        for key in ["composition", "gradient", "l1", "laplacian"]:
             assert key in self.weight_dict, f"{key} loss weight must be provided."
 
         self.use_grad_penalty = use_grad_penalty

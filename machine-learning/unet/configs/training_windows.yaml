@@ -31,7 +31,7 @@ training:
   criterion:
     name: "MattingLoss"
     weight_dict:
-      composite: 1.0
+      composition: 1.0
       gradient: 0.25
       l1: 1.0
       laplacian: 0.5
