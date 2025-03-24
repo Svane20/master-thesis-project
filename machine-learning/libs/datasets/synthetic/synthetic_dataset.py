@@ -1,4 +1,5 @@
 import torch
+from onnxscript.tools.training_helper import train_loop
 from torch.utils.data import Dataset
 from torchvision.transforms.functional import to_tensor
 import torchvision.transforms as transforms
@@ -487,12 +488,30 @@ if __name__ == "__main__":
         phase="train",
     )
     train_sample = train_dataset[2]
-    image, alpha, trimap = train_sample["image"], train_sample["alpha"], train_sample["trimap"]
+    train_image, train_alpha, train_trimap = train_sample["image"], train_sample["alpha"], train_sample["trimap"]
 
     # Print the shapes of the image, alpha mask, and trimap
-    print(f"Image shape: {image.shape}")
-    print(f"Alpha mask shape: {alpha.shape}")
-    print(f"Trimap shape: {trimap.shape}")
+    print(f"Train image shape: {train_image.shape}") # torch.Size([3, 512, 512])
+    print(f"Train alpha mask shape: {train_alpha.shape}") # torch.Size([1, 512, 512])
+    print(f"Train trimap shape: {train_trimap.shape}") # torch.Size([512, 512])
+
+    val_dataset = SyntheticDatasetNew(
+        root_directory=root_directory,
+        phase="val",
+    )
+    val_sample = val_dataset[2]
+    val_image, val_alpha = val_sample["image"], val_sample["alpha"]
+    print(f"Val image shape: {val_image.shape}") # torch.Size([3, 512, 512])
+    print(f"Val alpha mask shape: {val_alpha.shape}") # torch.Size([1, 512, 512])
+
+    test_dataset = SyntheticDatasetNew(
+        root_directory=root_directory,
+        phase="test",
+    )
+    test_sample = test_dataset[2]
+    test_image, test_alpha = test_sample["image"], test_sample["alpha"]
+    print(f"Test image shape: {test_image.shape}") # torch.Size([3, 512, 512])
+    print(f"Test alpha mask shape: {test_alpha.shape}") # torch.Size([1, 512, 512])
 
     # Visualize the image and alpha mask
     import matplotlib.pyplot as plt
@@ -500,17 +519,17 @@ if __name__ == "__main__":
     fig, axs = plt.subplots(1, 3, figsize=(15, 6))
 
     # Display the RGB image.
-    axs[0].imshow(image.permute(1, 2, 0))
+    axs[0].imshow(train_image.permute(1, 2, 0))
     axs[0].set_title("RGB Image")
     axs[0].axis("off")
 
     # Display the alpha mask.
-    axs[1].imshow(alpha.squeeze(), cmap="gray")
+    axs[1].imshow(train_alpha.squeeze(), cmap="gray")
     axs[1].set_title("Alpha Mask")
     axs[1].axis("off")
 
     # Display the trimap.
-    axs[2].imshow(trimap.squeeze(), cmap="gray")
+    axs[2].imshow(train_trimap.squeeze(), cmap="gray")
     axs[2].set_title("Trimap")
     axs[2].axis("off")
 
