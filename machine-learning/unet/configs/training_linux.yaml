@@ -33,13 +33,13 @@ training:
     weight_dict:
       composition: 1.0
       gradient: 0.25
-      l1: 1.0
+      l1: 0.8
       laplacian: 0.5
 
   # Optimizer configuration
   optimizer:
     name: "AdamW"
-    lr: 3e-4
+    lr: 4e-4
     weight_decay: 1.0e-7
     amp:
       enabled: true

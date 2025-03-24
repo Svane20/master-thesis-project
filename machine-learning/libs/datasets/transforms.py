@@ -88,7 +88,7 @@ class Resize(object):
 
     def __call__(self, image: Image, mask: Image) -> Tuple[Image, Image]:
         image = F.resize(image, list(self.size), interpolation=Image.BILINEAR)
-        mask = F.resize(mask, list(self.size), interpolation=Image.BILINEAR)
+        mask = F.resize(mask, list(self.size), interpolation=Image.NEAREST)
 
         return image, mask
 
