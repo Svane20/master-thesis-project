@@ -75,7 +75,6 @@ training:
       notes: "Training U-Net with ResNet-34 backbone on synthetic data."
       group: "unet"
       job_type: "training"
-    log_directory: "./logs"
     log_metrics: false
     log_freq: 10
 

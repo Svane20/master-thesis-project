@@ -67,7 +67,7 @@ class Trainer:
         self.logs_dir = logs_directory
 
         # Logging
-        makedir(self.logging_config.log_directory)
+        makedir(str(self.logs_dir))
         setup_logging(__name__)
 
         # Device
@@ -643,7 +643,7 @@ class Trainer:
 
         # Components
         self.model = model
-        print_model_summary(self.model, self.logging_config.log_directory)
+        print_model_summary(self.model, str(self.logs_dir))
 
         # Criterion, optimizer, scheduler
         self.criterion = MattingLoss(
