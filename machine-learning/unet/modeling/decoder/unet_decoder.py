@@ -41,14 +41,11 @@ class UNetDecoder(nn.Module):
 
     def __init__(
             self,
-            in_channels: int = 512,
             encoder_channels: List[int] = [64, 64, 128, 256, 512],
             decoder_channels: List[int] = [256, 128, 64, 64],
             final_channels: int = 64
     ):
         super().__init__()
-        self.in_channels = in_channels
-
         # Upsampling and fusion blocks.
         self.up4 = nn.ConvTranspose2d(encoder_channels[-1], decoder_channels[0], kernel_size=2, stride=2)
         self.fuse4 = AttentionFusionBlock(decoder_channels[0] + encoder_channels[-2], decoder_channels[0])
@@ -143,7 +140,6 @@ if __name__ == "__main__":
     ]
 
     model = UNetDecoder(
-        in_channels=image_size,
         encoder_channels=[64, 64, 128, 256, 512],
         decoder_channels=[256, 128, 64, 64],
         final_channels=64

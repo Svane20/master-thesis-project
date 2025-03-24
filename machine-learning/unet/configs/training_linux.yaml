@@ -31,10 +31,10 @@ training:
   criterion:
     name: "MattingLoss"
     weight_dict:
-      composition: 1.0
-      gradient: 0.25
-      l1: 0.8
-      laplacian: 0.5
+      composition: 1.0 # 1.0
+      gradient: 1.0 # 0.25
+      l1: 1.0 # 0.8
+      laplacian: 1.5 # 0.5
 
   # Optimizer configuration
   optimizer:
@@ -83,7 +83,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v1.pt"
+    checkpoint_path: "unet_v2.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration
@@ -91,7 +91,6 @@ model:
   encoder:
     pretrained: true
   decoder:
-    in_channels: 512
     encoder_channels: [64, 64, 128, 256, 512]
     decoder_channels: [256, 128, 64, 64]
     final_channels: 64

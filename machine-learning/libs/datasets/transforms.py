@@ -32,6 +32,34 @@ class RandomHorizontalFlip(object):
         return image, mask
 
 
+class RandomCrop(object):
+    """
+    Randomly crop the image and mask to a specified size.
+    """
+
+    def __init__(self, size: Tuple[int, int]):
+        """
+        Args:
+            size (Tuple[int, int]): Desired output size.
+        """
+        self.crop_height, self.crop_width = size
+
+    def __call__(self, image: Image, mask: Image) -> Tuple[Image, Image]:
+        w, h = image.size
+        if h < self.crop_height or w < self.crop_width:
+            raise ValueError("Image is smaller than the crop size.")
+
+        # Random top-left corner
+        top = random.randint(0, h - self.crop_height)
+        left = random.randint(0, w - self.crop_width)
+
+        # Crop
+        image_crop = image.crop((left, top, left + self.crop_width, top + self.crop_height))
+        mask_crop = mask.crop((left, top, left + self.crop_width, top + self.crop_height))
+
+        return image_crop, mask_crop
+
+
 class RandomSkyCrop(object):
     """
     Randomly crop the image and mask to a specified size ensuring that the crop
@@ -88,7 +116,7 @@ class Resize(object):
 
     def __call__(self, image: Image, mask: Image) -> Tuple[Image, Image]:
         image = F.resize(image, list(self.size), interpolation=Image.BILINEAR)
-        mask = F.resize(mask, list(self.size), interpolation=Image.NEAREST)
+        mask = F.resize(mask, list(self.size), interpolation=Image.BILINEAR)
 
         return image, mask
 

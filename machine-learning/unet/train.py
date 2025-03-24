@@ -6,9 +6,9 @@ from libs.configuration.training.root import TrainConfig
 from libs.training.train import start_training
 from libs.training.utils.train_utils import set_seeds
 
-from build_model import build_model_for_train
-from utils import load_config
-from dataset.transforms import get_train_transforms, get_val_transforms
+from unet.build_model import build_model_for_train
+from unet.utils import load_config
+from unet.dataset.transforms import get_train_transforms, get_val_transforms
 
 
 def main() -> None:

@@ -17,7 +17,6 @@ class ResNetMatteV0(nn.Module):
             pretrained=encoder_config['pretrained'],
         )
         self.decoder = UNetDecoder(
-            in_channels=decoder_config['in_channels'],
             encoder_channels=decoder_config['encoder_channels'],
             decoder_channels=decoder_config['decoder_channels'],
             final_channels=decoder_config['final_channels'],
@@ -38,7 +37,6 @@ if __name__ == '__main__':
             "pretrained": True,
         },
         "decoder": {
-            "in_channels": 512,
             "encoder_channels": [64, 64, 128, 256, 512],
             "decoder_channels": [256, 128, 64, 64],
             "final_channels": 64,
