@@ -352,6 +352,47 @@ class GenerateTrimap(object):
         return sample
 
 
+class GenerateFGBG(object):
+    """
+    Generates foreground and background images from the input image and alpha mask.
+    For sky replacement, we assume:
+      - Alpha = 0 for building (foreground)
+      - Alpha = 1 for sky (background)
+    The foreground is extracted from regions where alpha is below 0.5,
+    and the background is extracted from regions where alpha is 0.5 or above.
+    """
+    def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        if "fg" in sample and "bg" in sample:
+            return sample
+
+        if "image" not in sample or "alpha" not in sample:
+            raise ValueError("Sample must contain 'image' and 'alpha' to generate foreground and background.")
+
+        image = sample["image"]
+        alpha = sample["alpha"]
+
+        # If alpha isn't already a float in [0,1], convert it.
+        if alpha.dtype != np.float32:
+            alpha = alpha.astype(np.float32) / 255.0
+
+        # Create binary masks using a threshold.
+        fg_mask = (alpha < 0.5).astype(np.float32)   # building (foreground)
+        bg_mask = (alpha >= 0.5).astype(np.float32)  # sky (background)
+
+        # If image is in H x W x C, expand masks to have a channel dimension.
+        if image.ndim == 3:
+            fg_mask = fg_mask[..., None]
+            bg_mask = bg_mask[..., None]
+
+        # Extract foreground and background.
+        fg = image * fg_mask
+        bg = image * bg_mask
+
+        sample["fg"] = fg
+        sample["bg"] = bg
+        return sample
+
+
 class Resize(object):
     """
     Resize the image (and alpha, and optionally trimap) to a fixed size.
@@ -398,9 +439,22 @@ class ToTensor(object):
 
             sample["alpha"] = torch.from_numpy(alpha.astype(np.float32))
 
-        # Process the trimap if present.
         if "trimap" in sample:
             sample["trimap"] = torch.from_numpy(sample["trimap"]).to(torch.long)
+
+        if "fg" in sample:
+            fg = sample["fg"]
+            fg = fg[:, :, ::-1]  # Convert BGR to RGB.
+            fg = fg.transpose((2, 0, 1)).astype(np.float32)
+            fg /= 255.0
+            sample["fg"] = torch.from_numpy(fg)
+
+        if "bg" in sample:
+            bg = sample["bg"]
+            bg = bg[:, :, ::-1]  # Convert BGR to RGB.
+            bg = bg.transpose((2, 0, 1)).astype(np.float32)
+            bg /= 255.0
+            sample["bg"] = torch.from_numpy(bg)
 
         return sample
 
@@ -418,6 +472,10 @@ class Normalize(object):
     def __call__(self, sample: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         if "image" in sample:
             sample["image"] = F.normalize(sample["image"], self.mean, self.std, self.inplace)
+        if "fg" in sample:
+            sample["fg"] = F.normalize(sample["fg"], self.mean, self.std, self.inplace)
+        if "bg" in sample:
+            sample["bg"] = F.normalize(sample["bg"], self.mean, self.std, self.inplace)
 
         return sample
 
