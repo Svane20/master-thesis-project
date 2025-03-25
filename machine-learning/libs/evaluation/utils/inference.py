@@ -136,7 +136,8 @@ def predict_image(
     metrics = {}
 
     # Apply transformations
-    image_tensor, mask_tensor = transform((image, mask))
+    sample = transform({"image": image, "alpha": mask})
+    image_tensor, mask_tensor = sample["image"], sample["alpha"]
 
     # Move tensors to device and add batch dimension
     image_tensor, mask_tensor = image_tensor.unsqueeze(0).to(device), mask_tensor.unsqueeze(0).to(device)
