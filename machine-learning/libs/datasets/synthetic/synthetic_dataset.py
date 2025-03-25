@@ -369,15 +369,34 @@ class GenerateTrimap(object):
         return sample
 
 
+class Resize(object):
+    """
+    Resize the image (and alpha, and optionally trimap) to a fixed size.
+    """
+
+    def __init__(self, size: Tuple[int, int]):
+        self.size = size
+
+    def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        sample["image"] = cv2.resize(sample["image"], self.size, interpolation=maybe_random_interp(cv2.INTER_LINEAR))
+
+        if "alpha" in sample:
+            sample["alpha"] = cv2.resize(sample["alpha"], self.size,
+                                         interpolation=maybe_random_interp(cv2.INTER_NEAREST))
+        if "trimap" in sample:
+            sample["trimap"] = cv2.resize(sample["trimap"], self.size, interpolation=cv2.INTER_NEAREST)
+
+        return sample
+
+
 class ToTensor(object):
     """
     Convert ndarrays in samples to Tensors with normalization.
     """
 
-    def __init__(self, phase="test"):
+    def __init__(self):
         self.mean = torch.tensor([0.485, 0.456, 0.406]).view(3, 1, 1)
         self.std = torch.tensor([0.229, 0.224, 0.225]).view(3, 1, 1)
-        self.phase = phase
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, torch.FloatTensor]:
         # Convert BGR to RGB by reversing channel order.
@@ -390,7 +409,7 @@ class ToTensor(object):
         alpha = np.expand_dims(alpha, axis=0).astype(np.float32)
         image /= 255.0
 
-        if self.phase == "train" and "trimap" in sample:
+        if "trimap" in sample:
             sample["trimap"] = torch.from_numpy(sample["trimap"]).to(torch.long)
 
         sample['image'] = torch.from_numpy(image)
@@ -403,7 +422,18 @@ class SyntheticDatasetNew(Dataset):
     Dataset class for synthetic data.
     """
 
-    def __init__(self, root_directory: str, phase: str = "train") -> None:
+    def __init__(
+            self,
+            root_directory: str,
+            image_size: int = 512,
+            phase: str = "train"
+    ) -> None:
+        """
+        Args:
+            root_directory (str): Root directory of the dataset.
+            image_size (int): Size of the image. Default: 512.
+            phase (str): Phase of the dataset. Default: "train".
+        """
         super().__init__()
 
         base_directory = os.path.join(root_directory, phase)
@@ -416,7 +446,7 @@ class SyntheticDatasetNew(Dataset):
             'train': transforms.Compose([
                 RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
                 GenerateTrimap(),
-                RandomCrop((512, 512)),
+                RandomCrop((image_size, image_size)),
                 RandomJitter(),
                 ToTensor()
             ]),
@@ -425,7 +455,7 @@ class SyntheticDatasetNew(Dataset):
                 ToTensor()
             ]),
             'test': transforms.Compose([
-                OriginScale(),
+                Resize((image_size, image_size)),
                 ToTensor()
             ])
         }[phase]
@@ -491,18 +521,18 @@ if __name__ == "__main__":
     train_image, train_alpha, train_trimap = train_sample["image"], train_sample["alpha"], train_sample["trimap"]
 
     # Print the shapes of the image, alpha mask, and trimap
-    print(f"Train image shape: {train_image.shape}") # torch.Size([3, 512, 512])
-    print(f"Train alpha mask shape: {train_alpha.shape}") # torch.Size([1, 512, 512])
-    print(f"Train trimap shape: {train_trimap.shape}") # torch.Size([512, 512])
+    print(f"Train image shape: {train_image.shape}")  # torch.Size([3, 512, 512])
+    print(f"Train alpha mask shape: {train_alpha.shape}")  # torch.Size([1, 512, 512])
+    print(f"Train trimap shape: {train_trimap.shape}\n")  # torch.Size([512, 512])
 
     val_dataset = SyntheticDatasetNew(
         root_directory=root_directory,
         phase="val",
     )
-    val_sample = val_dataset[2]
+    val_sample = val_dataset[1]
     val_image, val_alpha = val_sample["image"], val_sample["alpha"]
-    print(f"Val image shape: {val_image.shape}") # torch.Size([3, 512, 512])
-    print(f"Val alpha mask shape: {val_alpha.shape}") # torch.Size([1, 512, 512])
+    print(f"Val image shape: {val_image.shape}")  # torch.Size([3, 512, 512])
+    print(f"Val alpha mask shape: {val_alpha.shape}\n")  # torch.Size([1, 512, 512])
 
     test_dataset = SyntheticDatasetNew(
         root_directory=root_directory,
@@ -510,10 +540,10 @@ if __name__ == "__main__":
     )
     test_sample = test_dataset[2]
     test_image, test_alpha = test_sample["image"], test_sample["alpha"]
-    print(f"Test image shape: {test_image.shape}") # torch.Size([3, 512, 512])
-    print(f"Test alpha mask shape: {test_alpha.shape}") # torch.Size([1, 512, 512])
+    print(f"Test image shape: {test_image.shape}")  # torch.Size([3, 512, 512])
+    print(f"Test alpha mask shape: {test_alpha.shape}")  # torch.Size([1, 512, 512])
 
-    # Visualize the image and alpha mask
+    # Visualize the train image, alpha mask, and trimap
     import matplotlib.pyplot as plt
 
     fig, axs = plt.subplots(1, 3, figsize=(15, 6))
@@ -532,6 +562,22 @@ if __name__ == "__main__":
     axs[2].imshow(train_trimap.squeeze(), cmap="gray")
     axs[2].set_title("Trimap")
     axs[2].axis("off")
+
+    plt.tight_layout()
+    plt.show()
+
+    # Visualize the val image and alpha mask
+    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
+
+    # Display the RGB image.
+    axs[0].imshow(val_image.permute(1, 2, 0))
+    axs[0].set_title("RGB Image")
+    axs[0].axis("off")
+
+    # Display the alpha mask.
+    axs[1].imshow(val_alpha.squeeze(), cmap="gray")
+    axs[1].set_title("Alpha Mask")
+    axs[1].axis("off")
 
     plt.tight_layout()
     plt.show()
