@@ -1,11 +1,11 @@
 import torch
+import torchvision.transforms as transforms
 
 import numpy as np
 from PIL import Image
 from typing import Dict, Tuple
 import logging
 
-from libs.datasets.transforms import Transform
 from libs.metrics.utils import compute_evaluation_metrics, get_grad_filter
 from libs.training.utils.train_utils import AverageMeter, ProgressMeter
 
@@ -104,7 +104,7 @@ def predict_image(
         image: Image,
         mask: Image,
         model: torch.nn.Module,
-        transform: Transform,
+        transform: transforms.Compose,
         device: torch.device,
 ) -> Tuple[torch.Tensor, np.ndarray, Dict[str, float]]:
     """
@@ -114,7 +114,7 @@ def predict_image(
         image (numpy.ndarray): Input image.
         mask (numpy.ndarray): Ground truth mask.
         model (torch.nn.Module): Model to use for prediction.
-        transform (Transform): Transform to apply to the image.
+        transform (transforms.Compose): Transform to apply to the image.
         device (torch.device): Device to use for evaluation.
 
     Returns:
@@ -136,7 +136,7 @@ def predict_image(
     metrics = {}
 
     # Apply transformations
-    image_tensor, mask_tensor = transform(image, mask)
+    image_tensor, mask_tensor = transform((image, mask))
 
     # Move tensors to device and add batch dimension
     image_tensor, mask_tensor = image_tensor.unsqueeze(0).to(device), mask_tensor.unsqueeze(0).to(device)

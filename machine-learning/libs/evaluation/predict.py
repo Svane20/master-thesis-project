@@ -1,3 +1,5 @@
+import logging
+
 import torch
 import torchvision
 
@@ -7,7 +9,6 @@ from PIL import Image
 import numpy as np
 
 from ..configuration.configuration import Config
-from ..datasets.transforms import Transform
 from ..replacements.foreground_estimation import get_foreground_estimation
 from ..replacements.replacement import replace_background
 from ..training.utils.logger import setup_logging
@@ -21,7 +22,7 @@ setup_logging(__name__)
 def run_prediction(
         configuration: Config,
         model: torch.nn.Module,
-        transforms: Transform,
+        transforms: torchvision.transforms.Compose,
         device: torch.device,
         output_dir: Path,
 ) -> None:
@@ -34,6 +35,7 @@ def run_prediction(
     # Select a random image from the test set
     image_files = [f for f in images_dir.iterdir() if f.suffix in [".png", ".jpg", ".jpeg"]]
     chosen_image_path = random.choice(image_files)
+    logging.info(f"Chosen image: {chosen_image_path}")
     image = Image.open(chosen_image_path).convert("RGB")
     image_array = np.asarray(image)
 
