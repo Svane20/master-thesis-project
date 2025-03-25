@@ -4,10 +4,10 @@ import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 from libs.configuration.configuration import ConfigurationMode
+from libs.datasets.synthetic.transforms import get_test_transforms
 from libs.evaluation.predict import run_prediction
 from libs.utils.device import get_device
 
-from unet.dataset.transforms import get_test_transforms
 from unet.build_model import build_model_for_evaluation
 from unet.utils import load_config_and_checkpoint_path
 
