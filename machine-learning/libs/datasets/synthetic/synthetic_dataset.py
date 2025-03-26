@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
 from libs.datasets.transforms import RandomAffine, RandomCrop, RandomJitter, ToTensor, Normalize, OriginScale, \
-    GenerateTrimap, GenerateFGBG
+    GenerateTrimap, GenerateFGBG, TopBiasedRandomCrop
 from libs.configuration.configuration import get_configuration, ConfigurationMode
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -43,7 +43,7 @@ class SyntheticDataset(Dataset):
         self.transforms = {
             'train': transforms.Compose([
                 RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
-                RandomCrop((resolution, resolution)),
+                TopBiasedRandomCrop(output_size=(512, 512), vertical_bias_ratio=0.2),
                 RandomJitter(),
                 GenerateTrimap(),  # This generates the trimap from the ground truth alpha.
                 GenerateFGBG(),  # This generates the fg and bg from the ground truth alpha.
@@ -143,3 +143,13 @@ if __name__ == "__main__":
 
     plt.tight_layout()
     plt.show()
+
+    # Extra
+    trimap[trimap < 85] = 0
+    trimap[trimap > 170] = 1
+    trimap[trimap >= 85] = 0.5
+    sample_map = torch.zeros_like(trimap)
+    sample_map[trimap == 0.5] = 1
+
+    print(f"Train sample map shape: {sample_map.shape}")  # torch.Size([1, 512, 512])
+    print(f"Train sample map unique values: {sample_map.unique()}")  # tensor([0., 1.])

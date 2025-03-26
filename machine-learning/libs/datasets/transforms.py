@@ -255,6 +255,36 @@ class RandomHorizontalFlip(object):
         return sample
 
 
+class TopBiasedRandomCrop(object):
+    def __init__(self, output_size=(512, 512), vertical_bias_ratio=0.2):
+        self.output_size = output_size
+        self.vertical_bias_ratio = vertical_bias_ratio  # 0 = top only, 1 = uniform random
+
+    def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        image, alpha = sample['image'], sample['alpha']
+        h, w, _ = image.shape
+        crop_h, crop_w = self.output_size
+
+        max_y = max(h - crop_h, 1)
+        max_x = max(w - crop_w, 1)
+
+        # Biased towards the top for Y
+        y_bias_limit = int(max_y * self.vertical_bias_ratio)
+        start_y = random.randint(0, y_bias_limit)
+        start_x = random.randint(0, max_x)
+
+        image_crop = image[start_y:start_y + crop_h, start_x:start_x + crop_w, :]
+        alpha_crop = alpha[start_y:start_y + crop_h, start_x:start_x + crop_w]
+        sample.update({'image': image_crop, 'alpha': alpha_crop})
+
+        if 'trimap' in sample:
+            trimap = sample['trimap']
+            trimap_crop = trimap[start_y:start_y + crop_h, start_x:start_x + crop_w]
+            sample['trimap'] = trimap_crop
+
+        return sample
+
+
 class RandomCrop(object):
     """
     Randomly crop the sample to the desired output size.
@@ -361,6 +391,7 @@ class GenerateFGBG(object):
     The foreground is extracted from regions where alpha is below 0.5,
     and the background is extracted from regions where alpha is 0.5 or above.
     """
+
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         if "fg" in sample and "bg" in sample:
             return sample
@@ -376,7 +407,7 @@ class GenerateFGBG(object):
             alpha = alpha.astype(np.float32) / 255.0
 
         # Create binary masks using a threshold.
-        fg_mask = (alpha < 0.5).astype(np.float32)   # building (foreground)
+        fg_mask = (alpha < 0.5).astype(np.float32)  # building (foreground)
         bg_mask = (alpha >= 0.5).astype(np.float32)  # sky (background)
 
         # If image is in H x W x C, expand masks to have a channel dimension.
