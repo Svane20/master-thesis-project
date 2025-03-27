@@ -1,10 +1,6 @@
 from pathlib import Path
-import os
-
-os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
 from libs.configuration.configuration import ConfigurationMode
-from libs.datasets.synthetic.transforms import get_test_transforms
 from libs.evaluation.predict import run_prediction
 from libs.utils.device import get_device
 
@@ -18,6 +14,7 @@ def main() -> None:
     predictions_directory = current_directory / "predictions"
     predictions_directory.mkdir(parents=True, exist_ok=True)
 
+    # Load the configuration and checkpoint path
     configuration, checkpoint_path = load_config_and_checkpoint_path(ConfigurationMode.Evaluation)
 
     # Load the model
@@ -28,13 +25,10 @@ def main() -> None:
         device=device
     )
 
-    # Create transforms
-    transforms = get_test_transforms(configuration.scratch.resolution)
-
+    # Run the prediction
     run_prediction(
         model=model,
         configuration=configuration,
-        transforms=transforms,
         device=device,
         output_dir=predictions_directory,
     )

@@ -5,7 +5,11 @@ import numpy as np
 from PIL import Image
 from typing import Dict, Tuple
 import logging
+from pathlib import Path
+import cv2
 
+from libs.configuration.configuration import Config
+from libs.datasets.synthetic.transforms import get_test_transforms
 from libs.metrics.utils import compute_evaluation_metrics, get_grad_filter
 from libs.training.utils.train_utils import AverageMeter, ProgressMeter
 
@@ -101,26 +105,84 @@ def evaluate_model(
         logging.info(f"{k}: {v:.3f}")
 
 
+def predict(
+        configuration: Config,
+        model: torch.nn.Module,
+        image: np.ndarray,
+        device: torch.device,
+        save_dir: Path,
+        save_image: bool = True,
+) -> np.ndarray:
+    """
+    Predict the alpha matte for an image
+
+    Args:
+        configuration (Config): Configuration object
+        model (torch.nn.Module): Model to use for prediction
+        image (np.ndarray): Input image
+        device (torch.device): Device to use for evaluation
+        save_dir (Path): Directory to save the predicted image
+        save_image (bool): Whether to save the predicted image
+
+    Returns:
+        np.ndarray: Predicted alpha matte
+    """
+    # Create transforms
+    transforms = get_test_transforms(configuration.scratch.resolution)
+
+    # Apply the transforms and move the image to the device
+    image_tensor = transforms({"image": image})["image"]
+    image_tensor = image_tensor.unsqueeze(0).to(device)
+
+    # Set the model to evaluation mode
+    model.eval()
+
+    # Perform inference
+    dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    enabled = torch.cuda.is_available()
+
+    with torch.inference_mode():
+        with torch.amp.autocast(device_type=device.type, enabled=enabled, dtype=dtype):
+            outputs = model(image_tensor)
+
+    # Convert the output to a numpy array and remove the batch dimension
+    predicted_alpha = outputs.detach().cpu().numpy()
+    predicted_alpha = np.squeeze(predicted_alpha)
+
+    if save_image:
+        logging.info(f"Saved predicted image to {save_dir / 'predicted.png'}")
+        cv2.imwrite(str(save_dir / "predicted.png"), (predicted_alpha * 255).astype("uint8"))
+
+    return predicted_alpha
+
+
 def predict_image(
+        configuration: Config,
         image: Image,
         mask: Image,
         model: torch.nn.Module,
-        transform: transforms.Compose,
         device: torch.device,
-) -> Tuple[torch.Tensor, np.ndarray, Dict[str, float]]:
+        save_dir: Path,
+        save_image: bool = True,
+) -> Tuple[np.ndarray, Dict[str, float]]:
     """
     Predict the alpha matte for an image.
 
     Args:
+        configuration (Config): Configuration object.
         image (numpy.ndarray): Input image.
         mask (numpy.ndarray): Ground truth mask.
         model (torch.nn.Module): Model to use for prediction.
-        transform (transforms.Compose): Transform to apply to the image.
         device (torch.device): Device to use for evaluation.
+        save_dir (Path): Directory to save the predicted image.
+        save_image (bool): Whether to save the predicted image.
 
     Returns:
-        Tuple[torch.Tensor, np.ndarray, Dict[str, float]]: Raw output, predicted mask and evaluation metrics.
+        Tuple[np.ndarray, Dict[str, float]]: Predicted mask and evaluation metrics.
     """
+    # Create transforms
+    transforms = get_test_transforms(configuration.scratch.resolution)
+
     # Set model to evaluation mode
     model.eval()
 
@@ -137,14 +199,14 @@ def predict_image(
     metrics = {}
 
     # Apply transformations
-    sample = transform({"image": image, "alpha": mask})
+    sample = transforms({"image": image, "alpha": mask})
     image_tensor, mask_tensor = sample["image"], sample["alpha"]
 
     # Move tensors to device and add batch dimension
     image_tensor, mask_tensor = image_tensor.unsqueeze(0).to(device), mask_tensor.unsqueeze(0).to(device)
 
     with torch.no_grad():
-        with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=torch.float16):
+        with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=dtype):
             outputs = model(image_tensor)
 
             # Calculate metrics
@@ -170,6 +232,11 @@ def predict_image(
         logging.info(f"{k}: {v:.3f}")
 
     # Convert alpha matte to numpy array
-    pred_alpha = outputs.squeeze(0).cpu().numpy()
+    pred_alpha = outputs.detach().cpu().numpy()
+    pred_alpha = np.squeeze(pred_alpha)
 
-    return outputs, pred_alpha, metrics
+    if save_image:
+        logging.info(f"Saved predicted image to {save_dir / 'predicted.png'}")
+        cv2.imwrite(str(save_dir / "predicted.png"), (pred_alpha * 255).astype("uint8"))
+
+    return pred_alpha, metrics

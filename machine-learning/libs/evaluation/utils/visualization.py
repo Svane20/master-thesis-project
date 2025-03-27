@@ -1,10 +1,12 @@
 import logging
 from typing import Dict
-
+import os
 from pathlib import Path
 import numpy as np
-import matplotlib.pyplot as plt
 import cv2
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+import matplotlib.pyplot as plt
 
 
 def save_prediction(

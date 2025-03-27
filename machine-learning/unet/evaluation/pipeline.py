@@ -1,5 +1,7 @@
+from pathlib import Path
+
 from libs.configuration.configuration import ConfigurationMode
-from libs.evaluation.eval import run_evaluation
+from libs.evaluation.pipeline import run_pipeline
 from libs.utils.device import get_device
 
 from unet.build_model import build_model_for_evaluation
@@ -7,6 +9,11 @@ from unet.utils import load_config_and_checkpoint_path
 
 
 def main() -> None:
+    # Directories
+    current_directory = Path(__file__).resolve().parent
+    pipeline_directory = current_directory / "pipeline"
+    pipeline_directory.mkdir(parents=True, exist_ok=True)
+
     # Load the configuration and checkpoint path
     configuration, checkpoint_path = load_config_and_checkpoint_path(ConfigurationMode.Evaluation)
 
@@ -18,8 +25,8 @@ def main() -> None:
         device=device
     )
 
-    # Run evaluation
-    run_evaluation(model=model, device=device, configuration=configuration)
+    # Run the pipeline
+    run_pipeline(model=model, configuration=configuration, device=device, output_dir=pipeline_directory)
 
 
 if __name__ == "__main__":

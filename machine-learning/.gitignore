@@ -1,5 +1,6 @@
 logs
 wandb
 predictions
+pipeline
 nohup.out
 matting_criterion.pth
