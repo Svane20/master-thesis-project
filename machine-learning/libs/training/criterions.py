@@ -288,9 +288,15 @@ if __name__ == "__main__":
     )
     print(f"Criterion: {criterion}")
 
-    # Compute the loss
-    losses = criterion(predictions, targets, trimap=trimap)
-    print(f"Losses: {losses}")
+    with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=dtype):
+        # Compute the loss
+        losses = criterion(predictions, targets, trimap=trimap)
+
+        # Print losses
+        print(f"Unknown L1: {losses["unknown_l1_loss"]:.4f}")
+        print(f"Known L1: {losses["known_l1_loss"]:.4f}")
+        print(f"Gradient: {losses["gradient_loss"]:.4f}")
+        print(f"Laplacian: {losses["laplacian_pha_loss"]:.4f}")
 
     # Compute the logs
     logs = criterion.log_dict()
