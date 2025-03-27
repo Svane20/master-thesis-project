@@ -253,11 +253,11 @@ class Trainer:
             # Move data to device
             inputs = sample["image"].to(self.device, non_blocking=True)
             targets = sample["alpha"].to(self.device, non_blocking=True)
-            trimaps = sample["trimap"].to(self.device, non_blocking=True)
+            trimap = sample["trimap"].to(self.device, non_blocking=True) if "trimap" in sample else None
 
             try:
                 # Run a single step
-                self._run_step(inputs, targets, phase, loss_meter, extra_losses_meters, trimaps)
+                self._run_step(inputs, targets, phase, loss_meter, extra_losses_meters, trimap)
 
                 # Clipping gradients
                 if self.gradient_clipper is not None:
