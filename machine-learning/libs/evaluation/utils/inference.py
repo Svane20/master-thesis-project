@@ -18,7 +18,7 @@ def evaluate_model(
         model: torch.nn.Module,
         data_loader: torch.utils.data.DataLoader,
         device: torch.device,
-) -> None:
+) -> Dict[str, float]:
     """
     Evaluate a model on a dataset.
 
@@ -103,6 +103,8 @@ def evaluate_model(
     logging.info("Evaluation finished.")
     for k, v in metrics.items():
         logging.info(f"{k}: {v:.3f}")
+
+    return metrics
 
 
 def predict(

@@ -77,7 +77,7 @@ def run_pipeline(
     axes[0, 1].axis("off")
 
     # Row 2: Foreground and Replaced background image
-    axes[1, 0].imshow(cv2.cvtColor(foreground, cv2.COLOR_BGR2RGB))
+    axes[1, 0].imshow(foreground)
     axes[1, 0].set_title("Estimated Foreground")
     axes[1, 0].axis("off")
 

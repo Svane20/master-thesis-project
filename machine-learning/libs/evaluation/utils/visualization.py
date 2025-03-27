@@ -46,10 +46,14 @@ def save_prediction(
     ax[0, 0].axis("off")
 
     # Display metrics
-    metrics_str = "\n".join([f"{key}: {value:.3f}" for key, value in metrics.items()])
+    formatted_lines = [f"{key:<15s}: {value}" for key, value in metrics.items()]
+    metrics_str = "\n".join(formatted_lines)
+    metrics_title = "Evaluation Summary"
     ax[0, 1].text(
-        0.5, 0.5, metrics_str, fontsize=14, ha="center", va="center",
-        bbox=dict(facecolor="white", alpha=0.8, edgecolor="black")
+        0.5, 0.5, f"{metrics_title}\n\n{metrics_str}",
+        fontsize=12, ha="center", va="center",
+        fontfamily="monospace",  # Better alignment
+        bbox=dict(facecolor="white", alpha=0.9, edgecolor="black", boxstyle="round,pad=1")
     )
     ax[0, 1].set_title("Evaluation Metrics", fontsize=12)
     ax[0, 1].axis("off")

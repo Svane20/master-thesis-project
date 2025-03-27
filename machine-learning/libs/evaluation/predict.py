@@ -51,15 +51,16 @@ def run_prediction(
         save_image=save_image,
     )
 
-    # Downscale the image to fit the predicted alpha
+    # Downscale the image and ground truth mask to fit the predicted alpha
     h, w = predicted_mask.shape
-    downscaled_image = cv2.resize(image, (w, h), interpolation=cv2.INTER_AREA)
+    downscaled_image = cv2.resize(image, dsize=(w, h), interpolation=cv2.INTER_AREA)
+    downscaled_mask = cv2.resize(mask, dsize=(w, h), interpolation=cv2.INTER_AREA)
 
     # Save the prediction
     save_prediction(
         image=downscaled_image,
         predicted_mask=predicted_mask,
-        gt_mask=mask,
+        gt_mask=downscaled_mask,
         metrics=metrics,
         directory=output_dir
     )
