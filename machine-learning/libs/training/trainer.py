@@ -540,9 +540,10 @@ class Trainer:
 
             # Log predictions for every 10 epochs
             if self.epoch > 0 and self.epoch % self.logging_config.log_images_freq == 0:
-                # Take 1 sample for visualization
-                sample_targets = targets[:1].detach().cpu()
-                sample_outputs = outputs[:1].detach().cpu()
+                # Take N samples for visualization
+                sample_count = self.logging_config.image_log_count
+                sample_targets = targets[:sample_count].detach().cpu()
+                sample_outputs = outputs[:sample_count].detach().cpu()
 
                 # Create grid images (assumes the tensors have shape [B, C, H, W])
                 produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)

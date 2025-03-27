@@ -33,9 +33,9 @@ training:
     normalize_weights: true
     weight_dict:
       unknown_l1_loss: 1.0
-      known_l1_loss: 0.3
-      gradient_loss: 0.25
-      laplacian_pha_loss: 0.5
+      known_l1_loss: 0.1
+      gradient_loss: 0.5
+      laplacian_pha_loss: 0.7
 
   # Optimizer configuration
   optimizer:
@@ -79,6 +79,7 @@ training:
     log_metrics: false
     log_freq: 10
     log_images_freq: 10
+    image_log_count: 8
 
   # Checkpoint configuration
   checkpoint:

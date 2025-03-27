@@ -43,6 +43,7 @@ class LoggingConfig:
     log_metrics: bool
     log_freq: int
     log_images_freq: int
+    image_log_count: int
 
 
 @dataclass
