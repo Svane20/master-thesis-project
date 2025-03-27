@@ -210,7 +210,11 @@ class RandomJitter(object):
         image[:, :, 0] = np.remainder(image[:, :, 0].astype(np.float32) + hue_jitter, 360)
 
         # Saturation noise
-        sat_bar = image[:, :, 1][alpha > 0].mean()
+        sat_mask = alpha > 0
+        if np.count_nonzero(sat_mask) == 0:
+            return sample_ori
+
+        sat_bar = image[:, :, 1][sat_mask].mean()
         if np.isnan(sat_bar):
             return sample_ori
 
@@ -221,7 +225,11 @@ class RandomJitter(object):
         image[:, :, 1] = sat
 
         # Value noise
-        val_bar = image[:, :, 2][alpha > 0].mean()
+        val_mask = alpha > 0
+        if np.count_nonzero(val_mask) == 0:
+            return sample_ori
+
+        val_bar = image[:, :, 2][val_mask].mean()
         if np.isnan(val_bar):
             return sample_ori
 
