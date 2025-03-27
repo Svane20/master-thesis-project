@@ -7,7 +7,6 @@ import os
 from timeit import default_timer as timer
 from PIL import Image
 from typing import Tuple
-from pathlib import Path
 
 from model.build_model import build_model
 from replacements.foreground_estimation import get_foreground_estimation
@@ -21,51 +20,33 @@ transforms = Compose(
     ],
 )
 
-checkpoint_path = "unet_v1.pt"
+checkpoint_path = "unet_resnet_34_v2.pt"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = build_model(checkpoint_path, device=str(device), mode="eval")
 
 
-def preprocess(image: Image) -> torch.Tensor:
+def _inference(image: torch.Tensor) -> np.ndarray:
     """
-    Preprocess the input image.
+    Perform inference on the input image.
 
     Args:
-        image (Image): Input image.
+        image (torch.Tensor): Input image.
 
     Returns:
-        torch.Tensor: Preprocessed image.
+        torch.Tensor: Predicted mask.
     """
-    return transforms(image).unsqueeze(0).to(device)
+    dtype = torch.float16 if torch.cuda.is_available() else torch.float32
+    enabled = torch.cuda.is_available()
 
+    with torch.inference_mode():
+        with torch.amp.autocast(device_type=device.type, enabled=enabled, dtype=dtype):
+            outputs = model(image)
 
-def postprocess(predicted_mask: torch.Tensor, width: int, height: int) -> np.ndarray:
-    """
-    Postprocess the predicted mask.
+    # Convert the output to a numpy array and remove the batch dimension
+    predicted_alpha = outputs.detach().cpu().numpy()
+    predicted_alpha = np.squeeze(predicted_alpha)
 
-    Args:
-        predicted_mask (torch.Tensor): Predicted mask.
-        width (int): Width of the original image.
-        height (int): Height of the original image.
-
-    Returns:
-        np.ndarray: Post-processed mask.
-    """
-    # Remove the batch dimension
-    predicted_mask = predicted_mask.squeeze(0).cpu().numpy()
-
-    # Normalize the alpha mask to [0, 1]
-    if predicted_mask.shape[2] == 4:
-        predicted_mask = predicted_mask[..., 3].astype(np.float64) / 255.0
-    else:
-        predicted_mask = np.squeeze(predicted_mask, axis=0)
-
-    # Upscale the predicted mask to the original image size
-    predicted_mask = np.array(
-        Image.fromarray((predicted_mask * 255).astype(np.uint8)).resize((width, height))
-    ).astype(np.float32) / 255.0
-
-    return predicted_mask
+    return predicted_alpha
 
 
 def predict(image_path: str) -> Tuple[np.ndarray, np.ndarray, float]:
@@ -85,27 +66,25 @@ def predict(image_path: str) -> Tuple[np.ndarray, np.ndarray, float]:
     image = Image.open(image_path).convert("RGB")
 
     # Preprocess the image
-    image_tensor = preprocess(image)
+    image_tensor = transforms(image).unsqueeze(0).to(device)
 
-    with torch.inference_mode():
-        outputs = model(image_tensor.to(device))
-        outputs = torch.clamp(outputs, 0, 1)  # Clamp to [0, 1]
+    # Perform inference
+    predicted_alpha = _inference(image_tensor)
 
-    # Postprocess the output
-    predicted_alpha_matte = postprocess(outputs, width=image.size[1], height=image.size[0])
+    # Downscale the image to fit the predicted alpha
+    h, w = predicted_alpha.shape
+    downscaled_image = image.resize(size=(w, h), resample=Image.Resampling.LANCZOS)
 
     # Perform foreground estimation
-    foreground = get_foreground_estimation(image_path, predicted_alpha_matte)
+    foreground = get_foreground_estimation(downscaled_image, predicted_alpha)
 
     # Perform sky replacement
-    current_directory = Path(__file__).parent
-    new_sky_path = current_directory / "assets/skies/new_sky.webp"
-    replaced_sky = sky_replacement(new_sky_path, foreground, predicted_alpha_matte)
+    replaced_sky = sky_replacement(foreground, predicted_alpha)
 
     # Calculate the prediction time
     prediction_time = round(timer() - start_time, 5)
 
-    return predicted_alpha_matte, replaced_sky, prediction_time
+    return predicted_alpha, replaced_sky, prediction_time
 
 
 title = "Demo: Sky Replacement with Alpha Matting"

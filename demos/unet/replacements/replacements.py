@@ -1,9 +1,9 @@
 from pathlib import Path
+from PIL import Image
 import numpy as np
-import cv2
 
 
-def sky_replacement(background_image_path: Path, foreground: np.ndarray, alpha_mask: np.ndarray) -> np.ndarray:
+def sky_replacement(foreground: np.ndarray, alpha_mask: np.ndarray) -> np.ndarray:
     """
     Replace the sky in the original image with a new sky using alpha compositing.
 
@@ -15,7 +15,6 @@ def sky_replacement(background_image_path: Path, foreground: np.ndarray, alpha_m
     the original sky_foreground is preserved. Soft transitions are handled by the continuous mask.
 
     Args:
-        background_image_path (Path): Path to the new sky image.
         foreground (np.ndarray): The refined extraction of the sky (and retained non-sky regions)
                                      from the original image (shape: H x W x 3).
         alpha_mask (np.ndarray): Continuous alpha mask with values in [0, 1] (sky = 1).
@@ -23,29 +22,25 @@ def sky_replacement(background_image_path: Path, foreground: np.ndarray, alpha_m
     Returns:
         np.ndarray: The composited image where the new sky replaces the original sky.
     """
-    # Ensure the new background (sky) image exists
-    if not background_image_path.exists():
-        raise FileNotFoundError(f"Image not found: {background_image_path}")
-
     # Load the new sky image
-    new_sky_bgr = cv2.imread(str(background_image_path), cv2.IMREAD_COLOR)
-    if new_sky_bgr is None:
-        raise FileNotFoundError(f"Background image not found: {background_image_path}")
+    current_directory = Path(__file__).parent.parent
+    new_sky_path = current_directory / "assets/skies/new_sky.webp"
+    new_sky_img = Image.open(new_sky_path).convert("RGB")
 
-    # Convert from BGR to RGB and normalize to [0, 1]
-    new_sky = cv2.cvtColor(new_sky_bgr, cv2.COLOR_BGR2RGB).astype(np.float64) / 255.0
+    # Resize to match foreground dimensions
+    h, w = foreground.shape[:2]
+    new_sky_img = new_sky_img.resize(size=(w, h), resample=Image.Resampling.LANCZOS)
 
-    # Resize the new sky image to match the dimensions of the sky_foreground
-    new_sky = cv2.resize(new_sky, dsize=(foreground.shape[1], foreground.shape[0]))
+    # Convert new_sky and foreground to float32 numpy arrays in range [0, 1]
+    new_sky = np.asarray(new_sky_img).astype(np.float32) / 255.0
+    if foreground.dtype != np.float32:
+        foreground = foreground.astype(np.float32) / 255.0
 
-    # If sky_foreground has an extra alpha channel, drop it (keep only RGB channels)
+    # If foreground has an alpha channel, drop it
     if foreground.shape[2] == 4:
         foreground = foreground[:, :, :3]
 
-    # Perform alpha compositing:
-    #   For pixels where alpha_mask is 1 (sky), use the new sky.
-    #   For pixels where alpha_mask is 0, keep the original sky_foreground.
-    # With soft transitions handled by the continuous alpha_mask.
-    replaced_image = (1 - alpha_mask[:, :, None]) * foreground + alpha_mask[:, :, None] * new_sky
+    # Ensure values are in [0, 1]
+    alpha_mask = np.clip(alpha_mask, a_min=0, a_max=1)
 
-    return replaced_image
+    return (1 - alpha_mask[:, :, None]) * foreground + alpha_mask[:, :, None] * new_sky
