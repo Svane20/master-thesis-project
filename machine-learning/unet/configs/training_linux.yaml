@@ -22,7 +22,7 @@ dataset:
 # Training configuration
 training:
   max_epochs: 100
-  warmup_epochs: 10 # 5-10% of max_epochs
+  warmup_epochs: 2
   accelerator: cuda
   seed: 42
   compile_model: true
@@ -85,7 +85,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v2.pt"
+    checkpoint_path: "unet_v4.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration

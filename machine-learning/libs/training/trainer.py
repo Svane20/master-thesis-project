@@ -21,7 +21,7 @@ from .optimizers import construct_optimizer, GradientClipper
 from .schedulers import SchedulerWrapper
 from .utils.checkpoint_utils import load_state_dict_into_model
 from .utils.logger import setup_logging, Logger
-from ..metrics.utils import compute_training_metrics
+from ..metrics.utils import compute_training_metrics, get_grad_filter
 from .utils.train_utils import get_amp_type, get_resume_checkpoint, DurationMeter, makedir, AverageMeter, \
     MemMeter, Phase, ProgressMeter, Meter, human_readable_time
 
@@ -98,10 +98,12 @@ class Trainer:
         train_data_loader = self.train_data_loader
         val_data_loader = self.val_data_loader
 
+        grad_filter = get_grad_filter(device=self.device, dtype=get_amp_type(self.optimizer_config.amp.amp_dtype))
+
         try:
             while self.epoch < self.max_epochs:
                 train_stats, train_losses = self._train_one_epoch(train_data_loader)
-                val_stats, val_metrics, val_losses = self._val_one_epoch(val_data_loader)
+                val_stats, val_metrics, val_losses = self._val_one_epoch(val_data_loader, grad_filter)
 
                 # Validation metric
                 val_metric_key = self.early_stopping_config.monitor \
@@ -311,13 +313,15 @@ class Trainer:
 
     def _val_one_epoch(
             self,
-            data_loader: torch.utils.data.DataLoader
+            data_loader: torch.utils.data.DataLoader,
+            grad_filter: torch.Tensor
     ) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]:
         """
         Validate the model for one epoch.
 
         Args:
             data_loader (torch.utils.data.DataLoader): Data loader for validation.
+            grad_filter (torch.Tensor): Gradient filter for computing the gradient loss.
 
         Returns:
             Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]: Validation metrics, matting metrics and losses.
@@ -336,6 +340,8 @@ class Trainer:
         # Initialize metrics meters
         mse_meter = AverageMeter(name="MSE", device=str(self.device), fmt=":.2e")
         mae_meter = AverageMeter(name="MAE", device=str(self.device), fmt=":.2e")
+        sad_meter = AverageMeter(name="SAD", device=str(self.device), fmt=":.2e")
+        grad_meter = AverageMeter(name="Grad", device=str(self.device), fmt=":.2e")
         extra_metrics_meters = {}
 
         # Progress bar
@@ -347,6 +353,8 @@ class Trainer:
                 self.time_elapsed_meter,
                 mse_meter,
                 mae_meter,
+                sad_meter,
+                grad_meter,
                 batch_time_meter,
                 data_time_meter,
                 mem_meter,
@@ -381,7 +389,8 @@ class Trainer:
                             dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
                     ):
                         # Run a single step
-                        loss_dict, extra_losses, extra_metrics = self._step(inputs, targets, phase)
+                        loss_dict, extra_losses, extra_metrics = self._step(inputs, targets, phase,
+                                                                            grad_filter=grad_filter)
 
                         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
                         _, loss = loss_dict.popitem()
@@ -399,6 +408,8 @@ class Trainer:
                         batch_size = targets.size(0)
                         mse_meter.update(val=extra_metrics["mse"], n=batch_size)
                         mae_meter.update(val=extra_metrics["mae"], n=batch_size)
+                        sad_meter.update(val=extra_metrics["sad"], n=batch_size)
+                        grad_meter.update(val=extra_metrics["grad"], n=batch_size)
                         for k, v in extra_metrics.items():
                             if k not in extra_metrics_meters:
                                 extra_metrics_meters[k] = AverageMeter(
@@ -434,6 +445,8 @@ class Trainer:
         # Compute average metrics
         metrics["mse"] = mse_meter.avg
         metrics["mae"] = mae_meter.avg
+        metrics["sad"] = sad_meter.avg
+        metrics["grad"] = grad_meter.avg
         for k, v in extra_metrics_meters.items():
             metrics[k] = v.avg
 
@@ -481,7 +494,7 @@ class Trainer:
                 enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                 dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
         ):
-            loss_dict, extra_losses, _ = self._step(inputs, targets, phase, trimap)
+            loss_dict, extra_losses, _ = self._step(inputs, targets, phase, trimap=trimap)
 
         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
         _, loss = loss_dict.popitem()
@@ -504,6 +517,7 @@ class Trainer:
             inputs: torch.Tensor,
             targets: torch.Tensor,
             phase: str,
+            grad_filter: torch.Tensor = None,
             trimap: torch.Tensor = None,
     ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """
@@ -536,7 +550,7 @@ class Trainer:
         metrics = {}
         if phase == Phase.VAL:
             # Calculate metrics
-            metrics = compute_training_metrics(outputs, targets)
+            metrics = compute_training_metrics(outputs, targets, grad_filter=grad_filter)
 
             # Log predictions for every 10 epochs
             if self.epoch > 0 and self.epoch % self.logging_config.log_images_freq == 0:
