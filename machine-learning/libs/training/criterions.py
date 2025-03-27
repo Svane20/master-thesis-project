@@ -1,8 +1,9 @@
-from typing import Dict
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from typing import Dict
+
+from libs.training.utils.criterion_utils import CriterionBase, BaseCriterionConfig, register_loss
 
 CORE_LOSS_KEY = 'core_loss'
 
@@ -41,40 +42,62 @@ def composition_loss(
     return loss
 
 
-def laplacian_loss(pred: torch.Tensor, gt: torch.Tensor, levels: int = 5) -> torch.Tensor:
-    """
-    Laplacian pyramid loss for multi-scale supervision on the alpha matte.
-    """
-    current_pred = pred
-    current_gt = gt
-    loss = 0.0
+def laplacian_loss(pred: torch.Tensor, target: torch.Tensor, max_levels=5):
+    kernel = gauss_kernel(device=pred.device, dtype=pred.dtype)
+    pred_pyramid = laplacian_pyramid(pred, kernel, max_levels)
+    target_pyramid = laplacian_pyramid(target, kernel, max_levels)
+    loss = 0
+    for level in range(max_levels):
+        loss += (2 ** level) * F.l1_loss(pred_pyramid[level], target_pyramid[level])
+    return loss / max_levels
 
-    # Build the pyramid for the specified number of scales.
-    for level in range(1, levels):
-        # Downsample current predictions and ground truth.
-        pred_down = F.interpolate(current_pred, scale_factor=0.5, mode='bilinear', align_corners=False)
-        gt_down = F.interpolate(current_gt, scale_factor=0.5, mode='bilinear', align_corners=False)
 
-        # Upsample back to current scale.
-        pred_up = F.interpolate(pred_down, size=current_pred.shape[2:], mode='bilinear', align_corners=False)
-        gt_up = F.interpolate(gt_down, size=current_gt.shape[2:], mode='bilinear', align_corners=False)
+def laplacian_pyramid(img, kernel, max_levels):
+    pyramid = []
+    current = img
+    for _ in range(max_levels):
+        current = crop_to_even_size(current)
+        down = downsample(current, kernel)
+        up = upsample(down, kernel)
+        diff = current - up
+        pyramid.append(diff)
+        current = down
+    return pyramid
 
-        # Compute the high-frequency band at this scale.
-        lap_pred = current_pred - pred_up
-        lap_gt = current_gt - gt_up
 
-        band_loss = torch.abs(lap_pred - lap_gt).mean()
-        loss += (2 ** (level - 1)) * band_loss
+def gauss_kernel(device='cpu', dtype=torch.float32):
+    kernel = torch.tensor([
+        [1, 4, 6, 4, 1],
+        [4, 16, 24, 16, 4],
+        [6, 24, 36, 24, 6],
+        [4, 16, 24, 16, 4],
+        [1, 4, 6, 4, 1]
+    ], device=device, dtype=dtype) / 256
+    return kernel.view(1, 1, 5, 5)
 
-        # Prepare for next level.
-        current_pred = pred_down
-        current_gt = gt_down
 
-    # Compute loss at the coarsest level.
-    coarse_loss = torch.abs(current_pred - current_gt).mean()
-    loss += (2 ** (levels - 1)) * coarse_loss
+def gauss_convolution(img, kernel):
+    B, C, H, W = img.shape
+    img = img.view(B * C, 1, H, W)
+    img = F.pad(img, (2, 2, 2, 2), mode="reflect")
+    img = F.conv2d(img, kernel)
+    return img.view(B, C, H, W)
 
-    return loss
+
+def downsample(img, kernel):
+    return gauss_convolution(img, kernel)[:, :, ::2, ::2]
+
+
+def upsample(img, kernel):
+    B, C, H, W = img.shape
+    out = torch.zeros((B, C, H * 2, W * 2), device=img.device, dtype=img.dtype)
+    out[:, :, ::2, ::2] = img * 4
+    return gauss_convolution(out, kernel)
+
+
+def crop_to_even_size(img):
+    H, W = img.shape[2:]
+    return img[:, :, :H - H % 2, :W - W % 2]
 
 
 def gradient_loss(
@@ -163,6 +186,77 @@ def _compute_boundary_map(gt: torch.Tensor, threshold: float = 0.1, epsilon: flo
     boundary_map = (grad_magnitude > threshold).float()
 
     return boundary_map
+
+
+class MattingCriterion(CriterionBase):
+    SUPPORTED_LOSSES = {
+        "gradient_loss",
+        "unknown_l1_loss",
+        "known_l1_loss",
+        "laplacian_pha_loss"
+    }
+
+    def __init__(self, config: BaseCriterionConfig, device: torch.device) -> None:
+        super().__init__(config=config, device=device)
+
+    def forward(
+            self,
+            preds: torch.Tensor,
+            targets: torch.Tensor,
+            **kwargs
+    ) -> Dict[str, torch.Tensor]:
+        return super().forward(preds, targets, **kwargs)
+
+    # Loss Functions
+    @register_loss("gradient_loss", ("sample_map",))
+    def gradient_loss(self, pred: torch.Tensor, target: torch.Tensor, sample_map: torch.Tensor = None) -> torch.Tensor:
+        sobel_x = torch.tensor([[[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]]], device=pred.device, dtype=pred.dtype)
+        sobel_y = torch.tensor([[[[-1, -2, -1], [0, 0, 0], [1, 2, 1]]]], device=pred.device, dtype=pred.dtype)
+
+        grad_pred_x = F.conv2d(pred, sobel_x, padding=1)
+        grad_pred_y = F.conv2d(pred, sobel_y, padding=1)
+        grad_target_x = F.conv2d(target, sobel_x, padding=1)
+        grad_target_y = F.conv2d(target, sobel_y, padding=1)
+
+        if sample_map is not None:
+            scale = sample_map.shape[0] * 262144 / torch.sum(sample_map)
+            return (
+                    F.l1_loss(grad_pred_x * sample_map, grad_target_x * sample_map) +
+                    F.l1_loss(grad_pred_y * sample_map, grad_target_y * sample_map) +
+                    0.01 * torch.mean(torch.abs(grad_pred_x * sample_map)) +
+                    0.01 * torch.mean(torch.abs(grad_pred_y * sample_map))
+            ) * scale
+
+        return (
+                F.l1_loss(grad_pred_x, grad_target_x) +
+                F.l1_loss(grad_pred_y, grad_target_y) +
+                0.01 * torch.mean(torch.abs(grad_pred_x)) +
+                0.01 * torch.mean(torch.abs(grad_pred_y))
+        )
+
+    @register_loss("unknown_l1_loss", ("sample_map",))
+    def unknown_l1_loss(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_map: torch.Tensor = None
+    ) -> torch.Tensor:
+        if sample_map is not None:
+            scale = sample_map.shape[0] * 262144 / torch.sum(sample_map)
+            return F.l1_loss(pred * sample_map, target * sample_map) * scale
+        return F.l1_loss(pred, target)
+
+    @register_loss("known_l1_loss", ("sample_map",))
+    def known_l1_loss(self, pred: torch.Tensor, target: torch.Tensor, sample_map: torch.Tensor = None) -> torch.Tensor:
+        if sample_map is not None:
+            known_map = (sample_map == 0).float()
+            scale = known_map.shape[0] * 262144 / torch.sum(known_map) if torch.sum(known_map) > 0 else 0
+            return F.l1_loss(pred * known_map, target * known_map) * scale
+        return F.l1_loss(pred, target)
+
+    @register_loss("laplacian_pha_loss", ())
+    def laplacian_pha_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        return laplacian_loss(pred, target)
 
 
 class MattingLossV2(nn.Module):
@@ -331,42 +425,67 @@ if __name__ == "__main__":
     predictions = torch.rand((4, 1, 256, 256), dtype=dtype, requires_grad=True).to(device)
     targets = torch.rand((4, 1, 256, 256), dtype=dtype).to(device)
     images = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
-    config = {"boundary": 1.0, "composition": 0.5, "gradient": 1.0, "l1": 1.0, "laplacian": 1.0}
+    trimap = torch.randint(0, 256, (4, 256, 256), dtype=dtype).to(device)
 
-    with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=dtype):
-        # Compute the loss
-        loss_fn = MattingLossV2(weight_dict=config, device=device, dtype=dtype)
-        losses = loss_fn(predictions, targets, images)
+    # Initialize the loss function
+    criterion = MattingCriterion(
+        BaseCriterionConfig(
+            losses=["unknown_l1_loss", "known_l1_loss", "gradient_loss", "laplacian_pha_loss"],
+            weight_dict={
+                "unknown_l1_loss": 1.0,
+                "known_l1_loss": 0.3,
+                "gradient_loss": 0.25,
+                "laplacian_pha_loss": 0.5
+            },
+            normalize_weights=True
+        ),
+        device=device
+    )
+    print(f"Criterion: {criterion}")
 
-        # Print the losses
-        print(f"L1 Loss: {losses['l1']:.4f}")
-        print(f"Composition Loss: {losses['composition']:.4f}")
-        print(f"Laplacian Loss: {losses['laplacian']:.4f}")
-        print(f"Gradient Loss: {losses['gradient']:.4f}")
-        print(f"Core Loss: {losses[CORE_LOSS_KEY]:.4f}\n")
+    # Compute the loss
+    losses = criterion(predictions, targets, trimap=trimap)
+    print(f"Losses: {losses}")
 
-        # Print state_dict
-        print(f"Loss function state dict: {loss_fn.state_dict()}")
+    # Compute the logs
+    logs = criterion.log_dict()
+    print(f"Logs: {logs}")
 
-    # Save state_dict
-    torch.save(loss_fn.state_dict(), "matting_loss.pth")
+    # Compute the total loss
+    total_loss = losses["core_loss"]
+    print("Total loss:", total_loss)
 
-    # Step 3: Create a new loss function instance
-    new_loss_fn = MattingLossV2(weight_dict=config, device=device, dtype=dtype)
+    # Print criterion state dict
+    print(f"Criterion state dict: {criterion.state_dict()}")
 
-    # Step 4: Load the saved state dict into the new instance
-    state_dict = torch.load("matting_loss.pth", weights_only=True)
-    new_loss_fn.load_state_dict(state_dict)
+    # Save the loss
+    torch.save({
+        "state_dict": criterion.state_dict(),
+        "config": criterion.get_config(),
+    }, "matting_criterion.pth")
 
-    print("\nLoaded State Dict:")
-    for key, value in new_loss_fn.state_dict().items():
-        print(f"{key}: {value:.4f}")
+    # Load the loss function
+    checkpoint = torch.load("matting_criterion.pth")
+    loaded_criterion = MattingCriterion.from_config(checkpoint["config"], device)
+    loaded_criterion.load_state_dict(checkpoint["state_dict"])
+    print(f"Loaded state dict: {loaded_criterion.state_dict()}")
+    print(f"Loaded config: {loaded_criterion.get_config()}")
 
-    # Step 5: Verify that buffers match
-    assert torch.allclose(loss_fn.l1_loss, new_loss_fn.l1_loss), "L1 loss mismatch"
-    assert torch.allclose(loss_fn.composition_loss, new_loss_fn.composition_loss), "Composition loss mismatch"
-    assert torch.allclose(loss_fn.laplacian_loss, new_loss_fn.laplacian_loss), "Laplacian loss mismatch"
-    assert torch.allclose(loss_fn.gradient_loss, new_loss_fn.gradient_loss), "Gradient loss mismatch"
-    assert torch.allclose(loss_fn.core_loss, new_loss_fn.core_loss), "Core loss mismatch"
 
-    print("\nState dict successfully loaded and verified!")
+    def assert_state_dicts_close(dict1, dict2, atol=1e-3, rtol=1e-3):
+        for k in dict1:
+            assert k in dict2, f"Missing key in second state_dict: {k}"
+            v1 = dict1[k]
+            v2 = dict2[k]
+
+            # Make sure they are both tensors and cast to float32 for comparison
+            if isinstance(v1, torch.Tensor) and isinstance(v2, torch.Tensor):
+                if not torch.allclose(v1.float(), v2.float(), atol=atol, rtol=rtol):
+                    raise AssertionError(f"Mismatch at {k}:\n  {v1} !=\n  {v2}")
+            else:
+                if v1 != v2:
+                    raise AssertionError(f"Mismatch at {k}: {v1} != {v2}")
+
+
+    # Assert that the loaded loss function is the same
+    assert_state_dicts_close(criterion.state_dict(), loaded_criterion.state_dict())

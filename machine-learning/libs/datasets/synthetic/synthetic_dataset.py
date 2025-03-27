@@ -43,10 +43,9 @@ class SyntheticDataset(Dataset):
         self.transforms = {
             'train': transforms.Compose([
                 RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
-                TopBiasedRandomCrop(output_size=(512, 512), vertical_bias_ratio=0.2),
+                TopBiasedRandomCrop(output_size=(resolution, resolution), vertical_bias_ratio=0.2),
                 RandomJitter(),
                 GenerateTrimap(),  # This generates the trimap from the ground truth alpha.
-                GenerateFGBG(),  # This generates the fg and bg from the ground truth alpha.
                 ToTensor(),
                 Normalize()
             ]),
@@ -85,14 +84,12 @@ if __name__ == "__main__":
         phase="train",
     )
     sample = train_dataset[2]
-    image, alpha, fg, bg, trimap = sample['image'], sample['alpha'], sample['fg'], sample['bg'], sample['trimap']
+    image, alpha, trimap = sample['image'], sample['alpha'], sample['trimap']
 
     # Print the shapes of the image, alpha mask, and trimap
     print(f"Train image shape: {image.shape}")  # torch.Size([3, 512, 512])
     print(f"Train alpha mask shape: {alpha.shape}")  # torch.Size([1, 512, 512])
     print(f"Train trimap shape: {trimap.shape}")  # torch.Size([1, 512, 512])
-    print(f"Train fg mask shape: {fg.shape}")  # torch.Size([3, 512, 512])
-    print(f"Train bg mask shape: {bg.shape}")  # torch.Size([3, 512, 512])
 
 
     def denormalize(image, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
@@ -131,25 +128,5 @@ if __name__ == "__main__":
     ax_trimap.set_title("Trimap")
     ax_trimap.axis("off")
 
-    # Plot the foreground.
-    ax_fg.imshow(denormalize(fg).permute(1, 2, 0).clamp(0, 1))
-    ax_fg.set_title("Foreground")
-    ax_fg.axis("off")
-
-    # Plot the background.
-    ax_bg.imshow(denormalize(bg).permute(1, 2, 0).clamp(0, 1))
-    ax_bg.set_title("Background")
-    ax_bg.axis("off")
-
     plt.tight_layout()
     plt.show()
-
-    # Extra
-    trimap[trimap < 85] = 0
-    trimap[trimap > 170] = 1
-    trimap[trimap >= 85] = 0.5
-    sample_map = torch.zeros_like(trimap)
-    sample_map[trimap == 0.5] = 1
-
-    print(f"Train sample map shape: {sample_map.shape}")  # torch.Size([1, 512, 512])
-    print(f"Train sample map unique values: {sample_map.unique()}")  # tensor([0., 1.])
