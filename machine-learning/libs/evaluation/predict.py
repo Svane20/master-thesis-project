@@ -5,7 +5,6 @@ import torchvision
 
 from pathlib import Path
 import random
-from PIL import Image
 import numpy as np
 import cv2
 
@@ -37,20 +36,17 @@ def run_prediction(
     image_files = [f for f in images_dir.iterdir() if f.suffix in [".png", ".jpg", ".jpeg"]]
     chosen_image_path = random.choice(image_files)
     logging.info(f"Chosen image: {chosen_image_path}")
-    image = Image.open(chosen_image_path).convert("RGB")
-    image_cv = cv2.imread(str(chosen_image_path))
-    image_array = np.asarray(image)
+    image = cv2.imread(str(chosen_image_path))
+    cv2.imwrite(str(output_dir / f"input{chosen_image_path.suffix}"), image)
 
     # Get the corresponding mask based on the stem of the image path
     mask_path = masks_dir / f"{chosen_image_path.stem}.png"
-    mask = Image.open(mask_path).convert("L")
-    mask_cv = cv2.imread(str(mask_path), 0).astype(np.float32) / 255.0
-    mask_array = np.asarray(mask)
+    mask = cv2.imread(str(mask_path), flags=0).astype(np.float32) / 255.0
 
     # Predict the mask
     raw_mask, predicted_mask, metrics = predict_image(
-        image=image_cv,
-        mask=mask_cv,
+        image=image,
+        mask=mask,
         model=model,
         transform=transforms,
         device=device
@@ -67,24 +63,22 @@ def run_prediction(
         # If there’s no fourth channel, assume the mask is the output.
         predicted_mask = np.squeeze(predicted_mask, axis=0)
 
-    # Upscale the predicted mask to the original image size
-    predicted_mask = np.array(
-        Image.fromarray((predicted_mask * 255).astype(np.uint8)).resize(
-            (image_array.shape[1], image_array.shape[0]))).astype(
-        np.float32) / 255.0
+    # Downscale the image to fit the predicted alpha
+    h, w = predicted_mask.shape
+    downscaled_image = cv2.resize(image, (w, h), interpolation=cv2.INTER_AREA)
 
     # Save the prediction
     save_prediction(
-        image=image_array,
+        image=downscaled_image,
         predicted_mask=predicted_mask,
-        gt_mask=mask_array,
+        gt_mask=mask,
         metrics=metrics,
         directory=output_dir
     )
 
     # Get the foreground estimation
     foreground, _ = get_foreground_estimation(
-        chosen_image_path,
+        image=downscaled_image,
         alpha_mask=predicted_mask,
         save_dir=output_dir,
         save_foreground=True,

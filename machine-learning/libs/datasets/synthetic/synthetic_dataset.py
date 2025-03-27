@@ -59,7 +59,7 @@ class SyntheticDataset(Dataset):
         image = cv2.imread(image_path)
 
         alpha_path = os.path.join(self.alpha_dir, self.alphas[idx])
-        alpha = cv2.imread(alpha_path, 0).astype(np.float32) / 255.0
+        alpha = cv2.imread(alpha_path, flags=0).astype(np.float32) / 255.0
 
         return self.transforms({'image': image, 'alpha': alpha})
 
