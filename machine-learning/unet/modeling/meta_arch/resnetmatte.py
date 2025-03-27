@@ -3,6 +3,7 @@ import torch.nn as nn
 from typing import Any, Dict
 from torchsummary import summary
 
+from libs.utils.mem_utils import estimate_max_batch_size
 from unet.modeling.backbone.resnet50 import ResNet50
 from unet.modeling.decoder.unet_decoder import UNetDecoder
 
@@ -29,6 +30,7 @@ class ResNetMatteV0(nn.Module):
 
 if __name__ == '__main__':
     image_size = 512
+    input_size = (3, image_size, image_size)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dummy_input = torch.randn(1, 3, image_size, image_size).to(device)
 
@@ -45,7 +47,11 @@ if __name__ == '__main__':
 
     # Print model summary
     model = ResNetMatteV0(config).to(device)
-    summary(model, input_size=(3, image_size, image_size))
+    summary(model, input_size=input_size)
 
     output = model(dummy_input)
     print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 512, 512])
+
+    # Get the estimated max batch size
+    max_batch_size = estimate_max_batch_size(model, input_size=input_size)
+    print("Estimated max batch size:", max_batch_size)
