@@ -1,15 +1,23 @@
 import torch
 from torch.utils.data import Dataset
-import torchvision.transforms as transforms
 
 import os
 import cv2
 import numpy as np
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
+from enum import Enum
 
-from libs.datasets.transforms import RandomAffine, RandomCrop, RandomJitter, ToTensor, Normalize, OriginScale
-from libs.configuration.configuration import get_configuration, ConfigurationMode
+from libs.datasets.synthetic.transforms import get_train_transforms, get_val_transforms, get_test_transforms
+from libs.configuration.configuration import get_configuration, ConfigurationMode, ConfigurationSuffix
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+
+
+class DatasetPhase(str, Enum):
+    Train = "train"
+    Val = "val"
+    Test = "test"
 
 
 class SyntheticDataset(Dataset):
@@ -21,7 +29,7 @@ class SyntheticDataset(Dataset):
             self,
             root_directory: str,
             resolution: int = 512,
-            phase: str = "train"
+            phase: DatasetPhase = DatasetPhase.Train
     ) -> None:
         """
         Args:
@@ -33,28 +41,14 @@ class SyntheticDataset(Dataset):
 
         base_directory = os.path.join(root_directory, phase)
         self.images_dir = os.path.join(base_directory, "images")
-        self.masks_dir = os.path.join(base_directory, "masks")
+        self.alpha_dir = os.path.join(base_directory, "masks")
         self.images = sorted(os.listdir(self.images_dir))
-        self.alphas = sorted(os.listdir(self.masks_dir))
+        self.alphas = sorted(os.listdir(self.alpha_dir))
 
         self.transforms = {
-            'train': transforms.Compose([
-                RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
-                RandomCrop((resolution, resolution)),
-                RandomJitter(),
-                ToTensor(),
-                Normalize()
-            ]),
-            'val': transforms.Compose([
-                OriginScale(resolution),
-                ToTensor(),
-                Normalize()
-            ]),
-            'test': transforms.Compose([
-                OriginScale(resolution),
-                ToTensor(),
-                Normalize()
-            ])
+            'train': get_train_transforms(resolution),
+            'val': get_val_transforms(resolution),
+            'test': get_test_transforms(resolution)
         }[phase]
 
     def __len__(self):
@@ -64,46 +58,28 @@ class SyntheticDataset(Dataset):
         image_path = os.path.join(self.images_dir, self.images[idx])
         image = cv2.imread(image_path)
 
-        alpha_path = os.path.join(self.masks_dir, self.alphas[idx])
+        alpha_path = os.path.join(self.alpha_dir, self.alphas[idx])
         alpha = cv2.imread(alpha_path, 0).astype(np.float32) / 255.0
 
-        sample = self.transforms({'image': image, 'alpha': alpha})
-
-        return sample["image"], sample["alpha"]
+        return self.transforms({'image': image, 'alpha': alpha})
 
 
 if __name__ == "__main__":
-    config = get_configuration(ConfigurationMode.Training, suffix="unet")
+    config = get_configuration(ConfigurationMode.Training, suffix=ConfigurationSuffix.UNET)
     root_directory = os.path.join(config.dataset.root, config.dataset.name)
 
     train_dataset = SyntheticDataset(
         root_directory=root_directory,
         resolution=config.scratch.resolution,
-        phase="train",
+        phase=DatasetPhase.Train,
     )
-    train_image, train_alpha = train_dataset[2]
+    sample = train_dataset[2]
+    image, alpha, trimap = sample['image'], sample['alpha'], sample['trimap']
 
     # Print the shapes of the image, alpha mask, and trimap
-    print(f"Train image shape: {train_image.shape}")  # torch.Size([3, 512, 512])
-    print(f"Train alpha mask shape: {train_alpha.shape}")  # torch.Size([1, 512, 512])
-
-    val_dataset = SyntheticDataset(
-        root_directory=root_directory,
-        resolution=config.scratch.resolution,
-        phase="val",
-    )
-    val_image, val_alpha = val_dataset[1]
-    print(f"Val image shape: {val_image.shape}")  # torch.Size([3, 512, 512])
-    print(f"Val alpha mask shape: {val_alpha.shape}\n")  # torch.Size([1, 512, 512])
-
-    test_dataset = SyntheticDataset(
-        root_directory=root_directory,
-        resolution=config.scratch.resolution,
-        phase="test",
-    )
-    test_image, test_alpha = test_dataset[2]
-    print(f"Test image shape: {test_image.shape}")  # torch.Size([3, 512, 512])
-    print(f"Test alpha mask shape: {test_alpha.shape}")  # torch.Size([1, 512, 512])
+    print(f"Train image shape: {image.shape}")  # torch.Size([3, 512, 512])
+    print(f"Train alpha mask shape: {alpha.shape}")  # torch.Size([1, 512, 512])
+    print(f"Train trimap shape: {trimap.shape}")  # torch.Size([1, 512, 512])
 
 
     def denormalize(image, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
@@ -113,36 +89,34 @@ if __name__ == "__main__":
         return image * std + mean
 
 
-    # Visualize the train image, alpha mask, and trimap
-    import matplotlib.pyplot as plt
+    # Create one figure with a custom gridspec layout.
+    fig = plt.figure(figsize=(18, 12))
+    # Use a grid with 2 rows and 6 columns.
+    gs = gridspec.GridSpec(2, 6, height_ratios=[1, 1])
 
-    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
+    # Top row: two subplots (each spans 3 columns).
+    ax_image = fig.add_subplot(gs[0, 0:3])
+    ax_alpha = fig.add_subplot(gs[0, 3:6])
 
-    # Display the RGB image.
-    axs[0].imshow(denormalize(train_image).permute(1, 2, 0).clamp(0, 1))
-    axs[0].set_title("RGB Image")
-    axs[0].axis("off")
+    # Bottom row: three subplots (each spans 2 columns).
+    ax_trimap = fig.add_subplot(gs[1, 0:2])
+    ax_fg = fig.add_subplot(gs[1, 2:4])
+    ax_bg = fig.add_subplot(gs[1, 4:6])
 
-    # Display the alpha mask.
-    axs[1].imshow(train_alpha.squeeze(), cmap="gray")
-    axs[1].set_title("Alpha Mask")
-    axs[1].axis("off")
+    # Plot the image (denormalized).
+    ax_image.imshow(denormalize(image).permute(1, 2, 0).clamp(0, 1))
+    ax_image.set_title("RGB Image")
+    ax_image.axis("off")
 
-    plt.tight_layout()
-    plt.show()
+    # Plot the alpha mask.
+    ax_alpha.imshow(alpha.squeeze(), cmap="gray")
+    ax_alpha.set_title("Alpha Mask")
+    ax_alpha.axis("off")
 
-    # Visualize the val image and alpha mask
-    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
-
-    # Display the RGB image.
-    axs[0].imshow(denormalize(val_image).permute(1, 2, 0).clamp(0, 1))
-    axs[0].set_title("RGB Image")
-    axs[0].axis("off")
-
-    # Display the alpha mask.
-    axs[1].imshow(val_alpha.squeeze(), cmap="gray")
-    axs[1].set_title("Alpha Mask")
-    axs[1].axis("off")
+    # Plot the trimap.
+    ax_trimap.imshow(trimap.squeeze(), cmap="gray")
+    ax_trimap.set_title("Trimap")
+    ax_trimap.axis("off")
 
     plt.tight_layout()
     plt.show()
