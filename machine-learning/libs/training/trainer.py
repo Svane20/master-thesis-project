@@ -539,7 +539,7 @@ class Trainer:
             metrics = compute_training_metrics(outputs, targets)
 
             # Log predictions for every 10 epochs
-            if self.epoch > 0 and self.epoch % 10 == 0:
+            if self.epoch > 0 and self.epoch % self.logging_config.log_images_freq == 0:
                 # Take 1 sample for visualization
                 sample_targets = targets[:1].detach().cpu()
                 sample_outputs = outputs[:1].detach().cpu()

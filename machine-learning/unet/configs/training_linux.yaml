@@ -78,6 +78,7 @@ training:
       job_type: "training"
     log_metrics: false
     log_freq: 10
+    log_images_freq: 10
 
   # Checkpoint configuration
   checkpoint:
@@ -91,6 +92,6 @@ model:
   encoder:
     pretrained: true
   decoder:
-    encoder_channels: [64, 64, 128, 256, 512]
-    decoder_channels: [256, 128, 64, 64]
+    encoder_channels: [ 64, 64, 128, 256, 512 ]
+    decoder_channels: [ 256, 128, 64, 64 ]
     final_channels: 64

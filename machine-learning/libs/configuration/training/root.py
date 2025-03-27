@@ -42,6 +42,7 @@ class LoggingConfig:
     wandb: WandbConfig
     log_metrics: bool
     log_freq: int
+    log_images_freq: int
 
 
 @dataclass
