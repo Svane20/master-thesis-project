@@ -72,8 +72,8 @@ training:
       enabled: true
       project: "U-NET"
       entity: "svane20-keyshot"
-      tags: [ "unet", "resnet-34", "synthetic-data" ]
-      notes: "Training U-Net with ResNet-34 backbone on synthetic data."
+      tags: [ "unet", "resnet-50", "synthetic-data" ]
+      notes: "Training U-Net with ResNet-50 backbone on synthetic data."
       group: "unet"
       job_type: "training"
     log_metrics: false
@@ -93,6 +93,6 @@ model:
   encoder:
     pretrained: true
   decoder:
-    encoder_channels: [ 64, 64, 128, 256, 512 ]
-    decoder_channels: [ 256, 128, 64, 64 ]
+    encoder_channels: [ 64, 256, 512, 1024, 2048 ]
+    decoder_channels: [ 512, 256, 128, 64 ]
     final_channels: 64

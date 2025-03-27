@@ -1,9 +1,9 @@
 import torch
 import torch.nn as nn
-
 from typing import Any, Dict
+from torchsummary import summary
 
-from unet.modeling.backbone.resnet34 import ResNet34V0
+from unet.modeling.backbone.resnet50 import ResNet50
 from unet.modeling.decoder.unet_decoder import UNetDecoder
 
 
@@ -13,7 +13,7 @@ class ResNetMatteV0(nn.Module):
         encoder_config = config['encoder']
         decoder_config = config['decoder']
 
-        self.encoder = ResNet34V0(
+        self.encoder = ResNet50(
             pretrained=encoder_config['pretrained'],
         )
         self.decoder = UNetDecoder(
@@ -37,12 +37,15 @@ if __name__ == '__main__':
             "pretrained": True,
         },
         "decoder": {
-            "encoder_channels": [64, 64, 128, 256, 512],
-            "decoder_channels": [256, 128, 64, 64],
+            "encoder_channels": [64, 256, 512, 1024, 2048],
+            "decoder_channels": [512, 256, 128, 64],
             "final_channels": 64,
         }
     }
 
+    # Print model summary
     model = ResNetMatteV0(config).to(device)
+    summary(model, input_size=(3, image_size, image_size))
+
     output = model(dummy_input)
     print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 512, 512])
