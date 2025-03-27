@@ -56,9 +56,10 @@ def evaluate_model(
         prefix="Test | Epoch: [{}]".format(1),
     )
 
-    for batch_idx, (X, y) in enumerate(data_loader):
+    for batch_idx, sample in enumerate(data_loader):
         # Move data to device
-        X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
+        inputs = sample["image"].to(device, non_blocking=True)
+        targets = sample["alpha"].to(device, non_blocking=True)
 
         try:
             with torch.no_grad():
@@ -68,13 +69,13 @@ def evaluate_model(
                         dtype=dtype
                 ):
                     # Get predictions
-                    outputs = model(X)
+                    outputs = model(inputs)
 
                     # Calculate metrics
-                    scores = compute_evaluation_metrics(outputs, y, grad_filter)
+                    scores = compute_evaluation_metrics(outputs, targets, grad_filter)
 
                     # Accumulate metrics
-                    batch_size = y.size(0)
+                    batch_size = targets.size(0)
                     mse_meter.update(scores["mse"], n=batch_size)
                     mae_meter.update(scores["mae"], n=batch_size)
                     sad_meter.update(scores["sad"], n=batch_size)
@@ -136,7 +137,8 @@ def predict_image(
     metrics = {}
 
     # Apply transformations
-    image_tensor, mask_tensor = transform((image, mask))
+    sample = transform({"image": image, "alpha": mask})
+    image_tensor, mask_tensor = sample["image"], sample["alpha"]
 
     # Move tensors to device and add batch dimension
     image_tensor, mask_tensor = image_tensor.unsqueeze(0).to(device), mask_tensor.unsqueeze(0).to(device)

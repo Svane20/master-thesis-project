@@ -19,49 +19,6 @@ CONFIG.data.random_interp = True
 interp_list = [cv2.INTER_NEAREST, cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_LANCZOS4]
 
 
-class OriginScale(object):
-    def __init__(self, output_size=512):
-        self.output_size = output_size
-
-    def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-        desired_size = self.output_size
-        h, w, c = sample['image'].shape
-
-        # Pad if necessary when image is smaller than desired size.
-        pad_h = max(0, desired_size - h)
-        pad_w = max(0, desired_size - w)
-        if pad_h > 0 or pad_w > 0:
-            # Pad evenly on both sides.
-            pad_top = pad_h // 2
-            pad_bottom = pad_h - pad_top
-            pad_left = pad_w // 2
-            pad_right = pad_w - pad_left
-            sample['image'] = np.pad(
-                sample['image'],
-                ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)),
-                mode="reflect"
-            )
-            if 'alpha' in sample:
-                sample['alpha'] = np.pad(
-                    sample['alpha'],
-                    ((pad_top, pad_bottom), (pad_left, pad_right)),
-                    mode="reflect"
-                )
-            # Update h, w after padding
-            h, w, _ = sample['image'].shape
-
-        # Now, perform a center crop to the desired_size x desired_size.
-        start_y = (h - desired_size) // 2
-        start_x = (w - desired_size) // 2
-        sample['image'] = sample['image'][start_y:start_y + desired_size, start_x:start_x + desired_size, :]
-        if 'alpha' in sample:
-            sample['alpha'] = sample['alpha'][start_y:start_y + desired_size, start_x:start_x + desired_size]
-        if 'trimap' in sample:
-            sample['trimap'] = sample['trimap'][start_y:start_y + desired_size, start_x:start_x + desired_size]
-
-        return sample
-
-
 class RandomAffine(object):
     """
     Random affine translation
@@ -210,7 +167,11 @@ class RandomJitter(object):
         image[:, :, 0] = np.remainder(image[:, :, 0].astype(np.float32) + hue_jitter, 360)
 
         # Saturation noise
-        sat_bar = image[:, :, 1][alpha > 0].mean()
+        sat_mask = alpha > 0
+        if np.count_nonzero(sat_mask) == 0:
+            return sample_ori
+
+        sat_bar = image[:, :, 1][sat_mask].mean()
         if np.isnan(sat_bar):
             return sample_ori
 
@@ -221,7 +182,11 @@ class RandomJitter(object):
         image[:, :, 1] = sat
 
         # Value noise
-        val_bar = image[:, :, 2][alpha > 0].mean()
+        val_mask = alpha > 0
+        if np.count_nonzero(val_mask) == 0:
+            return sample_ori
+
+        val_bar = image[:, :, 2][val_mask].mean()
         if np.isnan(val_bar):
             return sample_ori
 
@@ -421,6 +386,49 @@ class GenerateFGBG(object):
 
         sample["fg"] = fg
         sample["bg"] = bg
+        return sample
+
+
+class OriginScale(object):
+    def __init__(self, output_size=512):
+        self.output_size = output_size
+
+    def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        desired_size = self.output_size
+        h, w, c = sample['image'].shape
+
+        # Pad if necessary when image is smaller than desired size.
+        pad_h = max(0, desired_size - h)
+        pad_w = max(0, desired_size - w)
+        if pad_h > 0 or pad_w > 0:
+            # Pad evenly on both sides.
+            pad_top = pad_h // 2
+            pad_bottom = pad_h - pad_top
+            pad_left = pad_w // 2
+            pad_right = pad_w - pad_left
+            sample['image'] = np.pad(
+                sample['image'],
+                ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)),
+                mode="reflect"
+            )
+            if 'alpha' in sample:
+                sample['alpha'] = np.pad(
+                    sample['alpha'],
+                    ((pad_top, pad_bottom), (pad_left, pad_right)),
+                    mode="reflect"
+                )
+            # Update h, w after padding
+            h, w, _ = sample['image'].shape
+
+        # Now, perform a center crop to the desired_size x desired_size.
+        start_y = (h - desired_size) // 2
+        start_x = (w - desired_size) // 2
+        sample['image'] = sample['image'][start_y:start_y + desired_size, start_x:start_x + desired_size, :]
+        if 'alpha' in sample:
+            sample['alpha'] = sample['alpha'][start_y:start_y + desired_size, start_x:start_x + desired_size]
+        if 'trimap' in sample:
+            sample['trimap'] = sample['trimap'][start_y:start_y + desired_size, start_x:start_x + desired_size]
+
         return sample
 
 

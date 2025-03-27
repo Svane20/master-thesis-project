@@ -17,9 +17,12 @@ dataset:
 model:
   encoder:
     pretrained: true
-    freeze_pretrained: true
+  decoder:
+    encoder_channels: [64, 64, 128, 256, 512]
+    decoder_channels: [256, 128, 64, 64]
+    final_channels: 64
 
 # Inference configuration
 evaluation:
-  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v1.pt"
+  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v2.pt"
   compile_model: true

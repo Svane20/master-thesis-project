@@ -260,6 +260,17 @@ def _compute_boundary_map(gt: torch.Tensor, threshold: float = 0.1, epsilon: flo
     return boundary_map
 
 
+def continuous_alpha_weighted_loss(
+        pred: torch.Tensor,
+        gt: torch.Tensor,
+        sigma: float = 0.2,
+        epsilon: float = 1e-6
+) -> torch.Tensor:
+    weights = torch.exp(-((gt - 0.5) ** 2) / (2 * sigma ** 2))
+
+    return torch.sum(torch.abs(pred - gt) * weights) / (torch.sum(weights) + epsilon)
+
+
 if __name__ == "__main__":
     # Generate some random predictions and ground truth
     dtype = torch.float16
