@@ -1,3 +1,5 @@
+import logging
+
 import torch
 import torchvision
 
@@ -5,9 +7,9 @@ from pathlib import Path
 import random
 from PIL import Image
 import numpy as np
+import cv2
 
 from ..configuration.configuration import Config
-from ..datasets.transforms import Transform
 from ..replacements.foreground_estimation import get_foreground_estimation
 from ..replacements.replacement import replace_background
 from ..training.utils.logger import setup_logging
@@ -21,7 +23,7 @@ setup_logging(__name__)
 def run_prediction(
         configuration: Config,
         model: torch.nn.Module,
-        transforms: Transform,
+        transforms: torchvision.transforms.Compose,
         device: torch.device,
         output_dir: Path,
 ) -> None:
@@ -34,18 +36,21 @@ def run_prediction(
     # Select a random image from the test set
     image_files = [f for f in images_dir.iterdir() if f.suffix in [".png", ".jpg", ".jpeg"]]
     chosen_image_path = random.choice(image_files)
+    logging.info(f"Chosen image: {chosen_image_path}")
     image = Image.open(chosen_image_path).convert("RGB")
+    image_cv = cv2.imread(str(chosen_image_path))
     image_array = np.asarray(image)
 
     # Get the corresponding mask based on the stem of the image path
     mask_path = masks_dir / f"{chosen_image_path.stem}.png"
     mask = Image.open(mask_path).convert("L")
+    mask_cv = cv2.imread(str(mask_path), 0).astype(np.float32) / 255.0
     mask_array = np.asarray(mask)
 
     # Predict the mask
     raw_mask, predicted_mask, metrics = predict_image(
-        image=image,
-        mask=mask,
+        image=image_cv,
+        mask=mask_cv,
         model=model,
         transform=transforms,
         device=device
