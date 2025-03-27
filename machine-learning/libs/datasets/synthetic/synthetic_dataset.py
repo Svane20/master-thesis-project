@@ -1,6 +1,5 @@
 import torch
 from torch.utils.data import Dataset
-import torchvision.transforms as transforms
 
 import os
 import cv2
@@ -8,8 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
-from libs.datasets.transforms import RandomAffine, RandomCrop, RandomJitter, ToTensor, Normalize, OriginScale, \
-    GenerateTrimap, GenerateFGBG, TopBiasedRandomCrop
+from libs.datasets.synthetic.transforms import get_train_transforms, get_val_transforms, get_test_transforms
 from libs.configuration.configuration import get_configuration, ConfigurationMode
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
@@ -41,24 +39,9 @@ class SyntheticDataset(Dataset):
         self.alphas = sorted(os.listdir(self.masks_dir))
 
         self.transforms = {
-            'train': transforms.Compose([
-                RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
-                TopBiasedRandomCrop(output_size=(resolution, resolution), vertical_bias_ratio=0.2),
-                RandomJitter(),
-                GenerateTrimap(),  # This generates the trimap from the ground truth alpha.
-                ToTensor(),
-                Normalize()
-            ]),
-            'val': transforms.Compose([
-                OriginScale(resolution),
-                ToTensor(),
-                Normalize()
-            ]),
-            'test': transforms.Compose([
-                OriginScale(resolution),
-                ToTensor(),
-                Normalize()
-            ])
+            'train': get_train_transforms(resolution),
+            'val': get_val_transforms(resolution),
+            'test': get_test_transforms(resolution)
         }[phase]
 
     def __len__(self):
