@@ -63,7 +63,7 @@ training:
     verbose: true
     patience: 30
     min_delta: 0.0
-    monitor: "sad"
+    monitor: "mae"
     mode: "min"
 
   # Logging configuration
@@ -85,7 +85,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v2.pt"
+    checkpoint_path: "unet_v4.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration

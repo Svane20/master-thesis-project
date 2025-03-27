@@ -63,7 +63,7 @@ training:
     verbose: true
     patience: 30
     min_delta: 0.0
-    monitor: "sad"
+    monitor: "mae"
     mode: "min"
 
   # Logging configuration
