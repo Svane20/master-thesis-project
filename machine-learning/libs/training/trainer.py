@@ -238,7 +238,7 @@ class Trainer:
                 mem_meter,
             ],
             real_meters=self._get_meters([phase]),
-            prefix="Train | Epoch: [{}]".format(self.epoch),
+            prefix=f"Train | Epoch: [{self.epoch}/{self.max_epochs}]",
         )
 
         stats = {}
@@ -360,7 +360,7 @@ class Trainer:
                 mem_meter,
             ],
             real_meters=self._get_meters([phase]),
-            prefix="Val | Epoch: [{}]".format(self.epoch),
+            prefix=f"Val | Epoch: [{self.epoch}/{self.max_epochs}]",
         )
 
         stats = {}
