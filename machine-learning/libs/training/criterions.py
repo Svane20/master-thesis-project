@@ -1,11 +1,86 @@
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from typing import Dict
 
 from libs.training.utils.criterion_utils import CriterionBase, BaseCriterionConfig, register_loss
 
-CORE_LOSS_KEY = 'core_loss'
+
+class MattingCriterion(CriterionBase):
+    SUPPORTED_LOSSES = {
+        "gradient_loss",
+        "unknown_l1_loss",
+        "known_l1_loss",
+        "laplacian_pha_loss"
+    }
+
+    def __init__(self, config: BaseCriterionConfig, device: torch.device) -> None:
+        super().__init__(config=config, device=device)
+
+    def forward(
+            self,
+            preds: torch.Tensor,
+            targets: torch.Tensor,
+            **kwargs
+    ) -> Dict[str, torch.Tensor]:
+        if "trimap" in kwargs:
+            trimap = kwargs["trimap"]
+            sample_map = torch.zeros_like(trimap)
+            sample_map[trimap == 0.5] = 1
+            kwargs["sample_map"] = sample_map.unsqueeze(1)
+
+        return super().forward(preds, targets, **kwargs)
+
+    # Loss Functions
+    @register_loss("gradient_loss", ("sample_map",))
+    def gradient_loss(self, pred: torch.Tensor, target: torch.Tensor, sample_map: torch.Tensor = None) -> torch.Tensor:
+        sobel_x = torch.tensor([[[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]]], device=pred.device, dtype=pred.dtype)
+        sobel_y = torch.tensor([[[[-1, -2, -1], [0, 0, 0], [1, 2, 1]]]], device=pred.device, dtype=pred.dtype)
+
+        grad_pred_x = F.conv2d(pred, weight=sobel_x, padding=1)
+        grad_pred_y = F.conv2d(pred, weight=sobel_y, padding=1)
+        grad_target_x = F.conv2d(target, weight=sobel_x, padding=1)
+        grad_target_y = F.conv2d(target, weight=sobel_y, padding=1)
+
+        if sample_map is not None:
+            return (
+                    F.l1_loss(grad_pred_x * sample_map, grad_target_x * sample_map) +
+                    F.l1_loss(grad_pred_y * sample_map, grad_target_y * sample_map) +
+                    0.01 * torch.mean(torch.abs(grad_pred_x * sample_map)) +
+                    0.01 * torch.mean(torch.abs(grad_pred_y * sample_map))
+            ) * self._safe_scale(sample_map)
+
+        return (
+                F.l1_loss(grad_pred_x, grad_target_x) +
+                F.l1_loss(grad_pred_y, grad_target_y) +
+                0.01 * torch.mean(torch.abs(grad_pred_x)) +
+                0.01 * torch.mean(torch.abs(grad_pred_y))
+        )
+
+    @register_loss("unknown_l1_loss", ("sample_map",))
+    def unknown_l1_loss(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_map: torch.Tensor = None
+    ) -> torch.Tensor:
+        if sample_map is not None:
+            return F.l1_loss(pred * sample_map, target * sample_map) * self._safe_scale(sample_map)
+        return F.l1_loss(pred, target)
+
+    @register_loss("known_l1_loss", ("sample_map",))
+    def known_l1_loss(self, pred: torch.Tensor, target: torch.Tensor, sample_map: torch.Tensor = None) -> torch.Tensor:
+        if sample_map is not None:
+            known_map = (sample_map == 0).float()
+            return F.l1_loss(pred * known_map, target * known_map) * self._safe_scale(known_map)
+        return F.l1_loss(pred, target)
+
+    @register_loss("laplacian_pha_loss", ())
+    def laplacian_pha_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        return laplacian_loss(pred, target)
+
+    def _safe_scale(self, mask: torch.Tensor, default_area: int = 262144, epsilon: float = 1e-6) -> torch.Tensor:
+        total = torch.sum(mask)
+        return mask.shape[0] * default_area / (total + epsilon)
 
 
 def l1_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
@@ -188,236 +263,6 @@ def _compute_boundary_map(gt: torch.Tensor, threshold: float = 0.1, epsilon: flo
     return boundary_map
 
 
-class MattingCriterion(CriterionBase):
-    SUPPORTED_LOSSES = {
-        "gradient_loss",
-        "unknown_l1_loss",
-        "known_l1_loss",
-        "laplacian_pha_loss"
-    }
-
-    def __init__(self, config: BaseCriterionConfig, device: torch.device) -> None:
-        super().__init__(config=config, device=device)
-
-    def forward(
-            self,
-            preds: torch.Tensor,
-            targets: torch.Tensor,
-            **kwargs
-    ) -> Dict[str, torch.Tensor]:
-        return super().forward(preds, targets, **kwargs)
-
-    # Loss Functions
-    @register_loss("gradient_loss", ("sample_map",))
-    def gradient_loss(self, pred: torch.Tensor, target: torch.Tensor, sample_map: torch.Tensor = None) -> torch.Tensor:
-        sobel_x = torch.tensor([[[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]]], device=pred.device, dtype=pred.dtype)
-        sobel_y = torch.tensor([[[[-1, -2, -1], [0, 0, 0], [1, 2, 1]]]], device=pred.device, dtype=pred.dtype)
-
-        grad_pred_x = F.conv2d(pred, sobel_x, padding=1)
-        grad_pred_y = F.conv2d(pred, sobel_y, padding=1)
-        grad_target_x = F.conv2d(target, sobel_x, padding=1)
-        grad_target_y = F.conv2d(target, sobel_y, padding=1)
-
-        if sample_map is not None:
-            scale = sample_map.shape[0] * 262144 / torch.sum(sample_map)
-            return (
-                    F.l1_loss(grad_pred_x * sample_map, grad_target_x * sample_map) +
-                    F.l1_loss(grad_pred_y * sample_map, grad_target_y * sample_map) +
-                    0.01 * torch.mean(torch.abs(grad_pred_x * sample_map)) +
-                    0.01 * torch.mean(torch.abs(grad_pred_y * sample_map))
-            ) * scale
-
-        return (
-                F.l1_loss(grad_pred_x, grad_target_x) +
-                F.l1_loss(grad_pred_y, grad_target_y) +
-                0.01 * torch.mean(torch.abs(grad_pred_x)) +
-                0.01 * torch.mean(torch.abs(grad_pred_y))
-        )
-
-    @register_loss("unknown_l1_loss", ("sample_map",))
-    def unknown_l1_loss(
-            self,
-            pred: torch.Tensor,
-            target: torch.Tensor,
-            sample_map: torch.Tensor = None
-    ) -> torch.Tensor:
-        if sample_map is not None:
-            scale = sample_map.shape[0] * 262144 / torch.sum(sample_map)
-            return F.l1_loss(pred * sample_map, target * sample_map) * scale
-        return F.l1_loss(pred, target)
-
-    @register_loss("known_l1_loss", ("sample_map",))
-    def known_l1_loss(self, pred: torch.Tensor, target: torch.Tensor, sample_map: torch.Tensor = None) -> torch.Tensor:
-        if sample_map is not None:
-            known_map = (sample_map == 0).float()
-            scale = known_map.shape[0] * 262144 / torch.sum(known_map) if torch.sum(known_map) > 0 else 0
-            return F.l1_loss(pred * known_map, target * known_map) * scale
-        return F.l1_loss(pred, target)
-
-    @register_loss("laplacian_pha_loss", ())
-    def laplacian_pha_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        return laplacian_loss(pred, target)
-
-
-class MattingLossV2(nn.Module):
-    """
-    Combined loss for image matting.
-    Loss components:
-      - Alpha L1 Loss
-      - Composition Loss (if an image or (fg, bg) is provided)
-      - Laplacian Pyramid Loss
-      - Optional Gradient Loss
-    """
-
-    def __init__(
-            self,
-            weight_dict: Dict[str, float],
-            device: torch.device,
-            dtype: torch.dtype,
-            use_grad_penalty: bool = False,
-            grad_penalty_lambda: float = 0.0
-    ):
-        """
-        Args:
-            weight_dict (dict): Dictionary with keys 'l1', 'composition', 'laplacian', 'gradient'.
-            device (torch.device): Device to store the loss tensors.
-            dtype (torch.dtype): Data type for the loss tensors.
-            use_grad_penalty (bool): Whether to include gradient penalty.
-            grad_penalty_lambda (float): Scaling for gradient penalty.
-        """
-        super().__init__()
-
-        # Normalize weights
-        total_weight = sum(weight_dict.values())
-        self.weight_dict = {k: v / total_weight for k, v in weight_dict.items()}
-        for key in ["boundary", "composition", "gradient", "l1", "laplacian"]:
-            assert key in self.weight_dict, f"{key} loss weight must be provided."
-
-        self.use_grad_penalty = use_grad_penalty
-        self.grad_penalty_lambda = grad_penalty_lambda
-
-        # Initialize buffers to store the losses
-        self.register_buffer(name="boundary_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
-        self.register_buffer(name="composition_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
-        self.register_buffer(name="gradient_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
-        self.register_buffer(name="l1_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
-        self.register_buffer(name="laplacian_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
-        self.register_buffer(name=CORE_LOSS_KEY, tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
-
-    def forward(self, pred: torch.Tensor, gt: torch.Tensor, image: torch.Tensor = None) -> Dict[str, torch.Tensor]:
-        """
-        Compute the total loss.
-        Args:
-            pred (Tensor): Predicted alpha matte, shape (N,1,H,W).
-            gt (Tensor): Ground truth alpha matte, shape (N,1,H,W).
-            image (Tensor, optional): Input image, shape (N,C,H,W). Used for composition loss.
-        Returns:
-            Tensor: Total loss (scalar).
-        """
-        # Reset buffers
-        self.boundary_loss.zero_()
-        self.composition_loss.zero_()
-        self.gradient_loss.zero_()
-        self.l1_loss.zero_()
-        self.laplacian_loss.zero_()
-        self.core_loss.zero_()
-
-        # Compute losses
-        losses = self._forward(pred, gt, image)
-
-        # Update buffers
-        self.boundary_loss = losses["boundary"].to(dtype=self.boundary_loss.dtype, device=self.boundary_loss.device)
-        self.composition_loss = losses["composition"].to(
-            dtype=self.composition_loss.dtype,
-            device=self.composition_loss.device
-        )
-        self.gradient_loss = losses["gradient"].to(dtype=self.gradient_loss.dtype, device=self.gradient_loss.device)
-        self.l1_loss = losses["l1"].to(dtype=self.l1_loss.dtype, device=self.l1_loss.device)
-        self.laplacian_loss = losses["laplacian"].to(dtype=self.laplacian_loss.dtype, device=self.laplacian_loss.device)
-        self.core_loss = losses[CORE_LOSS_KEY].to(dtype=self.core_loss.dtype, device=self.core_loss.device)
-
-        return losses
-
-    def reduce_loss(self, losses: Dict[str, torch.Tensor]) -> torch.Tensor:
-        """
-        Reduce the loss by summing the weighted loss components.
-        Args:
-            losses (Dict[str, torch.Tensor]): Dictionary of loss components.
-        Returns:
-            torch.Tensor: Reduced loss.
-        """
-        reduced_loss = 0.0
-
-        for loss_key, weight in self.weight_dict.items():
-            if loss_key not in losses:
-                raise ValueError(f"{type(self)} doesn't compute {loss_key}")
-
-            if weight != 0:
-                reduced_loss += losses[loss_key] * weight
-
-        return reduced_loss
-
-    def _forward(self, pred: torch.Tensor, gt: torch.Tensor, image: torch.Tensor = None) -> Dict[str, torch.Tensor]:
-        """
-        Forward pass to compute the loss.
-        Args:
-            pred (torch.Tensor): Predicted alpha matte.
-            gt (torch.Tensor): Ground truth alpha matte.
-            image (torch.Tensor, optional): Input image for composition loss.
-        Returns:
-            Dict[str, torch.Tensor]: Dictionary of loss components
-        """
-        losses = {"boundary": 0, "composition": 0, "gradient": 0, "l1": 0, "laplacian": 0}
-
-        # Update losses
-        self._update_losses(losses, pred, gt, image)
-
-        # Reduce losses
-        losses[CORE_LOSS_KEY] = self.reduce_loss(losses)
-
-        return losses
-
-    def _update_losses(
-            self,
-            losses: Dict[str, torch.Tensor],
-            pred: torch.Tensor,
-            gt: torch.Tensor,
-            image: torch.Tensor = None
-    ) -> Dict[str, torch.Tensor]:
-        """
-        Update the loss components.
-        Args:
-            losses (Dict[str, torch.Tensor]): Dictionary of loss components.
-            pred (torch.Tensor): Predicted alpha matte.
-            gt (torch.Tensor): Ground truth alpha matte.
-            image (torch.Tensor, optional): Input image for composition loss.
-        Returns:
-            Dict[str, torch.Tensor]: Updated dictionary of loss components.
-        """
-        # Boundary loss
-        losses['boundary'] = boundary_loss(pred, gt)
-
-        # Composition loss
-        if image is not None:
-            losses['composition'] = composition_loss(pred, gt, image)
-
-        # Gradient loss.
-        losses['gradient'] = gradient_loss(
-            pred,
-            gt,
-            use_grad_penalty=self.use_grad_penalty,
-            grad_penalty_lambda=self.grad_penalty_lambda
-        )
-
-        # L1 loss
-        losses['l1'] = l1_loss(pred, gt)
-
-        # Laplacian pyramid loss.
-        losses['laplacian'] = laplacian_loss(pred, gt)
-
-        return losses
-
-
 if __name__ == "__main__":
     # Generate some random predictions and ground truth
     dtype = torch.float16
@@ -425,7 +270,10 @@ if __name__ == "__main__":
     predictions = torch.rand((4, 1, 256, 256), dtype=dtype, requires_grad=True).to(device)
     targets = torch.rand((4, 1, 256, 256), dtype=dtype).to(device)
     images = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
-    trimap = torch.randint(0, 256, (4, 256, 256), dtype=dtype).to(device)
+    trimap = torch.rand((4, 1, 256, 256), dtype=dtype).to(device)
+    trimap[trimap < 0.33] = 0.0
+    trimap[(trimap >= 0.33) & (trimap < 0.66)] = 0.5
+    trimap[trimap >= 0.66] = 1.0
 
     # Initialize the loss function
     criterion = MattingCriterion(

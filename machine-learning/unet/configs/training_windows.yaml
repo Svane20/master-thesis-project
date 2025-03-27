@@ -29,13 +29,13 @@ training:
 
   # Criterion configuration
   criterion:
-    name: "MattingLossV2"
+    losses: [ "unknown_l1_loss", "known_l1_loss", "gradient_loss", "laplacian_pha_loss" ]
+    normalize_weights: true
     weight_dict:
-      boundary: 0.5
-      composition: 1.0
-      gradient: 0.5
-      l1: 1.0
-      laplacian: 1.0
+      unknown_l1_loss: 1.0,
+      known_l1_loss: 0.3
+      gradient_loss: 0.25
+      laplacian_pha_loss: 0.5
 
   # Optimizer configuration
   optimizer:

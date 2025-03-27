@@ -1,14 +1,16 @@
 from pydantic.dataclasses import dataclass
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 
 @dataclass
 class CriterionConfig:
-    name: str
+    losses: List[str]
+    normalize_weights: bool
     weight_dict: Optional[Dict[str, float]]
 
     def asdict(self):
         return {
-            "name": self.name,
-            "weight_dict": self.weight_dict if self.weight_dict else None
+            "losses": self.losses,
+            "normalize_weights": self.normalize_weights,
+            "weight_dict": self.weight_dict if self.weight_dict else None,
         }
