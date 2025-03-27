@@ -25,13 +25,14 @@ def get_grad_filter(device: torch.device, dtype: torch.dtype = torch.float16) ->
     return grad_filter
 
 
-def compute_training_metrics(pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, float]:
+def compute_training_metrics(pred: torch.Tensor, gt: torch.Tensor, grad_filter: torch.Tensor) -> Dict[str, float]:
     """
     Compute training metrics for a batch of alpha matte predictions.
 
     Args:
         pred (torch.Tensor): Predicted alpha mattes (B, C, H, W).
         gt (torch.Tensor): Ground truth alpha mattes (B, C, H, W).
+        grad_filter (torch.Tensor): Gradient filter.
 
     Returns:
         Dict[str, float]: Dictionary of averaged metrics for the batch.
@@ -39,11 +40,33 @@ def compute_training_metrics(pred: torch.Tensor, gt: torch.Tensor) -> Dict[str, 
     # Resize tensors if necessary
     pred, gt = _resize_tensors(pred, gt)
 
-    # Calculate metrics
-    mae = F.l1_loss(pred, gt, reduction="mean").item()
-    mse = F.mse_loss(pred, gt, reduction="mean").item()
+    l1_list = []
+    l2_list = []
+    sad_list = []
+    grad_list = []
 
-    return {"mae": mae, "mse": mse}
+    for pred, gt in zip(pred, gt):
+        l1_dist = F.l1_loss(pred, gt)
+        l2_dist = F.mse_loss(pred, gt)
+        grad = _compute_grad(pred, gt, grad_filter)
+        sad = _compute_sad(pred, gt)
+
+        l1_list.append(l1_dist)
+        l2_list.append(l2_dist)
+        grad_list.append(grad)
+        sad_list.append(sad)
+
+    l1_dist = torch.stack(l1_list, dim=0)
+    l2_dist = torch.stack(l2_list, dim=0)
+    grad_error = torch.stack(grad_list, dim=0)
+    sad_error = torch.stack(sad_list, dim=0)
+
+    return {
+        "mae": l1_dist.mean().item(),
+        "mse": l2_dist.mean().item(),
+        "grad": grad_error.mean().item(),
+        "sad": sad_error.mean().item(),
+    }
 
 
 def compute_evaluation_metrics(

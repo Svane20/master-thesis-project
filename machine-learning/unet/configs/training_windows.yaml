@@ -22,7 +22,7 @@ dataset:
 # Training configuration
 training:
   max_epochs: 100
-  warmup_epochs: 10 # 5-10% of max_epochs
+  warmup_epochs: 2
   accelerator: cuda
   seed: 42
   compile_model: false
@@ -63,7 +63,7 @@ training:
     verbose: true
     patience: 30
     min_delta: 0.0
-    monitor: "mae"
+    monitor: "sad"
     mode: "min"
 
   # Logging configuration
