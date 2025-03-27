@@ -15,6 +15,17 @@ def l1_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
     return loss
 
 
+def continuous_alpha_weighted_loss(
+        pred: torch.Tensor,
+        gt: torch.Tensor,
+        sigma: float = 0.2,
+        epsilon: float = 1e-6
+) -> torch.Tensor:
+    weights = torch.exp(-((gt - 0.5) ** 2) / (2 * sigma ** 2))
+
+    return torch.sum(torch.abs(pred - gt) * weights) / (torch.sum(weights) + epsilon)
+
+
 def composition_loss(
         pred: torch.Tensor,
         gt: torch.Tensor,
@@ -149,14 +160,14 @@ class MattingLoss(nn.Module):
         # Normalize weights
         total_weight = sum(weight_dict.values())
         self.weight_dict = {k: v / total_weight for k, v in weight_dict.items()}
-        for key in ["composition", "gradient", "l1", "laplacian"]:
+        for key in ["alpha_weighted", "gradient", "l1", "laplacian"]:
             assert key in self.weight_dict, f"{key} loss weight must be provided."
 
         self.use_grad_penalty = use_grad_penalty
         self.grad_penalty_lambda = grad_penalty_lambda
 
         # Initialize buffers to store the losses
-        self.register_buffer(name="composition_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
+        self.register_buffer(name="alpha_weighted_loss", tensor=torch.tensor(0.0, dtype=dtype, device=device))
         self.register_buffer(name="gradient_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
         self.register_buffer(name="l1_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
         self.register_buffer(name="laplacian_loss", tensor=torch.tensor(data=0.0, dtype=dtype, device=device))
@@ -173,7 +184,7 @@ class MattingLoss(nn.Module):
             Tensor: Total loss (scalar).
         """
         # Reset buffers
-        self.composition_loss.zero_()
+        self.alpha_weighted_loss.zero_()
         self.gradient_loss.zero_()
         self.l1_loss.zero_()
         self.laplacian_loss.zero_()
@@ -183,8 +194,8 @@ class MattingLoss(nn.Module):
         losses = self._forward(pred, gt, image)
 
         # Update buffers
-        self.composition_loss = losses["composition"].to(dtype=self.composition_loss.dtype,
-                                                         device=self.composition_loss.device)
+        self.alpha_weighted_loss = losses["alpha_weighted"].to(dtype=self.alpha_weighted_loss.dtype,
+                                                               device=self.alpha_weighted_loss.device)
         self.gradient_loss = losses["gradient"].to(dtype=self.gradient_loss.dtype, device=self.gradient_loss.device)
         self.l1_loss = losses["l1"].to(dtype=self.l1_loss.dtype, device=self.l1_loss.device)
         self.laplacian_loss = losses["laplacian"].to(dtype=self.laplacian_loss.dtype, device=self.laplacian_loss.device)
@@ -221,7 +232,7 @@ class MattingLoss(nn.Module):
         Returns:
             Dict[str, torch.Tensor]: Dictionary of loss components
         """
-        losses = {"composition": 0, "gradient": 0, "l1": 0, "laplacian": 0}
+        losses = {"alpha_weighted": 0, "gradient": 0, "l1": 0, "laplacian": 0}
 
         # Update losses
         self._update_losses(losses, pred, gt, rgb_image=image)
@@ -247,9 +258,8 @@ class MattingLoss(nn.Module):
         Returns:
             Dict[str, torch.Tensor]: Updated dictionary of loss components.
         """
-        # Composition loss.
-        if rgb_image is not None:
-            losses['composition'] = composition_loss(pred, gt, image=rgb_image)
+        # Alpha weighted loss
+        losses['alpha_weighted'] = continuous_alpha_weighted_loss(pred, gt)
 
         # Gradient loss.
         losses['gradient'] = gradient_loss(
@@ -275,7 +285,7 @@ if __name__ == "__main__":
     predictions = torch.rand((4, 1, 256, 256), dtype=dtype, requires_grad=True).to(device)
     targets = torch.rand((4, 1, 256, 256), dtype=dtype).to(device)
     inputs = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
-    config = {"composition": 1.0, "gradient": 0.25, "l1": 1.0, "laplacian": 0.5}
+    config = {"alpha_weighted": 1.0, "gradient": 0.25, "l1": 1.0, "laplacian": 0.5}
 
     loss_fn = MattingLoss(weight_dict=config, device=device, dtype=dtype)
 

@@ -31,10 +31,10 @@ training:
   criterion:
     name: "MattingLoss"
     weight_dict:
-      composition: 1.0
-      gradient: 0.25
+      alpha_weighted: 1.0
+      gradient: 0.7
       l1: 0.8
-      laplacian: 0.5
+      laplacian: 1.0
 
   # Optimizer configuration
   optimizer:
@@ -82,7 +82,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v2.pt"
+    checkpoint_path: "unet_v4.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration
