@@ -19,49 +19,6 @@ CONFIG.data.random_interp = True
 interp_list = [cv2.INTER_NEAREST, cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_LANCZOS4]
 
 
-class OriginScale(object):
-    def __init__(self, output_size=512):
-        self.output_size = output_size
-
-    def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-        desired_size = self.output_size
-        h, w, c = sample['image'].shape
-
-        # Pad if necessary when image is smaller than desired size.
-        pad_h = max(0, desired_size - h)
-        pad_w = max(0, desired_size - w)
-        if pad_h > 0 or pad_w > 0:
-            # Pad evenly on both sides.
-            pad_top = pad_h // 2
-            pad_bottom = pad_h - pad_top
-            pad_left = pad_w // 2
-            pad_right = pad_w - pad_left
-            sample['image'] = np.pad(
-                sample['image'],
-                ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)),
-                mode="reflect"
-            )
-            if 'alpha' in sample:
-                sample['alpha'] = np.pad(
-                    sample['alpha'],
-                    ((pad_top, pad_bottom), (pad_left, pad_right)),
-                    mode="reflect"
-                )
-            # Update h, w after padding
-            h, w, _ = sample['image'].shape
-
-        # Now, perform a center crop to the desired_size x desired_size.
-        start_y = (h - desired_size) // 2
-        start_x = (w - desired_size) // 2
-        sample['image'] = sample['image'][start_y:start_y + desired_size, start_x:start_x + desired_size, :]
-        if 'alpha' in sample:
-            sample['alpha'] = sample['alpha'][start_y:start_y + desired_size, start_x:start_x + desired_size]
-        if 'trimap' in sample:
-            sample['trimap'] = sample['trimap'][start_y:start_y + desired_size, start_x:start_x + desired_size]
-
-        return sample
-
-
 class RandomAffine(object):
     """
     Random affine translation
@@ -429,6 +386,49 @@ class GenerateFGBG(object):
 
         sample["fg"] = fg
         sample["bg"] = bg
+        return sample
+
+
+class OriginScale(object):
+    def __init__(self, output_size=512):
+        self.output_size = output_size
+
+    def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+        desired_size = self.output_size
+        h, w, c = sample['image'].shape
+
+        # Pad if necessary when image is smaller than desired size.
+        pad_h = max(0, desired_size - h)
+        pad_w = max(0, desired_size - w)
+        if pad_h > 0 or pad_w > 0:
+            # Pad evenly on both sides.
+            pad_top = pad_h // 2
+            pad_bottom = pad_h - pad_top
+            pad_left = pad_w // 2
+            pad_right = pad_w - pad_left
+            sample['image'] = np.pad(
+                sample['image'],
+                ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)),
+                mode="reflect"
+            )
+            if 'alpha' in sample:
+                sample['alpha'] = np.pad(
+                    sample['alpha'],
+                    ((pad_top, pad_bottom), (pad_left, pad_right)),
+                    mode="reflect"
+                )
+            # Update h, w after padding
+            h, w, _ = sample['image'].shape
+
+        # Now, perform a center crop to the desired_size x desired_size.
+        start_y = (h - desired_size) // 2
+        start_x = (w - desired_size) // 2
+        sample['image'] = sample['image'][start_y:start_y + desired_size, start_x:start_x + desired_size, :]
+        if 'alpha' in sample:
+            sample['alpha'] = sample['alpha'][start_y:start_y + desired_size, start_x:start_x + desired_size]
+        if 'trimap' in sample:
+            sample['trimap'] = sample['trimap'][start_y:start_y + desired_size, start_x:start_x + desired_size]
+
         return sample
 
 
