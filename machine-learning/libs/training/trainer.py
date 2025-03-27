@@ -245,17 +245,19 @@ class Trainer:
         self.model.train()
         end = time.time()
 
-        for batch_idx, (X, y) in enumerate(data_loader):
+        for batch_idx, sample in enumerate(data_loader):
             # Measure data loading time
             data_time_meter.update(time.time() - end)
             data_times.append(data_time_meter.val)
 
             # Move data to device
-            X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
+            inputs = sample["image"].to(self.device, non_blocking=True)
+            targets = sample["alpha"].to(self.device, non_blocking=True)
+            trimaps = sample["trimap"].to(self.device, non_blocking=True)
 
             try:
                 # Run a single step
-                self._run_step(X, y, phase, loss_meter, extra_losses_meters)
+                self._run_step(inputs, targets, phase, loss_meter, extra_losses_meters, trimaps)
 
                 # Clipping gradients
                 if self.gradient_clipper is not None:
@@ -360,13 +362,14 @@ class Trainer:
         self.model.eval()
         end = time.time()
 
-        for batch_idx, (X, y) in enumerate(data_loader):
+        for batch_idx, sample in enumerate(data_loader):
             # Measure data loading time
             data_time_meter.update(time.time() - end)
             data_times.append(data_time_meter.val)
 
             # Move data to device
-            X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
+            inputs = sample["image"].to(self.device, non_blocking=True)
+            targets = sample["alpha"].to(self.device, non_blocking=True)
 
             try:
                 with torch.no_grad():
@@ -377,7 +380,7 @@ class Trainer:
                             dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
                     ):
                         # Run a single step
-                        loss_dict, extra_losses, extra_metrics = self._step(X, y, phase)
+                        loss_dict, extra_losses, extra_metrics = self._step(inputs, targets, phase)
 
                         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
                         _, loss = loss_dict.popitem()
@@ -392,7 +395,7 @@ class Trainer:
                             extra_losses_meters[k].update(val=v.item(), n=1)
 
                         # Update metrics meters
-                        batch_size = y.size(0)
+                        batch_size = targets.size(0)
                         mse_meter.update(val=extra_metrics["mse"], n=batch_size)
                         mae_meter.update(val=extra_metrics["mae"], n=batch_size)
                         for k, v in extra_metrics.items():
@@ -454,7 +457,8 @@ class Trainer:
             targets: torch.Tensor,
             phase: str,
             loss_meter: AverageMeter,
-            extra_losses_meters: Dict[str, AverageMeter]
+            extra_losses_meters: Dict[str, AverageMeter],
+            trimap: torch.Tensor = None,
     ) -> None:
         """
         Run a single step of training.
@@ -465,6 +469,7 @@ class Trainer:
             phase (str): Phase of training.
             loss_meter (AverageMeter): Loss meter.
             extra_losses_meters (Dict[str, AverageMeter]): Extra loss meters.
+            trimap (torch.Tensor): Trimap data.
         """
         # It's important to set grads to None, especially with Adam
         # since 0 grads will also update a model even if the step doesn't produce gradient
@@ -475,7 +480,7 @@ class Trainer:
                 enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                 dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
         ):
-            loss_dict, extra_losses, _ = self._step(inputs, targets, phase)
+            loss_dict, extra_losses, _ = self._step(inputs, targets, phase, trimap)
 
         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
         _, loss = loss_dict.popitem()
@@ -497,7 +502,8 @@ class Trainer:
             self,
             inputs: torch.Tensor,
             targets: torch.Tensor,
-            phase: str
+            phase: str,
+            trimap: torch.Tensor = None,
     ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """
         Calculate the loss and metrics for the current batch.
@@ -505,6 +511,8 @@ class Trainer:
         Args:
             inputs (torch.Tensor): Input data.
             targets (torch.Tensor): Target data.
+            phase (str): Phase of training.
+            trimap (torch.Tensor): Trimap data.
 
         Returns:
             Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]: Loss dictionary, step losses and metrics.
@@ -513,7 +521,7 @@ class Trainer:
         outputs = self.model(inputs)
 
         # Calculate losses
-        losses = self.criterion(outputs, targets, inputs)
+        losses = self.criterion(outputs, targets, trimap)
 
         # Extract the core loss and step losses
         loss = {}
@@ -531,9 +539,9 @@ class Trainer:
 
             # Log predictions for every 10 epochs
             if self.epoch > 0 and self.epoch % 10 == 0:
-                # Take 8 samples for visualization
-                sample_targets = targets[:8].detach().cpu()
-                sample_outputs = outputs[:8].detach().cpu()
+                # Take 1 sample for visualization
+                sample_targets = targets[:1].detach().cpu()
+                sample_outputs = outputs[:1].detach().cpu()
 
                 # Create grid images (assumes the tensors have shape [B, C, H, W])
                 produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)

@@ -6,11 +6,18 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from enum import Enum
 
 from libs.datasets.synthetic.transforms import get_train_transforms, get_val_transforms, get_test_transforms
-from libs.configuration.configuration import get_configuration, ConfigurationMode
+from libs.configuration.configuration import get_configuration, ConfigurationMode, ConfigurationSuffix
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
+
+
+class DatasetPhase(str, Enum):
+    Train = "train"
+    Val = "val"
+    Test = "test"
 
 
 class SyntheticDataset(Dataset):
@@ -22,7 +29,7 @@ class SyntheticDataset(Dataset):
             self,
             root_directory: str,
             resolution: int = 512,
-            phase: str = "train"
+            phase: DatasetPhase = DatasetPhase.Train
     ) -> None:
         """
         Args:
@@ -34,9 +41,9 @@ class SyntheticDataset(Dataset):
 
         base_directory = os.path.join(root_directory, phase)
         self.images_dir = os.path.join(base_directory, "images")
-        self.masks_dir = os.path.join(base_directory, "masks")
+        self.alpha_dir = os.path.join(base_directory, "masks")
         self.images = sorted(os.listdir(self.images_dir))
-        self.alphas = sorted(os.listdir(self.masks_dir))
+        self.alphas = sorted(os.listdir(self.alpha_dir))
 
         self.transforms = {
             'train': get_train_transforms(resolution),
@@ -51,20 +58,20 @@ class SyntheticDataset(Dataset):
         image_path = os.path.join(self.images_dir, self.images[idx])
         image = cv2.imread(image_path)
 
-        alpha_path = os.path.join(self.masks_dir, self.alphas[idx])
+        alpha_path = os.path.join(self.alpha_dir, self.alphas[idx])
         alpha = cv2.imread(alpha_path, 0).astype(np.float32) / 255.0
 
         return self.transforms({'image': image, 'alpha': alpha})
 
 
 if __name__ == "__main__":
-    config = get_configuration(ConfigurationMode.Training, suffix="unet")
+    config = get_configuration(ConfigurationMode.Training, suffix=ConfigurationSuffix.UNET)
     root_directory = os.path.join(config.dataset.root, config.dataset.name)
 
     train_dataset = SyntheticDataset(
         root_directory=root_directory,
         resolution=config.scratch.resolution,
-        phase="train",
+        phase=DatasetPhase.Train,
     )
     sample = train_dataset[2]
     image, alpha, trimap = sample['image'], sample['alpha'], sample['trimap']

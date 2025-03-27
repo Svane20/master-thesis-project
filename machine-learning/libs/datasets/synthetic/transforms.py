@@ -4,10 +4,10 @@ from ...datasets.transforms import Resize, ToTensor, Normalize, OriginScale, Ran
     RandomJitter, GenerateTrimap
 
 
-def get_train_transforms(resolution: int):
+def get_train_transforms(resolution: int) -> transforms.Compose:
     return transforms.Compose([
         RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
-        TopBiasedRandomCrop(output_size=(resolution, resolution), vertical_bias_ratio=0.2),
+        TopBiasedRandomCrop(output_size=(resolution, resolution), vertical_bias_ratio=0.4),
         RandomJitter(),
         GenerateTrimap(),  # This generates the trimap from the ground truth alpha.
         ToTensor(),
@@ -15,15 +15,15 @@ def get_train_transforms(resolution: int):
     ])
 
 
-def get_val_transforms(resolution: int):
+def get_val_transforms(resolution: int) -> transforms.Compose:
     return transforms.Compose([
-        OriginScale(resolution),
+        OriginScale(output_size=resolution),
         ToTensor(),
         Normalize()
     ])
 
 
-def get_test_transforms(resolution: int):
+def get_test_transforms(resolution: int) -> transforms.Compose:
     return transforms.Compose([
         Resize(size=(resolution, resolution)),
         ToTensor(),

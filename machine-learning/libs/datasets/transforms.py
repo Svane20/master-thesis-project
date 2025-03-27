@@ -451,10 +451,7 @@ class ToTensor(object):
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, torch.Tensor]:
         if "image" in sample:
-            image = sample["image"]
-            image = image[:, :, ::-1]  # Convert BGR to RGB.
-            image = image.transpose((2, 0, 1)).astype(np.float32)
-            image /= 255.0
+            image = sample['image'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32) / 255.0
             sample["image"] = torch.from_numpy(image)
 
         if "alpha" in sample:
@@ -471,20 +468,15 @@ class ToTensor(object):
             sample["alpha"] = torch.from_numpy(alpha.astype(np.float32))
 
         if "trimap" in sample:
-            sample["trimap"] = torch.from_numpy(sample["trimap"]).to(torch.long)
+            trimap = torch.from_numpy(sample["trimap"]).to(torch.long)
+            sample["trimap"] = trimap[None, ...].float()
 
         if "fg" in sample:
-            fg = sample["fg"]
-            fg = fg[:, :, ::-1]  # Convert BGR to RGB.
-            fg = fg.transpose((2, 0, 1)).astype(np.float32)
-            fg /= 255.0
+            fg = sample['fg'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32) / 255.0
             sample["fg"] = torch.from_numpy(fg)
 
         if "bg" in sample:
-            bg = sample["bg"]
-            bg = bg[:, :, ::-1]  # Convert BGR to RGB.
-            bg = bg.transpose((2, 0, 1)).astype(np.float32)
-            bg /= 255.0
+            bg = sample['bg'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32) / 255.0
             sample["bg"] = torch.from_numpy(bg)
 
         return sample
