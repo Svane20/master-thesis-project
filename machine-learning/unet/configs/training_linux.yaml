@@ -2,13 +2,13 @@
 
 # Global configuration
 scratch:
-  resolution: 512
+  resolution: 224
 
 # Dataset configuration
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 8
+  batch_size: 16
   pin_memory: true
   train:
     num_workers: 4
@@ -73,8 +73,8 @@ training:
       project: "U-NET"
       entity: "svane20-keyshot"
       tags: [ "unet", "resnet-50", "synthetic-data" ]
-      notes: "Training U-Net with ResNet-50 backbone on synthetic data."
-      group: "unet"
+      notes: "Training with ResNet-50 backbone on synthetic data."
+      group: "resnet_50"
       job_type: "training"
     log_metrics: false
     log_freq: 10
@@ -85,7 +85,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v4.pt"
+    checkpoint_path: "resnet_50_v1.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration

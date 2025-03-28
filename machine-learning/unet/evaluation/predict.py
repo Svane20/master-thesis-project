@@ -1,11 +1,13 @@
 from pathlib import Path
 
 from libs.configuration.configuration import ConfigurationMode
+from libs.datasets.synthetic.synthetic_dataset import DatasetPhase
 from libs.evaluation.predict import run_prediction
 from libs.utils.device import get_device
 
 from unet.build_model import build_model_for_evaluation
-from unet.utils import load_config_and_checkpoint_path
+from unet.utils.config import load_config_and_checkpoint_path
+from unet.utils.transforms import get_transforms
 
 
 def main() -> None:
@@ -25,11 +27,15 @@ def main() -> None:
         device=device
     )
 
+    # Create transforms
+    transforms = get_transforms(phase=DatasetPhase.Test, resolution=configuration.scratch.resolution)
+
     # Run the prediction
     run_prediction(
         model=model,
         configuration=configuration,
         device=device,
+        transforms=transforms,
         output_dir=predictions_directory,
     )
 

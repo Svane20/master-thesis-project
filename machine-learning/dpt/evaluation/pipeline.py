@@ -5,9 +5,9 @@ from libs.datasets.synthetic.synthetic_dataset import DatasetPhase
 from libs.evaluation.pipeline import run_pipeline
 from libs.utils.device import get_device
 
-from unet.build_model import build_model_for_evaluation
-from unet.utils.config import load_config_and_checkpoint_path
-from unet.utils.transforms import get_transforms
+from dpt.build_model import build_model_for_evaluation
+from dpt.utils.config import load_config_and_checkpoint_path
+from dpt.utils.transforms import get_transforms
 
 
 def main() -> None:

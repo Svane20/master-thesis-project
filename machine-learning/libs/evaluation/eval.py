@@ -1,4 +1,5 @@
 import torch
+import torchvision.transforms as T
 
 from pathlib import Path
 from datetime import datetime
@@ -17,13 +18,14 @@ def run_evaluation(
         configuration: Config,
         model: torch.nn.Module,
         device: torch.device,
+        transforms: T.Compose
 ) -> None:
     # Directories
     root_directory = Path(__file__).resolve().parent.parent.parent
     metrics_directory = root_directory / "metrics"
 
     # Create data loader
-    data_loader = create_test_data_loader(config=configuration.dataset, resolution=configuration.scratch.resolution)
+    data_loader = create_test_data_loader(config=configuration.dataset, transforms=transforms)
 
     # Model evaluation
     metrics = evaluate_model(model=model, data_loader=data_loader, device=device)

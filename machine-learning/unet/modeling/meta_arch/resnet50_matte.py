@@ -29,7 +29,7 @@ class ResNet50Matte(nn.Module):
 
 
 if __name__ == '__main__':
-    image_size = 512
+    image_size = 224
     input_size = (3, image_size, image_size)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dummy_input = torch.randn(1, 3, image_size, image_size).to(device)
@@ -51,8 +51,18 @@ if __name__ == '__main__':
 
     with torch.no_grad():
         output = model(dummy_input)
-    print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 512, 512])
+    print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 224, 224])
+
+
+    def generate_resnetmatte_inputs(batch_size, input_size, device):
+        return (torch.randn(batch_size, *input_size, device=device),)
 
     # Get the estimated max batch size
-    max_batch_size = estimate_max_batch_size(model, input_size=input_size)
+    max_batch_size = estimate_max_batch_size(
+        model,
+        input_size=input_size,
+        max_memory_gb=10.0,
+        safety_factor=0.9,
+        input_generator_fn=generate_resnetmatte_inputs
+    )
     print("Estimated max batch size:", max_batch_size)

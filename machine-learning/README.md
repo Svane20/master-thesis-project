@@ -6,6 +6,20 @@
 conda activate thesis
 ````
 
+### DPT
+
+1. Run this command from the root directory to run training
+
+````bash
+nohup python -m dpt.train &
+````
+
+2. Find the running process
+
+````bash
+ps -ef | grep dpt.train
+````
+
 ### U-Net
 
 1. Run this command from the root directory to run training
@@ -20,13 +34,15 @@ nohup python -m unet.train &
 ps -ef | grep unet.train
 ````
 
-3. Check the running process
+### Common
+
+2. Check the running process
 
 ````bash
 tail -f nohup.out
 ````
 
-6. Kill the process with the following command:
+3. Kill the process with the following command:
 
 ````text
 kill -9 <PID>

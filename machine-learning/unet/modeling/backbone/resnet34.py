@@ -35,7 +35,7 @@ class ResNet34(nn.Module):
 
 
 if __name__ == "__main__":
-    image_size = 512
+    image_size = 224
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dummy_input = torch.randn(1, 3, image_size, image_size).to(device)
 
@@ -48,9 +48,9 @@ if __name__ == "__main__":
     for index, skip_connection in enumerate(skip_connections):
         print(f"Skip connection {index + 1} shape: {skip_connection.shape}")
         """
-        torch.Size([1, 64, 256, 256])
-        torch.Size([1, 64, 128, 128])
-        torch.Size([1, 128, 64, 64])
-        torch.Size([1, 256, 32, 32])
+        torch.Size([1, 64, 112, 112])
+        torch.Size([1, 64, 56, 56])
+        torch.Size([1, 128, 28, 28])
+        torch.Size([1, 256, 14, 14])
         """
-    print(f"Bottleneck shape: {bottleneck.shape}")  # Excepted shape: torch.Size([1, 512, 16, 16])
+    print(f"Bottleneck shape: {bottleneck.shape}")  # Excepted shape: torch.Size([1, 512, 7, 7])

@@ -55,23 +55,34 @@ class ConvStream(nn.Module):
         return out_dict
 
 
-class Fusion_Block(nn.Module):
-    """
-    Upsamples deep features and fuses them with corresponding detail features.
-    """
-
-    def __init__(self, in_channels: int, out_channels: int) -> None:
-        """
-        Args:
-            in_channels (int): Number of input channels.
-            out_channels (int): Number of output channels.
-        """
+class RefinementBlock(nn.Module):
+    def __init__(self, in_channels):
         super().__init__()
+        self.block = nn.Sequential(
+            nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(in_channels, in_channels, kernel_size=3, padding=1),
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(inplace=True),
+        )
 
+    def forward(self, x):
+        return self.block(x)
+
+
+class Fusion_Block(nn.Module):
+    def __init__(self, in_channels: int, out_channels: int) -> None:
+        super().__init__()
         self.conv = Basic_Conv3x3(in_channels, out_channels, stride=1, padding=1)
 
     def forward(self, x: torch.Tensor, detail: torch.Tensor) -> torch.Tensor:
         up_x = F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=False)
+
+        # 🔧 Match spatial size of detail to up_x before concatenation
+        if up_x.shape[-2:] != detail.shape[-2:]:
+            detail = F.interpolate(detail, size=up_x.shape[-2:], mode='bilinear', align_corners=False)
+
         out = torch.cat([up_x, detail], dim=1)
         return self.conv(out)
 
