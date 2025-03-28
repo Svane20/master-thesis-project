@@ -2,7 +2,7 @@
 
 # Global configuration
 scratch:
-  resolution: 224
+  resolution: 512
 
 # Dataset configuration
 dataset:
@@ -85,7 +85,7 @@ training:
   checkpoint:
     save_directory: "D:/OneDrive/Master Thesis/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "resnet_50_v1.pt"
+    checkpoint_path: "resnet_50_v2.pt"
     resume_from: null # "D:/OneDrive/Master Thesis/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration
