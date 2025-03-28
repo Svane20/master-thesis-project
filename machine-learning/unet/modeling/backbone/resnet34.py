@@ -1,13 +1,13 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet50, ResNet50_Weights
+from torchvision.models import resnet34, ResNet34_Weights
 from torchsummary import summary
 from typing import List, Tuple
 
 
-class ResNet50(nn.Module):
+class ResNet34(nn.Module):
     """
-    ResNet-34 model modified for UNet that now accepts a 4-channel input (RGB + alpha).
+    ResNet-34 model modified for UNet
     """
 
     def __init__(self, pretrained: bool = True):
@@ -16,7 +16,7 @@ class ResNet50(nn.Module):
             pretrained (bool): If True, returns a model pretrained on ImageNet
         """
         super().__init__()
-        resnet = resnet50(weights=ResNet50_Weights.DEFAULT if pretrained else None)
+        resnet = resnet34(weights=ResNet34_Weights.DEFAULT if pretrained else None)
 
         self.enc1 = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu)
         self.enc2 = nn.Sequential(resnet.maxpool, resnet.layer1)
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dummy_input = torch.randn(1, 3, image_size, image_size).to(device)
 
-    model = ResNet50(pretrained=True).to(device)
+    model = ResNet34(pretrained=True).to(device)
     summary(model, input_size=(3, image_size, image_size))
 
     with torch.no_grad():
@@ -49,8 +49,8 @@ if __name__ == "__main__":
         print(f"Skip connection {index + 1} shape: {skip_connection.shape}")
         """
         torch.Size([1, 64, 256, 256])
-        torch.Size([1, 256, 128, 128])
-        torch.Size([1, 512, 64, 64])
-        torch.Size([1, 1024, 32, 32])
+        torch.Size([1, 64, 128, 128])
+        torch.Size([1, 128, 64, 64])
+        torch.Size([1, 256, 32, 32])
         """
-    print(f"Bottleneck shape: {bottleneck.shape}")  # Excepted shape: torch.Size([1, 2048, 16, 16])
+    print(f"Bottleneck shape: {bottleneck.shape}")  # Excepted shape: torch.Size([1, 512, 16, 16])

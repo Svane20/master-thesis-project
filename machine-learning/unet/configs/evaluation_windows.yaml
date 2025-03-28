@@ -13,16 +13,29 @@ dataset:
     shuffle: false
     drop_last: false
 
-# Model configuration
-model:
-  encoder:
-    pretrained: true
-  decoder:
-    encoder_channels: [64, 64, 128, 256, 512]
-    decoder_channels: [256, 128, 64, 64]
-    final_channels: 64
-
 # Inference configuration
 evaluation:
   checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/unet_v1.pt"
   compile_model: false
+
+# Model configuration
+
+# ResNet-34
+#model:
+#  model_name: "ResNet34Matte"
+#  encoder:
+#    pretrained: true
+#  decoder:
+#    encoder_channels: [ 64, 64, 128, 256, 512 ]
+#    decoder_channels: [ 256, 128, 64, 64 ]
+#    final_channels: 64
+
+# ResNet-50
+model:
+  model_name: "ResNet50Matte"
+  encoder:
+    pretrained: true
+  decoder:
+    encoder_channels: [ 64, 256, 512, 1024, 2048 ]
+    decoder_channels: [ 512, 256, 128, 64 ]
+    final_channels: 64

@@ -8,7 +8,7 @@ from unet.modeling.backbone.resnet50 import ResNet50
 from unet.modeling.decoder.unet_decoder import UNetDecoder
 
 
-class ResNetMatteV0(nn.Module):
+class ResNet50Matte(nn.Module):
     def __init__(self, config: Dict[str, Any]):
         super().__init__()
         encoder_config = config['encoder']
@@ -46,10 +46,11 @@ if __name__ == '__main__':
     }
 
     # Print model summary
-    model = ResNetMatteV0(config).to(device)
+    model = ResNet50Matte(config).to(device)
     summary(model, input_size=input_size)
 
-    output = model(dummy_input)
+    with torch.no_grad():
+        output = model(dummy_input)
     print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 512, 512])
 
 
