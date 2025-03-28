@@ -8,7 +8,8 @@ from typing import Dict, Any
 from libs.training.utils.checkpoint_utils import load_checkpoint
 from libs.utils.device import compile_model
 
-from unet.modeling.meta_arch.resnetmatte import ResNetMatteV0
+from unet.modeling.meta_arch.resnet34_matte import ResNet34Matte
+from unet.modeling.meta_arch.resnet50_matte import ResNet50Matte
 
 
 def build_model_for_train(configuration: Dict[str, Any]) -> nn.Module:
@@ -102,4 +103,12 @@ def _build(configuration: Dict[str, Any]) -> nn.Module:
     Returns:
         nn.Module: Model.
     """
-    return ResNetMatteV0(configuration)
+    if "model_name" not in configuration:
+        raise ValueError("Model name is not provided in the configuration")
+
+    if configuration["model_name"] == "ResNet34Matte":
+        return ResNet34Matte(configuration)
+    elif configuration["model_name"] == "ResNet50Matte":
+        return ResNet50Matte(configuration)
+    else:
+        raise ValueError(f"Unknown model name: {configuration['model_name']}")

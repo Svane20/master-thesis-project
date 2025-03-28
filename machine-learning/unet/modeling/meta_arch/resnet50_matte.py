@@ -1,0 +1,58 @@
+import torch
+import torch.nn as nn
+from typing import Any, Dict
+from torchsummary import summary
+
+from libs.utils.mem_utils import estimate_max_batch_size
+from unet.modeling.backbone.resnet50 import ResNet50
+from unet.modeling.decoder.unet_decoder import UNetDecoder
+
+
+class ResNet50Matte(nn.Module):
+    def __init__(self, config: Dict[str, Any]):
+        super().__init__()
+        encoder_config = config['encoder']
+        decoder_config = config['decoder']
+
+        self.encoder = ResNet50(
+            pretrained=encoder_config['pretrained'],
+        )
+        self.decoder = UNetDecoder(
+            encoder_channels=decoder_config['encoder_channels'],
+            decoder_channels=decoder_config['decoder_channels'],
+            final_channels=decoder_config['final_channels'],
+        )
+
+    def forward(self, x):
+        bottleneck, skip_connections = self.encoder(x)
+        return self.decoder(bottleneck, skip_connections, x)
+
+
+if __name__ == '__main__':
+    image_size = 512
+    input_size = (3, image_size, image_size)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    dummy_input = torch.randn(1, 3, image_size, image_size).to(device)
+
+    config = {
+        "encoder": {
+            "pretrained": True,
+        },
+        "decoder": {
+            "encoder_channels": [64, 256, 512, 1024, 2048],
+            "decoder_channels": [512, 256, 128, 64],
+            "final_channels": 64,
+        }
+    }
+
+    # Print model summary
+    model = ResNet50Matte(config).to(device)
+    summary(model, input_size=input_size)
+
+    with torch.no_grad():
+        output = model(dummy_input)
+    print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 512, 512])
+
+    # Get the estimated max batch size
+    max_batch_size = estimate_max_batch_size(model, input_size=input_size)
+    print("Estimated max batch size:", max_batch_size)

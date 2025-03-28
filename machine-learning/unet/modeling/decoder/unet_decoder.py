@@ -143,5 +143,6 @@ if __name__ == "__main__":
     ).to(device)
     summary(model, input_size=(3, image_size, image_size))
 
-    output = model(bottleneck, skip_connections, dummy_input)
+    with torch.no_grad():
+        output = model(bottleneck, skip_connections, dummy_input)
     print(f"Output shape: {output.shape}")  # Expected shape: e.g., torch.Size([1, 1, 512, 512])

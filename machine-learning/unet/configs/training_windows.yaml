@@ -89,7 +89,20 @@ training:
     resume_from: null # "D:/OneDrive/Master Thesis/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration
+
+# ResNet-34
+#model:
+#  model_name: "ResNet34Matte"
+#  encoder:
+#    pretrained: true
+#  decoder:
+#    encoder_channels: [ 64, 64, 128, 256, 512 ]
+#    decoder_channels: [ 256, 128, 64, 64 ]
+#    final_channels: 64
+
+# ResNet-50
 model:
+  model_name: "ResNet50Matte"
   encoder:
     pretrained: true
   decoder:

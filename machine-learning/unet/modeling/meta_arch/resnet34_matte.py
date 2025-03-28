@@ -1,20 +1,20 @@
 import torch
 import torch.nn as nn
-from typing import Any, Dict
 from torchsummary import summary
+from typing import Any, Dict
 
 from libs.utils.mem_utils import estimate_max_batch_size
-from unet.modeling.backbone.resnet50 import ResNet50
+from unet.modeling.backbone.resnet34 import ResNet34
 from unet.modeling.decoder.unet_decoder import UNetDecoder
 
 
-class ResNetMatteV0(nn.Module):
+class ResNet34Matte(nn.Module):
     def __init__(self, config: Dict[str, Any]):
         super().__init__()
         encoder_config = config['encoder']
         decoder_config = config['decoder']
 
-        self.encoder = ResNet50(
+        self.encoder = ResNet34(
             pretrained=encoder_config['pretrained'],
         )
         self.decoder = UNetDecoder(
@@ -39,17 +39,18 @@ if __name__ == '__main__':
             "pretrained": True,
         },
         "decoder": {
-            "encoder_channels": [64, 256, 512, 1024, 2048],
-            "decoder_channels": [512, 256, 128, 64],
+            "encoder_channels": [64, 64, 128, 256, 512],
+            "decoder_channels": [256, 128, 64, 64],
             "final_channels": 64,
         }
     }
 
     # Print model summary
-    model = ResNetMatteV0(config).to(device)
+    model = ResNet34Matte(config).to(device)
     summary(model, input_size=input_size)
 
-    output = model(dummy_input)
+    with torch.no_grad():
+        output = model(dummy_input)
     print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 512, 512])
 
     # Get the estimated max batch size
