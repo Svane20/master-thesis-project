@@ -70,11 +70,11 @@ training:
   logging:
     wandb:
       enabled: true
-      project: "U-NET"
+      project: "DPT"
       entity: "svane20-keyshot"
-      tags: [ "unet", "resnet-50", "synthetic-data" ]
-      notes: "Training with ResNet-50 backbone on synthetic data."
-      group: "resnet_50"
+      tags: [ "dpt", "intel/dpt-swinv2-tiny-256", "synthetic-data" ]
+      notes: "Training with DPT Swin V2 Tiny 256 backbone on synthetic data."
+      group: "dpt-swinv2-tiny-256"
       job_type: "training"
     log_metrics: false
     log_freq: 10
@@ -83,16 +83,16 @@ training:
 
   # Checkpoint configuration
   checkpoint:
-    save_directory: "D:/OneDrive/Master Thesis/ml/checkpoints/unet"
+    save_directory: "D:/OneDrive/Master Thesis/ml/checkpoints/dpt"
     save_freq: 5
-    checkpoint_path: "resnet_50_v1.pt"
-    resume_from: null # "D:/OneDrive/Master Thesis/ml/checkpoints/unet/<CHECKPOINT>" or null
+    checkpoint_path: "dpt-swinv2-tiny-256_v1.pt"
+    resume_from: null # "D:/OneDrive/Master Thesis/ml/checkpoints/dpt/<CHECKPOINT>" or null
 
 # Model configuration
 model:
   encoder:
-    pretrained: true
+    model_name: "Intel/dpt-swinv2-tiny-256"
   decoder:
-    encoder_channels: [ 64, 256, 512, 1024, 2048 ]
-    decoder_channels: [ 512, 256, 128, 64 ]
-    final_channels: 64
+    in_channels: 768
+    convstream_out: [48, 96, 192, 384, 512]
+    fusion_out: [48, 96, 192, 384, 512]

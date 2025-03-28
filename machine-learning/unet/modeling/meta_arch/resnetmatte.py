@@ -52,6 +52,16 @@ if __name__ == '__main__':
     output = model(dummy_input)
     print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 512, 512])
 
+
+    def generate_resnetmatte_inputs(batch_size, input_size, device):
+        return (torch.randn(batch_size, *input_size, device=device),)
+
     # Get the estimated max batch size
-    max_batch_size = estimate_max_batch_size(model, input_size=input_size)
+    max_batch_size = estimate_max_batch_size(
+        model,
+        input_size=input_size,
+        max_memory_gb=10.0,
+        safety_factor=0.9,
+        input_generator_fn=generate_resnetmatte_inputs
+    )
     print("Estimated max batch size:", max_batch_size)

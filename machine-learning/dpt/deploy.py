@@ -2,8 +2,8 @@ from libs.configuration.configuration import ConfigurationMode
 from libs.deployment.deploy import deploy_model
 from libs.utils.device import get_device
 
-from unet.build_model import build_model_for_deployment
-from unet.utils import load_config_and_checkpoint_path
+from dpt.build_model import build_model_for_deployment
+from dpt.utils import load_config_and_checkpoint_path
 
 
 def main() -> None:

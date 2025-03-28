@@ -7,7 +7,7 @@ import numpy as np
 
 
 class DPTEncoder(nn.Module):
-    def __init__(self, model_name: str = "Intel/dpt-hybrid-midas"):
+    def __init__(self, model_name: str = "Intel/dpt-swinv2-tiny-256"):
         super().__init__()
 
         self.model = DPTForDepthEstimation.from_pretrained(model_name)
@@ -46,7 +46,6 @@ if __name__ == "__main__":
 
     # Move input tensors to the model's device
     inputs = {k: v.to(device) for k, v in inputs.items()}
-    print(inputs)
 
     bottleneck, features = model(**inputs)
     features = features[::-1]

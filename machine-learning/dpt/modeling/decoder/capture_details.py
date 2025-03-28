@@ -15,8 +15,9 @@ class Detail_Capture(nn.Module):
 
     def __init__(
             self,
+            in_channels: int,
             convstream_out: List[int],
-            in_channels: int = 768,  # Bottleneck feature size (e.g., SwinV2 encoder)
+            fusion_out: List[int]
     ):
         super().__init__()
 
@@ -25,7 +26,7 @@ class Detail_Capture(nn.Module):
         self.detail_chans = convstream_out[::-1]
 
         # Fusion output channels (e.g., halve gradually until 16)
-        self.fusion_out = [256, 128, 64, 32, 16]
+        self.fusion_out = fusion_out
 
         # First channel is encoder bottleneck, then intermediate fusion outputs
         self.fusion_in = [in_channels] + self.fusion_out[:-1]

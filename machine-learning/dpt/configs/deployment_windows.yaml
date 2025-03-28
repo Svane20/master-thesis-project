@@ -1,0 +1,17 @@
+# Global configuration
+scratch:
+  resolution: 512
+
+# Model configuration
+model:
+  encoder:
+    model_name: "Intel/dpt-swinv2-tiny-256"
+  decoder:
+    in_channels: 768
+    convstream_out: [48, 96, 192, 384, 512]
+    fusion_out: [48, 96, 192, 384, 512]
+
+# Deployment configuration
+deployment:
+  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/dpt/dpt-swinv2-tiny-256_v1.pt"
+  destination_directory: "D:/OneDrive/Master Thesis/ml/models/dpt"
