@@ -3,7 +3,7 @@ from libs.evaluation.eval import run_evaluation
 from libs.utils.device import get_device
 
 from dpt.build_model import build_model_for_evaluation
-from dpt.utils import load_config_and_checkpoint_path
+from dpt.utils.config import load_config_and_checkpoint_path
 
 
 def main() -> None:

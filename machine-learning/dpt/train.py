@@ -7,16 +7,15 @@ from libs.training.train import start_training
 from libs.training.utils.train_utils import set_seeds
 
 from dpt.build_model import build_model_for_train
-from dpt.utils import load_config
+from dpt.utils.config import load_config
 
 
 def main() -> None:
     # Define logs directory
     logs_directory = Path(__file__).resolve().parent / "logs"
 
-    # Get the configuration and load model
+    # Get the configuration
     config = load_config(ConfigurationMode.Training)
-    model = build_model_for_train(config.model)
 
     # Get the configuration values
     training_config: TrainConfig = config.training
@@ -28,6 +27,8 @@ def main() -> None:
     # Set seed for reproducibility
     set_seeds(training_config.seed)
 
+    # Load the model
+    model = build_model_for_train(config.model)
     print(f"Model: {model}")
 
     # # Start training

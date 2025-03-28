@@ -8,7 +8,7 @@ from typing import Dict, Any
 from libs.training.utils.checkpoint_utils import load_checkpoint
 from libs.utils.device import compile_model
 
-from dpt.modeling.meta_arch.dpt_matte import DPTMatte
+from dpt.modeling.meta_arch.dpt_swinv2_tiny_256_matte import DPTSwinV2Tiny256Matte
 
 
 def build_model_for_train(configuration: Dict[str, Any]) -> nn.Module:
@@ -102,4 +102,10 @@ def _build(configuration: Dict[str, Any]) -> nn.Module:
     Returns:
         nn.Module: Model.
     """
-    return DPTMatte(configuration)
+    if "model_name" not in configuration:
+        raise ValueError("Model name is not provided in the configuration")
+
+    if configuration["model_name"] == "DPTSwinV2Tiny256Matte":
+        return DPTSwinV2Tiny256Matte(configuration)
+    else:
+        raise ValueError(f"Model {configuration['model_name']} is not supported")

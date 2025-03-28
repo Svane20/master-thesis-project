@@ -123,17 +123,17 @@ class UNetDecoder(nn.Module):
 
 
 if __name__ == "__main__":
-    image_size = 512
-    feature_size = 16  # Size of the bottleneck feature map.
+    image_size = 224
+    feature_size = 7  # Size of the bottleneck feature map.
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     dummy_input = torch.randn(1, 3, image_size, image_size).to(device)
     bottleneck = torch.rand(1, 2048, feature_size, feature_size).to(device)
     skip_connections = [
-        torch.rand(1, 64, 256, 256).to(device),
-        torch.rand(1, 256, 128, 128).to(device),
-        torch.rand(1, 512, 64, 64).to(device),
-        torch.rand(1, 1024, 32, 32).to(device),
+        torch.rand(1, 64, 112, 112).to(device),
+        torch.rand(1, 256, 56, 56).to(device),
+        torch.rand(1, 512, 28, 28).to(device),
+        torch.rand(1, 1024, 14, 14).to(device),
     ]
 
     model = UNetDecoder(
@@ -145,4 +145,4 @@ if __name__ == "__main__":
 
     with torch.no_grad():
         output = model(bottleneck, skip_connections, dummy_input)
-    print(f"Output shape: {output.shape}")  # Expected shape: e.g., torch.Size([1, 1, 512, 512])
+    print(f"Output shape: {output.shape}")  # Expected shape: e.g., torch.Size([1, 1, 224, 224])

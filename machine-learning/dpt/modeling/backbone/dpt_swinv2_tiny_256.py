@@ -12,8 +12,8 @@ class DPTEncoder(nn.Module):
 
         self.model = DPTForDepthEstimation.from_pretrained(model_name)
 
-    def forward(self, pixel_values: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
-        output = self.model(pixel_values=pixel_values, output_hidden_states=True)
+    def forward(self, x: torch.Tensor) -> Tuple[torch.Tensor, List[torch.Tensor]]:
+        output = self.model(pixel_values=x, output_hidden_states=True)
 
         # SwinV2 hidden_states are already shaped [B, C, H, W]
         hidden_states = output.hidden_states[-4:]
@@ -28,7 +28,7 @@ class DPTEncoder(nn.Module):
 
 
 if __name__ == "__main__":
-    image_size = 512
+    image_size = 256
     image_channels = 3
     input_size = (image_channels, image_size, image_size)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -37,17 +37,13 @@ if __name__ == "__main__":
     model = DPTEncoder(model_name=model_name).to(device)
     summary(model, input_size=input_size)
 
-    # Create image in range [0, 1]
-    dummy_image = np.random.rand(image_size, image_size, image_channels).astype(np.float32)
+    # Dummy input image in [0, 1] range (normalized RGB)
+    image_np = np.random.rand(image_size, image_size, 3).astype(np.float32)
+    image_tensor = torch.from_numpy(image_np).permute(2, 0, 1).unsqueeze(0).to(device)  # (1, 3, H, W)
 
-    # Use updated image processor (was DPTFeatureExtractor)
-    processor = DPTImageProcessor.from_pretrained(model_name)
-    inputs = processor(images=dummy_image, return_tensors="pt", do_rescale=False)
+    with torch.no_grad():
+        bottleneck, features = model(image_tensor)
 
-    # Move input tensors to the model's device
-    inputs = {k: v.to(device) for k, v in inputs.items()}
-
-    bottleneck, features = model(**inputs)
     features = features[::-1]
     bottleneck = features[0]
     skip_connections = features[1:]

@@ -29,7 +29,7 @@ class ResNet50Matte(nn.Module):
 
 
 if __name__ == '__main__':
-    image_size = 512
+    image_size = 224
     input_size = (3, image_size, image_size)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dummy_input = torch.randn(1, 3, image_size, image_size).to(device)
@@ -51,7 +51,7 @@ if __name__ == '__main__':
 
     with torch.no_grad():
         output = model(dummy_input)
-    print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 512, 512])
+    print("Output shape:", output.shape)  # Expected shape: torch.Size([1, 1, 224, 224])
 
 
     def generate_resnetmatte_inputs(batch_size, input_size, device):

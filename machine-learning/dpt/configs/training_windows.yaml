@@ -2,7 +2,7 @@
 
 # Global configuration
 scratch:
-  resolution: 512
+  resolution: 256
 
 # Dataset configuration
 dataset:
@@ -89,7 +89,10 @@ training:
     resume_from: null # "D:/OneDrive/Master Thesis/ml/checkpoints/dpt/<CHECKPOINT>" or null
 
 # Model configuration
+
+# DPT Swin V2 Tiny 256
 model:
+  model_name: "DPTSwinV2Tiny256Matte"
   encoder:
     model_name: "Intel/dpt-swinv2-tiny-256"
   decoder:

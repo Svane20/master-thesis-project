@@ -74,7 +74,7 @@ class Detail_Capture(nn.Module):
 
 if __name__ == "__main__":
     image_channels = 3
-    image_size = 512
+    image_size = 256
     feature_size = 8  # From DPT encoder (bottleneck)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -83,9 +83,11 @@ if __name__ == "__main__":
 
     model = Detail_Capture(
         in_channels=768,
-        convstream_out=[48, 96, 192, 384, 512]
+        convstream_out=[48, 96, 192, 384, 512],
+        fusion_out=[48, 96, 192, 384, 512]
     ).to(device)
     summary(model, input_size=(3, image_size, image_size))
 
-    output = model(bottleneck, dummy_input)
-    print(f"Output shape: {output.shape}")  # Expected: [1, 1, 512, 512]
+    with torch.no_grad():
+        output = model(bottleneck, dummy_input)
+    print(f"Output shape: {output.shape}")  # Expected: [1, 1, 256, 256]

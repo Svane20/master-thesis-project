@@ -10,7 +10,7 @@ from dpt.modeling.decoder.capture_details import Detail_Capture
 from libs.utils.mem_utils import estimate_max_batch_size
 
 
-class DPTMatte(nn.Module):
+class DPTSwinV2Tiny256Matte(nn.Module):
     def __init__(self, config: Dict[str, Any]):
         super().__init__()
 
@@ -24,13 +24,15 @@ class DPTMatte(nn.Module):
             fusion_out=decoder_config['fusion_out'],
         )
 
-    def forward(self, pixel_values: torch.Tensor, image_rgb: torch.Tensor) -> torch.Tensor:
-        bottleneck, _ = self.encoder(pixel_values)
-        return self.decoder(bottleneck, image_rgb)
+        self.processor = DPTImageProcessor.from_pretrained(encoder_config['model_name'], do_rescale=False)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        bottleneck, _ = self.encoder(x)
+        return self.decoder(bottleneck, x)
 
 
 if __name__ == "__main__":
-    image_size = 512
+    image_size = 256
     input_size = (3, image_size, image_size)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -45,17 +47,16 @@ if __name__ == "__main__":
         }
     }
 
-    model = DPTMatte(config).to(device)
+    model = DPTSwinV2Tiny256Matte(config).to(device)
     summary(model, input_size=input_size)
-    processor = DPTImageProcessor.from_pretrained(config['encoder']['model_name'])
 
-    image_np = np.random.rand(image_size, image_size, 3).astype(np.float32)  # dummy input
-    inputs = processor(images=image_np, return_tensors="pt", do_rescale=False)
-    pixel_values = inputs["pixel_values"].to(device)
-    image_tensor = torch.from_numpy(image_np).permute(2, 0, 1).unsqueeze(0).to(device)
+    # Dummy input image in [0, 1] range (normalized RGB)
+    image_np = np.random.rand(image_size, image_size, 3).astype(np.float32)
+    image_tensor = torch.from_numpy(image_np).permute(2, 0, 1).unsqueeze(0).to(device)  # (1, 3, H, W)
 
-    output = model(pixel_values, image_tensor)
-    print("Output shape:", output.shape)  # Expected: [1, 1, 512, 512]
+    with torch.no_grad():
+        output = model(image_tensor)
+    print("Output shape:", output.shape)  # Expected: [1, 1, 256, 256]
 
 
     def generate_dptmatte_inputs(batch_size, input_size, device):
@@ -65,6 +66,7 @@ if __name__ == "__main__":
         return pixel_values, image_rgb
 
 
+    # Estimate max batch size
     max_batch_size = estimate_max_batch_size(
         model,
         input_size=input_size,

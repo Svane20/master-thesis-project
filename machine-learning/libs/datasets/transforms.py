@@ -454,25 +454,19 @@ class Resize(object):
 
 class ToTensor(object):
     """
-    Convert ndarrays in samples to Tensors.
+    Convert ndarrays in samples to Tensors. Assumes input is still in [0, 255] uint8.
     """
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, torch.Tensor]:
         if "image" in sample:
-            image = sample['image'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32) / 255.0
+            image = sample['image'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32)
             sample["image"] = torch.from_numpy(image)
 
         if "alpha" in sample:
             alpha = sample["alpha"]
             alpha = np.clip(alpha, 0, 1)
-
-            # If alpha is a 2D array, add a channel dimension.
             if alpha.ndim == 2:
                 alpha = np.expand_dims(alpha, axis=0)
-            else:
-                # Assume the alpha channel is the first dimension if already multidimensional.
-                alpha = alpha.astype(np.float32)
-
             sample["alpha"] = torch.from_numpy(alpha.astype(np.float32))
 
         if "trimap" in sample:
@@ -480,12 +474,31 @@ class ToTensor(object):
             sample["trimap"] = trimap[None, ...].float()
 
         if "fg" in sample:
-            fg = sample['fg'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32) / 255.0
+            fg = sample['fg'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32)
             sample["fg"] = torch.from_numpy(fg)
 
         if "bg" in sample:
-            bg = sample['bg'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32) / 255.0
+            bg = sample['bg'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32)
             sample["bg"] = torch.from_numpy(bg)
+
+        return sample
+
+
+class Rescale(object):
+    """
+    Rescale image pixels by a fixed factor (e.g., 1/255).
+    """
+
+    def __init__(self, scale=1 / 255.0) -> None:
+        self.scale = scale
+
+    def __call__(self, sample: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        if "image" in sample:
+            sample["image"] = sample["image"] * self.scale
+        if "fg" in sample:
+            sample["fg"] = sample["fg"] * self.scale
+        if "bg" in sample:
+            sample["bg"] = sample["bg"] * self.scale
 
         return sample
 

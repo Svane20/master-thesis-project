@@ -7,7 +7,7 @@ from libs.training.train import start_training
 from libs.training.utils.train_utils import set_seeds
 
 from unet.build_model import build_model_for_train
-from unet.utils import load_config
+from unet.utils.config import load_config
 
 
 def main() -> None:
