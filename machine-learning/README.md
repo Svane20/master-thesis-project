@@ -2,8 +2,16 @@
 
 1. Run the following command:
 
+## Linux
+
 ````bash
 watch -n 1 nvidia-smi
+````
+
+## Windows
+
+````bash
+while ($true) { Clear-Host; nvidia-smi; Start-Sleep -Seconds 1 }
 ````
 
 ## Run training after SSH connection is closed 
