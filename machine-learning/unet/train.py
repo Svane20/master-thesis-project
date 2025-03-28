@@ -33,7 +33,7 @@ def main() -> None:
     model = build_model_for_train(config.model)
 
     # Get the transforms
-    train_transforms = get_transforms(DatasetPhase.Train, config.scratch.resolution)
+    train_transforms = get_transforms(DatasetPhase.Train, config.scratch.resolution, config.scratch.crop_resolution)
     val_transforms = get_transforms(DatasetPhase.Val, config.scratch.resolution)
 
     # Start training

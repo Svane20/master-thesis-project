@@ -2,7 +2,8 @@
 
 # Global configuration
 scratch:
-  resolution: 512
+  resolution: 512 # 224, 512, 1024
+  crop_resolution: 640 # 323, 640, 1280
 
 # Dataset configuration
 dataset:

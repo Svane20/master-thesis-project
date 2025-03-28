@@ -8,9 +8,9 @@ MEAN = [0.5, 0.5, 0.5]
 STD = [0.5, 0.5, 0.5]
 
 
-def get_transforms(phase: DatasetPhase, resolution: int = 256) -> T.Compose:
+def get_transforms(phase: DatasetPhase, resolution: int = 256, crop_resolution: int = None) -> T.Compose:
     if phase == DatasetPhase.Train:
-        return get_train_transforms(resolution)
+        return get_train_transforms(resolution, crop_resolution)
     elif phase == DatasetPhase.Val:
         return get_val_transforms(resolution)
     elif phase == DatasetPhase.Test:
@@ -19,16 +19,23 @@ def get_transforms(phase: DatasetPhase, resolution: int = 256) -> T.Compose:
         raise ValueError(f"Invalid phase: {phase}")
 
 
-def get_train_transforms(resolution: int = 256) -> T.Compose:
-    return T.Compose([
+def get_train_transforms(resolution: int = 256, crop_resolution: int = None) -> T.Compose:
+    crop_size = crop_resolution or resolution
+
+    transforms = [
         RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
-        TopBiasedRandomCrop(output_size=(resolution, resolution), vertical_bias_ratio=0.4),
+        TopBiasedRandomCrop(output_size=(crop_size, crop_size), vertical_bias_ratio=0.4),
         RandomJitter(),
-        GenerateTrimap(),  # This generates the trimap from the ground truth alpha.
+        GenerateTrimap(),
         ToTensor(),
-        Rescale(scale=0.00392156862745098),
+        Rescale(scale=1 / 255.0),
         Normalize(mean=MEAN, std=STD),
-    ])
+    ]
+
+    if crop_resolution and crop_resolution > resolution:
+        transforms.insert(2, OriginScale(output_size=resolution))
+
+    return T.Compose(transforms)
 
 
 def get_val_transforms(resolution: int = 256) -> T.Compose:
