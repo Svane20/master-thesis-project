@@ -1,5 +1,5 @@
 import torch
-import torchvision.transforms as transforms
+import torchvision.transforms as T
 
 import numpy as np
 from PIL import Image
@@ -9,7 +9,6 @@ from pathlib import Path
 import cv2
 
 from libs.configuration.configuration import Config
-from libs.datasets.synthetic.transforms import get_test_transforms
 from libs.metrics.utils import compute_evaluation_metrics, get_grad_filter
 from libs.training.utils.train_utils import AverageMeter, ProgressMeter
 
@@ -27,10 +26,6 @@ def evaluate_model(
         data_loader (torch.utils.data.DataLoader): Data loader
         device (torch.device): Device to use for evaluation
     """
-    if len(data_loader) == 0:
-        logging.warning("DataLoader is empty. No evaluation performed.")
-        return
-
     # Set model to evaluation mode
     model.eval()
 
@@ -108,8 +103,8 @@ def evaluate_model(
 
 
 def predict(
-        configuration: Config,
         model: torch.nn.Module,
+        transforms: T.Compose,
         image: np.ndarray,
         device: torch.device,
         save_dir: Path,
@@ -119,8 +114,8 @@ def predict(
     Predict the alpha matte for an image
 
     Args:
-        configuration (Config): Configuration object
         model (torch.nn.Module): Model to use for prediction
+        transforms (T.Compose): Transforms to apply to the input image
         image (np.ndarray): Input image
         device (torch.device): Device to use for evaluation
         save_dir (Path): Directory to save the predicted image
@@ -129,8 +124,6 @@ def predict(
     Returns:
         np.ndarray: Predicted alpha matte
     """
-    # Create transforms
-    transforms = get_test_transforms(configuration.scratch.resolution)
 
     # Apply the transforms and move the image to the device
     image_tensor = transforms({"image": image})["image"]
@@ -159,7 +152,7 @@ def predict(
 
 
 def predict_image(
-        configuration: Config,
+        transforms: T.Compose,
         image: Image,
         mask: Image,
         model: torch.nn.Module,
@@ -171,7 +164,6 @@ def predict_image(
     Predict the alpha matte for an image.
 
     Args:
-        configuration (Config): Configuration object.
         image (numpy.ndarray): Input image.
         mask (numpy.ndarray): Ground truth mask.
         model (torch.nn.Module): Model to use for prediction.
@@ -182,9 +174,6 @@ def predict_image(
     Returns:
         Tuple[np.ndarray, Dict[str, float]]: Predicted mask and evaluation metrics.
     """
-    # Create transforms
-    transforms = get_test_transforms(configuration.scratch.resolution)
-
     # Set model to evaluation mode
     model.eval()
 

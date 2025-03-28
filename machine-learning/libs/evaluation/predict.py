@@ -1,4 +1,5 @@
 import torch
+import torchvision.transforms as T
 
 from pathlib import Path
 import numpy as np
@@ -18,6 +19,7 @@ setup_logging(__name__)
 def run_prediction(
         configuration: Config,
         model: torch.nn.Module,
+        transforms: T.Compose,
         device: torch.device,
         output_dir: Path,
         save_image: bool = True,
@@ -42,7 +44,7 @@ def run_prediction(
 
     # Predict the mask
     predicted_mask, metrics = predict_image(
-        configuration=configuration,
+        transforms=transforms,
         image=image,
         mask=mask,
         model=model,

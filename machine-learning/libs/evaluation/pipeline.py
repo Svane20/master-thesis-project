@@ -1,4 +1,5 @@
 import torch
+from torchvision import transforms as T
 
 from pathlib import Path
 import cv2
@@ -21,6 +22,7 @@ setup_logging(__name__)
 def run_pipeline(
         configuration: Config,
         model: torch.nn.Module,
+        transforms: T.Compose,
         device: torch.device,
         output_dir: Path,
         save_image: bool = True,
@@ -36,8 +38,8 @@ def run_pipeline(
 
     # Perform inference
     predicted_alpha = predict(
-        configuration=configuration,
         model=model,
+        transforms=transforms,
         device=device,
         image=image,
         save_dir=output_dir,

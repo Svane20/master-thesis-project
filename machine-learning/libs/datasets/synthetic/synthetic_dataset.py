@@ -1,5 +1,6 @@
 import torch
 from torch.utils.data import Dataset
+import torchvision.transforms as T
 
 import os
 import cv2
@@ -8,8 +9,9 @@ import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from enum import Enum
 
-from libs.datasets.synthetic.transforms import get_train_transforms, get_val_transforms, get_test_transforms
 from libs.configuration.configuration import get_configuration, ConfigurationMode, ConfigurationSuffix
+from libs.datasets.transforms import RandomAffine, TopBiasedRandomCrop, RandomJitter, GenerateTrimap, ToTensor, \
+    Normalize
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
@@ -28,13 +30,13 @@ class SyntheticDataset(Dataset):
     def __init__(
             self,
             root_directory: str,
-            resolution: int = 512,
+            transforms: T.Compose,
             phase: DatasetPhase = DatasetPhase.Train
     ) -> None:
         """
         Args:
             root_directory (str): Root directory of the dataset.
-            resolution (int): Size of the image. Default: 512.
+            transforms (transforms.Compose): Transform to apply to the data.
             phase (str): Phase of the dataset. Default: "train".
         """
         super().__init__()
@@ -45,11 +47,7 @@ class SyntheticDataset(Dataset):
         self.images = sorted(os.listdir(self.images_dir))
         self.alphas = sorted(os.listdir(self.alpha_dir))
 
-        self.transforms = {
-            'train': get_train_transforms(resolution),
-            'val': get_val_transforms(resolution),
-            'test': get_test_transforms(resolution)
-        }[phase]
+        self.transforms = transforms
 
     def __len__(self):
         return len(self.alphas)
@@ -68,9 +66,19 @@ if __name__ == "__main__":
     config = get_configuration(ConfigurationMode.Training, suffix=ConfigurationSuffix.UNET)
     root_directory = os.path.join(config.dataset.root, config.dataset.name)
 
+    # Create transforms for the training phase
+    train_transforms = T.Compose([
+        RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
+        TopBiasedRandomCrop(output_size=(224, 224), vertical_bias_ratio=0.4),
+        RandomJitter(),
+        GenerateTrimap(),  # This generates the trimap from the ground truth alpha.
+        ToTensor(),
+        Normalize()
+    ])
+
     train_dataset = SyntheticDataset(
         root_directory=root_directory,
-        resolution=config.scratch.resolution,
+        transforms=train_transforms,
         phase=DatasetPhase.Train,
     )
     sample = train_dataset[2]

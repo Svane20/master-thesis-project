@@ -1,9 +1,11 @@
 from libs.configuration.configuration import ConfigurationMode
+from libs.datasets.synthetic.synthetic_dataset import DatasetPhase
 from libs.evaluation.eval import run_evaluation
 from libs.utils.device import get_device
 
 from unet.build_model import build_model_for_evaluation
 from unet.utils.config import load_config_and_checkpoint_path
+from unet.utils.transforms import get_transforms
 
 
 def main() -> None:
@@ -18,8 +20,11 @@ def main() -> None:
         device=device
     )
 
+    # Create transforms
+    transforms = get_transforms(phase=DatasetPhase.Test, resolution=configuration.scratch.resolution)
+
     # Run evaluation
-    run_evaluation(model=model, device=device, configuration=configuration)
+    run_evaluation(model=model, device=device, configuration=configuration, transforms=transforms)
 
 
 if __name__ == "__main__":
