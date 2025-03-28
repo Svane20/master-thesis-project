@@ -8,7 +8,6 @@ import logging
 from pathlib import Path
 import cv2
 
-from libs.configuration.configuration import Config
 from libs.metrics.utils import compute_evaluation_metrics, get_grad_filter
 from libs.training.utils.train_utils import AverageMeter, ProgressMeter
 

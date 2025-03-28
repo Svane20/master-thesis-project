@@ -441,11 +441,10 @@ class Resize(object):
         self.size = size
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-        sample["image"] = cv2.resize(sample["image"], self.size, interpolation=_maybe_random_interp(cv2.INTER_LINEAR))
+        sample["image"] = cv2.resize(sample["image"], self.size, interpolation=cv2.INTER_LINEAR)
 
         if "alpha" in sample:
-            sample["alpha"] = cv2.resize(sample["alpha"], self.size,
-                                         interpolation=_maybe_random_interp(cv2.INTER_NEAREST))
+            sample["alpha"] = cv2.resize(sample["alpha"], self.size, interpolation=cv2.INTER_NEAREST)
         if "trimap" in sample:
             sample["trimap"] = cv2.resize(sample["trimap"], self.size, interpolation=cv2.INTER_NEAREST)
 
