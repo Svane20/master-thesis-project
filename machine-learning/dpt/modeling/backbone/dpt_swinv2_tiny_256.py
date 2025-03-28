@@ -6,7 +6,7 @@ from typing import Tuple, List
 import numpy as np
 
 
-class DPTEncoder(nn.Module):
+class DPTSwinV2Tiny256Encoder(nn.Module):
     def __init__(self, model_name: str = "Intel/dpt-swinv2-tiny-256"):
         super().__init__()
 
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model_name = "Intel/dpt-swinv2-tiny-256"
-    model = DPTEncoder(model_name=model_name).to(device)
+    model = DPTSwinV2Tiny256Encoder(model_name=model_name).to(device)
     summary(model, input_size=input_size)
 
     # Dummy input image in [0, 1] range (normalized RGB)

@@ -5,7 +5,7 @@ from transformers import DPTImageProcessor
 import numpy as np
 from typing import Any, Dict
 
-from dpt.modeling.backbone.dpt_swinv2_tiny_256 import DPTEncoder
+from dpt.modeling.backbone.dpt_swinv2_tiny_256 import DPTSwinV2Tiny256Encoder
 from dpt.modeling.decoder.capture_details import Detail_Capture
 from libs.utils.mem_utils import estimate_max_batch_size
 
@@ -17,7 +17,7 @@ class DPTSwinV2Tiny256Matte(nn.Module):
         encoder_config = config['encoder']
         decoder_config = config['decoder']
 
-        self.encoder = DPTEncoder(model_name=encoder_config['model_name'])
+        self.encoder = DPTSwinV2Tiny256Encoder(model_name=encoder_config['model_name'])
         self.decoder = Detail_Capture(
             in_channels=decoder_config['in_channels'],
             convstream_out=decoder_config['convstream_out'],
@@ -60,10 +60,7 @@ if __name__ == "__main__":
 
 
     def generate_dptmatte_inputs(batch_size, input_size, device):
-        C, H, W = input_size
-        pixel_values = torch.randn(batch_size, C, H, W, device=device)
-        image_rgb = torch.randn(batch_size, C, H, W, device=device)
-        return pixel_values, image_rgb
+        return (torch.randn(batch_size, *input_size, device=device),)
 
 
     # Estimate max batch size

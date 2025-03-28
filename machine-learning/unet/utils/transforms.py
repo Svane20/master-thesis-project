@@ -23,7 +23,7 @@ def get_train_transforms(resolution: int = 224) -> T.Compose:
     return T.Compose([
         RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
         TopBiasedRandomCrop(output_size=(323, 323), vertical_bias_ratio=0.4),
-        OriginScale(output_size=(resolution, resolution)),
+        OriginScale(output_size=resolution),
         RandomJitter(),
         GenerateTrimap(),  # This generates the trimap from the ground truth alpha.
         ToTensor(),
