@@ -58,12 +58,18 @@ if __name__ == '__main__':
         return (torch.randn(batch_size, *input_size, device=device),)
 
 
-    # Get the estimated max batch size
-    max_batch_size = estimate_max_batch_size(
-        model,
-        input_size=input_size,
-        max_memory_gb=10.0,
-        safety_factor=0.9,
-        input_generator_fn=generate_resnetmatte_inputs
-    )
-    print("Estimated max batch size:", max_batch_size)
+    # Input resolutions to test
+    for res in [224, 512, 1024]:
+        input_size = (3, res, res)
+        print(f"\nTesting input size: {input_size}...")
+
+        # Estimate max batch size for this resolution
+        max_batch_size = estimate_max_batch_size(
+            model,
+            input_size=input_size,
+            max_memory_gb=10.0,
+            safety_factor=0.9,
+            input_generator_fn=generate_resnetmatte_inputs
+        )
+
+        print(f"Estimated max batch size for {res}x{res}: {max_batch_size}")
