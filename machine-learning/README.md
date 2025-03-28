@@ -1,3 +1,11 @@
+## Watch GPU during training
+
+1. Run the following command:
+
+````bash
+watch -n 1 nvidia-smi
+````
+
 ## Run training after SSH connection is closed 
 
 1. Activate the thesis conda environment:
