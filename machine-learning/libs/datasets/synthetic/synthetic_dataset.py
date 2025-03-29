@@ -11,7 +11,7 @@ from enum import Enum
 
 from libs.configuration.configuration import get_configuration, ConfigurationMode, ConfigurationSuffix
 from libs.datasets.transforms import RandomAffine, TopBiasedRandomCrop, RandomJitter, GenerateTrimap, ToTensor, \
-    Normalize
+    Normalize, Rescale
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
@@ -69,11 +69,12 @@ if __name__ == "__main__":
     # Create transforms for the training phase
     train_transforms = T.Compose([
         RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
-        TopBiasedRandomCrop(output_size=(224, 224), vertical_bias_ratio=0.4),
+        TopBiasedRandomCrop(output_size=(224, 224), vertical_bias_ratio=0.2),
         RandomJitter(),
-        GenerateTrimap(),  # This generates the trimap from the ground truth alpha.
+        GenerateTrimap(),
         ToTensor(),
-        Normalize()
+        Rescale(scale=1 / 255.0),
+        Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
     ])
 
     train_dataset = SyntheticDataset(
@@ -81,48 +82,41 @@ if __name__ == "__main__":
         transforms=train_transforms,
         phase=DatasetPhase.Train,
     )
-    sample = train_dataset[2]
+    sample = train_dataset[0]
     image, alpha, trimap = sample['image'], sample['alpha'], sample['trimap']
 
     # Print the shapes of the image, alpha mask, and trimap
     print(f"Train image shape: {image.shape}")  # torch.Size([3, 512, 512])
     print(f"Train alpha mask shape: {alpha.shape}")  # torch.Size([1, 512, 512])
     print(f"Train trimap shape: {trimap.shape}")  # torch.Size([1, 512, 512])
+    print("Trimap stats:", torch.unique(sample['trimap']))
 
 
     def denormalize(image, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-        # Ensure mean and std are tensors and on the same device as the image.
         mean = torch.tensor(mean).view(3, 1, 1).to(image.device)
         std = torch.tensor(std).view(3, 1, 1).to(image.device)
         return image * std + mean
 
 
-    # Create one figure with a custom gridspec layout.
-    fig = plt.figure(figsize=(18, 12))
-    # Use a grid with 2 rows and 6 columns.
-    gs = gridspec.GridSpec(2, 6, height_ratios=[1, 1])
+    # Create a figure with 1 row and 3 columns
+    fig = plt.figure(figsize=(16, 5))
+    gs = gridspec.GridSpec(1, 3)
 
-    # Top row: two subplots (each spans 3 columns).
-    ax_image = fig.add_subplot(gs[0, 0:3])
-    ax_alpha = fig.add_subplot(gs[0, 3:6])
-
-    # Bottom row: three subplots (each spans 2 columns).
-    ax_trimap = fig.add_subplot(gs[1, 0:2])
-    ax_fg = fig.add_subplot(gs[1, 2:4])
-    ax_bg = fig.add_subplot(gs[1, 4:6])
-
-    # Plot the image (denormalized).
-    ax_image.imshow(denormalize(image).permute(1, 2, 0).clamp(0, 1))
+    # RGB image
+    ax_image = fig.add_subplot(gs[0])
+    ax_image.imshow(denormalize(image).permute(1, 2, 0).clamp(0, 1).cpu())
     ax_image.set_title("RGB Image")
     ax_image.axis("off")
 
-    # Plot the alpha mask.
-    ax_alpha.imshow(alpha.squeeze(), cmap="gray")
+    # Alpha mask
+    ax_alpha = fig.add_subplot(gs[1])
+    ax_alpha.imshow(alpha.squeeze().cpu(), cmap="gray")
     ax_alpha.set_title("Alpha Mask")
     ax_alpha.axis("off")
 
-    # Plot the trimap.
-    ax_trimap.imshow(trimap.squeeze(), cmap="gray")
+    # Trimap
+    ax_trimap = fig.add_subplot(gs[2])
+    ax_trimap.imshow(trimap.squeeze().cpu(), cmap="gray")
     ax_trimap.set_title("Trimap")
     ax_trimap.axis("off")
 

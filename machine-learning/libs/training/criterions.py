@@ -23,7 +23,7 @@ class MattingCriterion(CriterionBase):
             **kwargs
     ) -> Dict[str, torch.Tensor]:
         if (trimap := kwargs.get("trimap")) is not None:
-            kwargs["sample_map"] = (trimap == 0.5).unsqueeze(1).float()
+            kwargs["sample_map"] = (trimap == 0.5).float()
 
         return super().forward(preds, targets, **kwargs)
 

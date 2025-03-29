@@ -1,6 +1,7 @@
 # Global configuration
 scratch:
   resolution: 224
+  crop_resolution: null
 
 # Dataset configuration
 dataset:

@@ -2,8 +2,8 @@
 
 # Global configuration
 scratch:
-  resolution: 512 # 224, 512, 1024
-  crop_resolution: 640 # 323, 640, 1280
+  resolution: 224 # 224, 512, 1024
+  crop_resolution: null # 323, 640, 1280
 
 # Dataset configuration
 dataset:
@@ -86,7 +86,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "resnet_50_v2.pt"
+    checkpoint_path: "resnet_50_224_v1.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration

@@ -1,6 +1,7 @@
 # Global configuration
 scratch:
   resolution: 224
+  crop_resolution: null
 
 # Dataset configuration
 dataset:
@@ -15,7 +16,7 @@ dataset:
 
 # Inference configuration
 evaluation:
-  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/resnet_50_v1.pt"
+  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/resnet_50_v2.pt"
   compile_model: false
 
 # Model configuration

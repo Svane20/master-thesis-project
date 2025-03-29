@@ -222,8 +222,14 @@ class RandomHorizontalFlip(object):
 
 class TopBiasedRandomCrop(object):
     def __init__(self, output_size=(512, 512), vertical_bias_ratio=0.2):
+        """
+        Args:
+            output_size (tuple): Desired crop size (H, W).
+            vertical_bias_ratio (float): 0 = always crop from top,
+                                         1 = uniform random crop along height.
+        """
         self.output_size = output_size
-        self.vertical_bias_ratio = vertical_bias_ratio  # 0 = top only, 1 = uniform random
+        self.vertical_bias_ratio = vertical_bias_ratio
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         image, alpha = sample['image'], sample['alpha']
@@ -233,11 +239,23 @@ class TopBiasedRandomCrop(object):
         max_y = max(h - crop_h, 1)
         max_x = max(w - crop_w, 1)
 
-        # Biased towards the top for Y
-        y_bias_limit = int(max_y * self.vertical_bias_ratio)
-        start_y = random.randint(0, y_bias_limit)
+        # ----- Y-axis: biased towards top -----
+        if self.vertical_bias_ratio <= 0.0:
+            start_y = 0  # always top
+        elif self.vertical_bias_ratio >= 1.0:
+            start_y = random.randint(0, max_y)  # uniform
+        else:
+            # Sample from exponential decay to favor top more often
+            decay_rate = 5.0  # Higher = more top bias
+            r = np.random.exponential(scale=1.0 / decay_rate)
+            r = min(r, 1.0)  # Clamp to [0, 1]
+            y_bias_limit = int(max_y * self.vertical_bias_ratio)
+            start_y = int(r * y_bias_limit)
+
+        # ----- X-axis: uniform random -----
         start_x = random.randint(0, max_x)
 
+        # Crop all relevant fields
         image_crop = image[start_y:start_y + crop_h, start_x:start_x + crop_w, :]
         alpha_crop = alpha[start_y:start_y + crop_h, start_x:start_x + crop_w]
         sample.update({'image': image_crop, 'alpha': alpha_crop})
@@ -469,8 +487,18 @@ class ToTensor(object):
             sample["alpha"] = torch.from_numpy(alpha.astype(np.float32))
 
         if "trimap" in sample:
-            trimap = torch.from_numpy(sample["trimap"]).to(torch.long)
-            sample["trimap"] = trimap[None, ...].float()
+            trimap = torch.from_numpy(sample["trimap"]).float()
+
+            # Remap values from {0, 128, 255} → {0.0, 0.5, 1.0}
+            trimap[trimap == 0] = 0.0
+            trimap[trimap == 128] = 0.5
+            trimap[trimap == 255] = 1.0
+
+            # Ensure trimap has shape [1, H, W
+            if trimap.ndim == 2:
+                trimap = trimap.unsqueeze(0)
+
+            sample["trimap"] = trimap
 
         if "fg" in sample:
             fg = sample['fg'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32)
