@@ -17,19 +17,14 @@ class MattingCriterion(CriterionBase):
     def __init__(self, config: BaseCriterionConfig, device: torch.device) -> None:
         super().__init__(config=config, device=device)
 
-    def forward(
-            self,
-            preds: torch.Tensor,
-            targets: torch.Tensor,
-            **kwargs
-    ) -> Dict[str, torch.Tensor]:
+    def forward(self, preds: torch.Tensor, targets: torch.Tensor, **kwargs) -> Dict[str, torch.Tensor]:
         if (trimap := kwargs.get("trimap")) is not None:
             kwargs["sample_map"] = (trimap == 0.5).float()
 
         return super().forward(preds, targets, **kwargs)
 
     # Loss Functions
-    @register_loss("gradient_loss", ("sample_map",))
+    @register_loss(name="gradient_loss", signature=("sample_map",))
     def gradient_loss(self, pred: torch.Tensor, target: torch.Tensor, sample_map: torch.Tensor = None) -> torch.Tensor:
         sobel_x = torch.tensor([[[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]]], device=pred.device, dtype=pred.dtype)
         sobel_y = torch.tensor([[[[-1, -2, -1], [0, 0, 0], [1, 2, 1]]]], device=pred.device, dtype=pred.dtype)
@@ -54,7 +49,7 @@ class MattingCriterion(CriterionBase):
                 0.01 * torch.mean(torch.abs(grad_pred_y))
         )
 
-    @register_loss("composition_loss", ("image", "fg", "bg"))
+    @register_loss(name="composition_loss", signature=("image", "fg", "bg"))
     def composition_loss(
             self,
             pred: torch.Tensor,
@@ -63,9 +58,19 @@ class MattingCriterion(CriterionBase):
             fg: torch.Tensor = None,
             bg: torch.Tensor = None
     ) -> torch.Tensor:
-        return composition_loss(pred, target, image=image, fg=fg, bg=bg)
+        if fg is not None and bg is not None:
+            comp_pred = pred * fg + (1 - pred) * bg
+            comp_gt = target * fg + (1 - target) * bg
+        elif image is not None:
+            comp_pred = pred * image
+            comp_gt = target * image
+        else:
+            raise ValueError("For composition loss, either (fg, bg) or image must be provided.")
 
-    @register_loss("unknown_l1_loss", ("sample_map",))
+        loss = torch.abs(comp_pred - comp_gt).mean()
+        return loss
+
+    @register_loss(name="unknown_l1_loss", signature=("sample_map",))
     def unknown_l1_loss(
             self,
             pred: torch.Tensor,
@@ -76,14 +81,14 @@ class MattingCriterion(CriterionBase):
             return F.l1_loss(pred * sample_map, target * sample_map) * self._safe_scale(sample_map)
         return F.l1_loss(pred, target)
 
-    @register_loss("known_l1_loss", ("sample_map",))
+    @register_loss(name="known_l1_loss", signature=("sample_map",))
     def known_l1_loss(self, pred: torch.Tensor, target: torch.Tensor, sample_map: torch.Tensor = None) -> torch.Tensor:
         if sample_map is not None:
             known_map = (sample_map == 0).float()
             return F.l1_loss(pred * known_map, target * known_map) * self._safe_scale(known_map)
         return F.l1_loss(pred, target)
 
-    @register_loss("laplacian_pha_loss", ())
+    @register_loss(name="laplacian_pha_loss", signature=())
     def laplacian_pha_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         return laplacian_loss(pred, target)
 
@@ -291,19 +296,22 @@ if __name__ == "__main__":
     targets = torch.rand((4, 1, 256, 256), dtype=dtype).to(device)
     images = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
     trimap = torch.rand((4, 1, 256, 256), dtype=dtype).to(device)
-    trimap[trimap < 0.33] = 0.0
-    trimap[(trimap >= 0.33) & (trimap < 0.66)] = 0.5
-    trimap[trimap >= 0.66] = 1.0
+    trimap[trimap == 0] = 0.0
+    trimap[trimap == 128] = 0.5
+    trimap[trimap == 255] = 1.0
+    fg = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
+    bg = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
 
     # Initialize the loss function
     criterion = MattingCriterion(
         BaseCriterionConfig(
-            losses=["unknown_l1_loss", "known_l1_loss", "gradient_loss", "laplacian_pha_loss"],
+            losses=["unknown_l1_loss", "known_l1_loss", "gradient_loss", "laplacian_pha_loss", "composition_loss"],
             weight_dict={
                 "unknown_l1_loss": 1.0,
                 "known_l1_loss": 0.3,
-                "gradient_loss": 0.25,
-                "laplacian_pha_loss": 0.5
+                "gradient_loss": 0.5,
+                "laplacian_pha_loss": 0.5,
+                "composition_loss": 0.75
             },
             normalize_weights=True
         ),
@@ -313,13 +321,14 @@ if __name__ == "__main__":
 
     with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=dtype):
         # Compute the loss
-        losses = criterion(predictions, targets, trimap=trimap)
+        losses = criterion(predictions, targets, trimap=trimap, image=images, fg=fg, bg=bg)
 
         # Print losses
         print(f"Unknown L1: {losses["unknown_l1_loss"]:.4f}")
         print(f"Known L1: {losses["known_l1_loss"]:.4f}")
         print(f"Gradient: {losses["gradient_loss"]:.4f}")
         print(f"Laplacian: {losses["laplacian_pha_loss"]:.4f}")
+        print(f"Composition: {losses["composition_loss"]:.4f}")
 
     # Compute the logs
     logs = criterion.log_dict()

@@ -29,7 +29,7 @@ def get_train_transforms(resolution: int = 256, crop_resolution: int = None) -> 
         GenerateTrimap(),
         GenerateFGBG(),
         ToTensor(),
-        Rescale(scale=1 / 255.0),
+        Rescale(scale=0.00392156862745098),
         Normalize(mean=MEAN, std=STD),
     ]
 
