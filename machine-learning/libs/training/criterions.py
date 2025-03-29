@@ -10,7 +10,8 @@ class MattingCriterion(CriterionBase):
         "gradient_loss",
         "unknown_l1_loss",
         "known_l1_loss",
-        "laplacian_pha_loss"
+        "laplacian_pha_loss",
+        "composition_loss"
     }
 
     def __init__(self, config: BaseCriterionConfig, device: torch.device) -> None:
@@ -52,6 +53,17 @@ class MattingCriterion(CriterionBase):
                 0.01 * torch.mean(torch.abs(grad_pred_x)) +
                 0.01 * torch.mean(torch.abs(grad_pred_y))
         )
+
+    @register_loss("composition_loss", ("image", "fg", "bg"))
+    def composition_loss(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            image: torch.Tensor = None,
+            fg: torch.Tensor = None,
+            bg: torch.Tensor = None
+    ) -> torch.Tensor:
+        return composition_loss(pred, target, image=image, fg=fg, bg=bg)
 
     @register_loss("unknown_l1_loss", ("sample_map",))
     def unknown_l1_loss(

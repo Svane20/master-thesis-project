@@ -257,10 +257,12 @@ class Trainer:
             inputs = sample["image"].to(self.device, non_blocking=True)
             targets = sample["alpha"].to(self.device, non_blocking=True)
             trimap = sample["trimap"].to(self.device, non_blocking=True) if "trimap" in sample else None
+            fg = sample["fg"].to(self.device, non_blocking=True) if "fg" in sample else None
+            bg = sample["bg"].to(self.device, non_blocking=True) if "bg" in sample else None
 
             try:
                 # Run a single step
-                self._run_step(inputs, targets, phase, loss_meter, extra_losses_meters, trimap)
+                self._run_step(inputs, targets, phase, loss_meter, extra_losses_meters, trimap, fg, bg)
 
                 # Clipping gradients
                 if self.gradient_clipper is not None:
@@ -389,8 +391,12 @@ class Trainer:
                             dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
                     ):
                         # Run a single step
-                        loss_dict, extra_losses, extra_metrics = self._step(inputs, targets, phase,
-                                                                            grad_filter=grad_filter)
+                        loss_dict, extra_losses, extra_metrics = self._step(
+                            inputs,
+                            targets,
+                            phase,
+                            grad_filter=grad_filter
+                        )
 
                         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
                         _, loss = loss_dict.popitem()
@@ -473,6 +479,8 @@ class Trainer:
             loss_meter: AverageMeter,
             extra_losses_meters: Dict[str, AverageMeter],
             trimap: torch.Tensor = None,
+            fg: torch.Tensor = None,
+            bg: torch.Tensor = None,
     ) -> None:
         """
         Run a single step of training.
@@ -484,6 +492,8 @@ class Trainer:
             loss_meter (AverageMeter): Loss meter.
             extra_losses_meters (Dict[str, AverageMeter]): Extra loss meters.
             trimap (torch.Tensor): Trimap data.
+            fg (torch.Tensor): Foreground data.
+            bg (torch.Tensor): Background data.
         """
         # It's important to set grads to None, especially with Adam
         # since 0 grads will also update a model even if the step doesn't produce gradient
@@ -494,7 +504,14 @@ class Trainer:
                 enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                 dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
         ):
-            loss_dict, extra_losses, _ = self._step(inputs, targets, phase, trimap=trimap)
+            loss_dict, extra_losses, _ = self._step(
+                inputs,
+                targets,
+                phase,
+                trimap=trimap,
+                fg=fg,
+                bg=bg,
+            )
 
         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
         _, loss = loss_dict.popitem()
@@ -519,6 +536,8 @@ class Trainer:
             phase: str,
             grad_filter: torch.Tensor = None,
             trimap: torch.Tensor = None,
+            fg: torch.Tensor = None,
+            bg: torch.Tensor = None,
     ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """
         Calculate the loss and metrics for the current batch.
@@ -528,6 +547,8 @@ class Trainer:
             targets (torch.Tensor): Target data.
             phase (str): Phase of training.
             trimap (torch.Tensor): Trimap data.
+            fg (torch.Tensor): Foreground data.
+            bg (torch.Tensor): Background data.
 
         Returns:
             Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]: Loss dictionary, step losses and metrics.
@@ -536,7 +557,7 @@ class Trainer:
         outputs = self.model(inputs)
 
         # Calculate losses
-        losses = self.criterion(outputs, targets, trimap=trimap)
+        losses = self.criterion(outputs, targets, trimap=trimap, image=inputs, fg=fg, bg=bg)
 
         # Extract the core loss and step losses
         loss = {}
