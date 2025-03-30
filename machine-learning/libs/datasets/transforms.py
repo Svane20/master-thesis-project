@@ -238,15 +238,14 @@ class RandomHorizontalFlip(object):
 
 
 class TopBiasedRandomCrop(object):
-    def __init__(self, output_size=(512, 512), vertical_bias_ratio=0.2):
+    def __init__(self, output_size=(512, 512), top_crop_ratio=0.4):
         """
         Args:
             output_size (tuple): Desired crop size (H, W).
-            vertical_bias_ratio (float): 0 = always crop from top,
-                                         1 = uniform random crop along height.
+            top_crop_ratio (float): Proportion of the height to consider as top region (e.g., 0.4 = top 40%).
         """
         self.output_size = output_size
-        self.vertical_bias_ratio = vertical_bias_ratio
+        self.top_crop_ratio = top_crop_ratio
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         image, alpha = sample['image'], sample['alpha']
@@ -256,19 +255,11 @@ class TopBiasedRandomCrop(object):
         max_y = max(h - crop_h, 1)
         max_x = max(w - crop_w, 1)
 
-        # ----- Y-axis: biased towards top -----
-        if self.vertical_bias_ratio <= 0.0:
-            start_y = 0  # always top
-        elif self.vertical_bias_ratio >= 1.0:
-            start_y = random.randint(0, max_y)  # uniform
-        else:
-            decay_rate = 5.0  # Higher = more top bias
-            r = np.random.exponential(scale=1.0 / decay_rate)
-            r = min(r, 1.0)
-            y_bias_limit = int(max_y * self.vertical_bias_ratio)
-            start_y = int(r * y_bias_limit)
+        # Restrict vertical crop start within top region
+        top_limit_y = int(max_y * self.top_crop_ratio)
+        start_y = random.randint(0, max(1, top_limit_y))
 
-        # ----- X-axis: uniform random -----
+        # X remains uniform
         start_x = random.randint(0, max_x)
 
         # Apply crop
@@ -361,48 +352,49 @@ class RandomCrop(object):
 
 class GenerateTrimap(object):
     """
-    Generates a trimap from the ground truth alpha.
+    Generates a more consistent trimap from the ground truth alpha.
+    Uses erosion to define definite fg/bg and leaves wider unknown areas.
     """
 
-    def __init__(self):
-        self.erosion_kernels = [None] + [cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size)) for size in
-                                         range(1, 30)]
+    def __init__(self, min_width: int = 5, max_width: int = 15):
+        self.min_width = min_width
+        self.max_width = max_width
+        self.erosion_kernels = [None] + [
+            cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))
+            for size in range(1, 30)
+        ]
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         original_alpha = sample["alpha"]
         h, w = original_alpha.shape
 
-        # Resize alpha for consistent processing
         alpha = cv2.resize(original_alpha, (640, 640), interpolation=cv2.INTER_LANCZOS4)
 
-        ### generate trimap
-        fg_width = np.random.randint(1, 30)
-        bg_width = np.random.randint(1, 30)
-        fg_mask = (alpha + 1e-5).astype(np.int32).astype(np.uint8)
-        bg_mask = (1 - alpha + 1e-5).astype(np.int32).astype(np.uint8)
-        fg_mask = cv2.erode(fg_mask, self.erosion_kernels[fg_width])
-        bg_mask = cv2.erode(bg_mask, self.erosion_kernels[bg_width])
+        fg_width = np.random.randint(self.min_width, self.max_width)
+        bg_width = np.random.randint(self.min_width, self.max_width)
 
-        # Create trimap: 255 for definite foreground, 0 for background, 128 for unknown region.
-        trimap = np.ones_like(alpha) * 128
-        trimap[fg_mask == 1] = 255
-        trimap[bg_mask == 1] = 0
+        fg_mask = (alpha >= 0.9).astype(np.uint8)
+        bg_mask = (alpha <= 0.1).astype(np.uint8)
 
-        # Resize trimap back to original alpha dimensions
+        fg_eroded = cv2.erode(fg_mask, self.erosion_kernels[fg_width])
+        bg_eroded = cv2.erode(bg_mask, self.erosion_kernels[bg_width])
+
+        trimap = np.ones_like(alpha, dtype=np.uint8) * 128
+        trimap[fg_eroded == 1] = 255
+        trimap[bg_eroded == 1] = 0
+
         trimap = cv2.resize(trimap, (w, h), interpolation=cv2.INTER_NEAREST)
-        sample['trimap'] = trimap
+        sample["trimap"] = trimap
 
         return sample
 
 
 class GenerateFGBG(object):
     """
-    Generates foreground and background images from the input image and alpha mask.
-    For sky replacement, we assume:
-      - Alpha = 0 for building (foreground)
-      - Alpha = 1 for sky (background)
-    The foreground is extracted from regions where alpha is below 0.5,
-    and the background is extracted from regions where alpha is 0.5 or above.
+    Generates soft foreground and background images using the alpha matte.
+    For sky replacement:
+      - Foreground (building): (1 - alpha)
+      - Background (sky): alpha
     """
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
@@ -415,22 +407,16 @@ class GenerateFGBG(object):
         image = sample["image"]
         alpha = sample["alpha"]
 
-        # If alpha isn't already a float in [0,1], convert it.
+        # Ensure alpha is float32 in range [0, 1]
         if alpha.dtype != np.float32:
             alpha = alpha.astype(np.float32) / 255.0
 
-        # Create binary masks using a threshold.
-        fg_mask = (alpha < 0.5).astype(np.float32)  # building (foreground)
-        bg_mask = (alpha >= 0.5).astype(np.float32)  # sky (background)
+        # Expand dims to match image shape: H x W x 1
+        if alpha.ndim == 2:
+            alpha = alpha[..., None]
 
-        # If image is in H x W x C, expand masks to have a channel dimension.
-        if image.ndim == 3:
-            fg_mask = fg_mask[..., None]
-            bg_mask = bg_mask[..., None]
-
-        # Extract foreground and background.
-        fg = image * fg_mask
-        bg = image * bg_mask
+        fg = image * (1.0 - alpha)  # Building (where alpha ≈ 0)
+        bg = image * alpha  # Sky (where alpha ≈ 1)
 
         sample["fg"] = fg
         sample["bg"] = bg
@@ -538,9 +524,15 @@ class ToTensor(object):
 
         if "trimap" in sample and sample["trimap"] is not None:
             trimap = torch.from_numpy(sample["trimap"]).float()
+
+            # Remap values from {0, 128, 255} → {0.0, 0.5, 1.0}
+            trimap = trimap / 255.0  # [0, 128, 255] → [0.0, ~0.502, 1.0]
             trimap = torch.where(trimap < 0.25, 0.0, torch.where(trimap > 0.75, 1.0, 0.5))
+
+            # Ensure trimap has shape [1, H, W
             if trimap.ndim == 2:
                 trimap = trimap.unsqueeze(0)
+
             sample["trimap"] = trimap
 
         for key in ["fg", "bg"]:

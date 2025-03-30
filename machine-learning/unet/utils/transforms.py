@@ -24,7 +24,7 @@ def get_train_transforms(resolution: int = 224, crop_resolution: int = None) -> 
 
     transforms = [
         RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
-        TopBiasedRandomCrop(output_size=(crop_size, crop_size), vertical_bias_ratio=0.4),
+        TopBiasedRandomCrop(output_size=(crop_size, crop_size), top_crop_ratio=0.4),
         RandomJitter(),
         ToTensor(),
         Rescale(scale=1 / 255.0),
