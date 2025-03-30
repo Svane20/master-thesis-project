@@ -112,17 +112,17 @@ class RandomAffine(object):
         def warp(data, interp=cv2.INTER_LINEAR):
             return cv2.warpAffine(data, M, (cols, rows), flags=interp + cv2.WARP_INVERSE_MAP)
 
-        sample["image"] = warp(image, _maybe_random_interp(cv2.INTER_LINEAR))
-        sample["alpha"] = warp(alpha, _maybe_random_interp(cv2.INTER_NEAREST))
+        sample["image"] = warp(image, cv2.INTER_LINEAR)
+        sample["alpha"] = warp(alpha, cv2.INTER_NEAREST)
 
         if "trimap" in sample and sample["trimap"] is not None:
             sample["trimap"] = warp(sample["trimap"], cv2.INTER_NEAREST)
 
         if "fg" in sample and sample["fg"] is not None:
-            sample["fg"] = warp(sample["fg"], _maybe_random_interp(cv2.INTER_LINEAR))
+            sample["fg"] = warp(sample["fg"], cv2.INTER_LINEAR)
 
         if "bg" in sample and sample["bg"] is not None:
-            sample["bg"] = warp(sample["bg"], _maybe_random_interp(cv2.INTER_LINEAR))
+            sample["bg"] = warp(sample["bg"], cv2.INTER_LINEAR)
 
         return sample
 

@@ -3,6 +3,7 @@ import torchvision.transforms as T
 from libs.datasets.synthetic.synthetic_dataset import DatasetPhase
 from libs.datasets.transforms import Resize, ToTensor, Normalize, OriginScale, RandomAffine, TopBiasedRandomCrop, \
     RandomJitter, Rescale
+from libs.utils.mem_utils import profile_large_dataset
 
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
@@ -53,3 +54,15 @@ def get_test_transforms(resolution: int = 224) -> T.Compose:
         Rescale(scale=1 / 255.0),
         Normalize(mean=MEAN, std=STD),
     ])
+
+
+if __name__ == "__main__":
+    resolution = 224
+    my_transforms = get_train_transforms(resolution)
+
+    profile_large_dataset(
+        transforms_pipeline=my_transforms,
+        n_images=100,
+        batch_size=16,
+        image_shape=(2048, 2048, 3)
+    )
