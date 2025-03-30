@@ -2,7 +2,7 @@ import torchvision.transforms as T
 
 from libs.datasets.synthetic.synthetic_dataset import DatasetPhase
 from libs.datasets.transforms import Resize, ToTensor, Normalize, OriginScale, RandomAffine, TopBiasedRandomCrop, \
-    RandomJitter, GenerateTrimap, Rescale, GenerateFGBG
+    RandomJitter, Rescale
 
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
@@ -26,8 +26,6 @@ def get_train_transforms(resolution: int = 224, crop_resolution: int = None) -> 
         RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
         TopBiasedRandomCrop(output_size=(crop_size, crop_size), vertical_bias_ratio=0.4),
         RandomJitter(),
-        GenerateTrimap(),
-        GenerateFGBG(),
         ToTensor(),
         Rescale(scale=1 / 255.0),
         Normalize(mean=MEAN, std=STD),

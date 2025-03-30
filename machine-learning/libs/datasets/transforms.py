@@ -101,21 +101,28 @@ class RandomAffine(object):
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         image, alpha = sample['image'], sample['alpha']
         rows, cols, ch = image.shape
-        if np.maximum(rows, cols) < 1024:
-            params = self.get_params((0, 0), self.translate, self.scale, self.shear, self.flip, image.size)
-        else:
-            params = self.get_params(self.degrees, self.translate, self.scale, self.shear, self.flip, image.size)
 
+        params = self.get_params(
+            self.degrees if max(rows, cols) >= 1024 else (0, 0),
+            self.translate, self.scale, self.shear, self.flip, image.shape[:2]
+        )
         center = (cols * 0.5 + 0.5, rows * 0.5 + 0.5)
-        M = self._get_inverse_affine_matrix(center, *params)
-        M = np.array(M).reshape((2, 3))
+        M = np.array(self._get_inverse_affine_matrix(center, *params)).reshape((2, 3))
 
-        image = cv2.warpAffine(image, M, (cols, rows),
-                               flags=_maybe_random_interp(cv2.INTER_NEAREST) + cv2.WARP_INVERSE_MAP)
-        alpha = cv2.warpAffine(alpha, M, (cols, rows),
-                               flags=_maybe_random_interp(cv2.INTER_NEAREST) + cv2.WARP_INVERSE_MAP)
+        def warp(data, interp=cv2.INTER_LINEAR):
+            return cv2.warpAffine(data, M, (cols, rows), flags=interp + cv2.WARP_INVERSE_MAP)
 
-        sample['image'], sample['alpha'] = image, alpha
+        sample["image"] = warp(image, _maybe_random_interp(cv2.INTER_LINEAR))
+        sample["alpha"] = warp(alpha, _maybe_random_interp(cv2.INTER_NEAREST))
+
+        if "trimap" in sample and sample["trimap"] is not None:
+            sample["trimap"] = warp(sample["trimap"], cv2.INTER_NEAREST)
+
+        if "fg" in sample and sample["fg"] is not None:
+            sample["fg"] = warp(sample["fg"], _maybe_random_interp(cv2.INTER_LINEAR))
+
+        if "bg" in sample and sample["bg"] is not None:
+            sample["bg"] = warp(sample["bg"], _maybe_random_interp(cv2.INTER_LINEAR))
 
         return sample
 
@@ -211,11 +218,21 @@ class RandomHorizontalFlip(object):
         self.prob = prob
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-        image, alpha = sample['image'], sample['alpha']
         if np.random.uniform(0, 1) < self.prob:
-            image = cv2.flip(image, 1)
-            alpha = cv2.flip(alpha, 1)
-        sample['image'], sample['alpha'] = image, alpha
+            def flip(data):
+                return cv2.flip(data, 1)
+
+            sample["image"] = flip(sample["image"])
+            sample["alpha"] = flip(sample["alpha"])
+
+            if "trimap" in sample and sample["trimap"] is not None:
+                sample["trimap"] = flip(sample["trimap"])
+
+            if "fg" in sample and sample["fg"] is not None:
+                sample["fg"] = flip(sample["fg"])
+
+            if "bg" in sample and sample["bg"] is not None:
+                sample["bg"] = flip(sample["bg"])
 
         return sample
 
@@ -245,35 +262,32 @@ class TopBiasedRandomCrop(object):
         elif self.vertical_bias_ratio >= 1.0:
             start_y = random.randint(0, max_y)  # uniform
         else:
-            # Sample from exponential decay to favor top more often
             decay_rate = 5.0  # Higher = more top bias
             r = np.random.exponential(scale=1.0 / decay_rate)
-            r = min(r, 1.0)  # Clamp to [0, 1]
+            r = min(r, 1.0)
             y_bias_limit = int(max_y * self.vertical_bias_ratio)
             start_y = int(r * y_bias_limit)
 
         # ----- X-axis: uniform random -----
         start_x = random.randint(0, max_x)
 
-        # Crop all relevant fields
-        image_crop = image[start_y:start_y + crop_h, start_x:start_x + crop_w, :]
-        alpha_crop = alpha[start_y:start_y + crop_h, start_x:start_x + crop_w]
-        sample.update({'image': image_crop, 'alpha': alpha_crop})
+        # Apply crop
+        sample["image"] = image[start_y:start_y + crop_h, start_x:start_x + crop_w, :]
+        sample["alpha"] = alpha[start_y:start_y + crop_h, start_x:start_x + crop_w]
 
-        if 'trimap' in sample:
-            trimap = sample['trimap']
-            trimap_crop = trimap[start_y:start_y + crop_h, start_x:start_x + crop_w]
-            sample['trimap'] = trimap_crop
+        if "trimap" in sample and sample["trimap"] is not None:
+            sample["trimap"] = sample["trimap"][start_y:start_y + crop_h, start_x:start_x + crop_w]
+
+        if "fg" in sample and sample["fg"] is not None:
+            sample["fg"] = sample["fg"][start_y:start_y + crop_h, start_x:start_x + crop_w, :]
+
+        if "bg" in sample and sample["bg"] is not None:
+            sample["bg"] = sample["bg"][start_y:start_y + crop_h, start_x:start_x + crop_w, :]
 
         return sample
 
 
 class RandomCrop(object):
-    """
-    Randomly crop the sample to the desired output size.
-    If a trimap exists, use it for guiding the crop; otherwise, perform a simple random crop.
-    """
-
     def __init__(self, output_size=(512, 512)):
         if isinstance(output_size, int):
             self.output_size = (output_size, output_size)
@@ -283,10 +297,12 @@ class RandomCrop(object):
         self.margin = self.output_size[0] // 2
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-        if "trimap" in sample:
-            image, alpha, trimap = sample['image'], sample['alpha'], sample['trimap']
-            h, w = trimap.shape
-            # Resize if needed.
+        image, alpha = sample['image'], sample['alpha']
+        h, w, _ = image.shape
+
+        if "trimap" in sample and sample["trimap"] is not None:
+            trimap = sample["trimap"]
+            # Resize logic if needed
             if w < self.output_size[0] + 1 or h < self.output_size[1] + 1:
                 ratio = 1.1 * self.output_size[0] / h if h < w else 1.1 * self.output_size[1] / w
                 while h < self.output_size[0] + 1 or w < self.output_size[1] + 1:
@@ -295,7 +311,16 @@ class RandomCrop(object):
                     alpha = cv2.resize(alpha, (int(w * ratio), int(h * ratio)),
                                        interpolation=_maybe_random_interp(cv2.INTER_NEAREST))
                     trimap = cv2.resize(trimap, (int(w * ratio), int(h * ratio)), interpolation=cv2.INTER_NEAREST)
+
+                    if "fg" in sample and sample["fg"] is not None:
+                        sample["fg"] = cv2.resize(sample["fg"], (int(w * ratio), int(h * ratio)),
+                                                  interpolation=cv2.INTER_LINEAR)
+                    if "bg" in sample and sample["bg"] is not None:
+                        sample["bg"] = cv2.resize(sample["bg"], (int(w * ratio), int(h * ratio)),
+                                                  interpolation=cv2.INTER_LINEAR)
+
                     h, w = trimap.shape
+
             small_trimap = cv2.resize(trimap, (w // 4, h // 4), interpolation=cv2.INTER_NEAREST)
             unknown_list = list(zip(*np.where(small_trimap[self.margin // 4:(h - self.margin) // 4,
                                               self.margin // 4:(w - self.margin) // 4] == 128)))
@@ -306,26 +331,31 @@ class RandomCrop(object):
             else:
                 idx = np.random.randint(unknown_num)
                 left_top = (unknown_list[idx][0] * 4, unknown_list[idx][1] * 4)
-            image_crop = image[left_top[0]:left_top[0] + self.output_size[0],
-                         left_top[1]:left_top[1] + self.output_size[1], :]
-            alpha_crop = alpha[left_top[0]:left_top[0] + self.output_size[0],
-                         left_top[1]:left_top[1] + self.output_size[1]]
-            trimap_crop = trimap[left_top[0]:left_top[0] + self.output_size[0],
-                          left_top[1]:left_top[1] + self.output_size[1]]
-            sample.update({'image': image_crop, 'alpha': alpha_crop, 'trimap': trimap_crop})
+
+            y0, x0 = left_top
         else:
-            # If no trimap is present, perform a simple random crop.
-            image, alpha = sample['image'], sample['alpha']
-            h, w, _ = image.shape
+            # Simple random crop if no trimap
             if w < self.output_size[1] or h < self.output_size[0]:
-                start_y = (h - self.output_size[0]) // 2
-                start_x = (w - self.output_size[1]) // 2
+                y0 = (h - self.output_size[0]) // 2
+                x0 = (w - self.output_size[1]) // 2
             else:
-                start_y = random.randint(0, h - self.output_size[0])
-                start_x = random.randint(0, w - self.output_size[1])
-            image_crop = image[start_y:start_y + self.output_size[0], start_x:start_x + self.output_size[1], :]
-            alpha_crop = alpha[start_y:start_y + self.output_size[0], start_x:start_x + self.output_size[1]]
-            sample.update({'image': image_crop, 'alpha': alpha_crop})
+                y0 = random.randint(0, h - self.output_size[0])
+                x0 = random.randint(0, w - self.output_size[1])
+
+        y1, x1 = y0 + self.output_size[0], x0 + self.output_size[1]
+
+        sample["image"] = image[y0:y1, x0:x1, :]
+        sample["alpha"] = alpha[y0:y1, x0:x1]
+
+        if "trimap" in sample and sample["trimap"] is not None:
+            sample["trimap"] = sample["trimap"][y0:y1, x0:x1]
+
+        if "fg" in sample and sample["fg"] is not None:
+            sample["fg"] = sample["fg"][y0:y1, x0:x1, :]
+
+        if "bg" in sample and sample["bg"] is not None:
+            sample["bg"] = sample["bg"][y0:y1, x0:x1, :]
+
         return sample
 
 
@@ -418,41 +448,54 @@ class OriginScale(object):
         # Pad if necessary when image is smaller than desired size.
         pad_h = max(0, desired_size - h)
         pad_w = max(0, desired_size - w)
-        if pad_h > 0 or pad_w > 0:
-            # Pad evenly on both sides.
-            pad_top = pad_h // 2
-            pad_bottom = pad_h - pad_top
-            pad_left = pad_w // 2
-            pad_right = pad_w - pad_left
-            sample['image'] = np.pad(
-                sample['image'],
-                ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)),
-                mode="reflect"
-            )
-            if 'alpha' in sample:
-                sample['alpha'] = np.pad(
-                    sample['alpha'],
-                    ((pad_top, pad_bottom), (pad_left, pad_right)),
-                    mode="reflect"
-                )
-            # Update h, w after padding
-            h, w, _ = sample['image'].shape
+        pad_top = pad_h // 2
+        pad_bottom = pad_h - pad_top
+        pad_left = pad_w // 2
+        pad_right = pad_w - pad_left
 
-        # Now, perform a center crop to the desired_size x desired_size.
+        def pad_if_needed(data, is_color=True):
+            if is_color:
+                return np.pad(data, ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)), mode="reflect")
+            else:
+                return np.pad(data, ((pad_top, pad_bottom), (pad_left, pad_right)), mode="reflect")
+
+        sample['image'] = pad_if_needed(sample['image'], is_color=True)
+        if 'alpha' in sample and sample['alpha'] is not None:
+            sample['alpha'] = pad_if_needed(sample['alpha'], is_color=False)
+        if 'trimap' in sample and sample['trimap'] is not None:
+            sample['trimap'] = pad_if_needed(sample['trimap'], is_color=False)
+        if 'fg' in sample and sample['fg'] is not None:
+            sample['fg'] = pad_if_needed(sample['fg'], is_color=True)
+        if 'bg' in sample and sample['bg'] is not None:
+            sample['bg'] = pad_if_needed(sample['bg'], is_color=True)
+
+        # Recalculate shape after padding
+        h, w, _ = sample['image'].shape
         start_y = (h - desired_size) // 2
         start_x = (w - desired_size) // 2
-        sample['image'] = sample['image'][start_y:start_y + desired_size, start_x:start_x + desired_size, :]
-        if 'alpha' in sample:
-            sample['alpha'] = sample['alpha'][start_y:start_y + desired_size, start_x:start_x + desired_size]
-        if 'trimap' in sample:
-            sample['trimap'] = sample['trimap'][start_y:start_y + desired_size, start_x:start_x + desired_size]
+
+        def crop_center(data, is_color=True):
+            if is_color:
+                return data[start_y:start_y + desired_size, start_x:start_x + desired_size, :]
+            else:
+                return data[start_y:start_y + desired_size, start_x:start_x + desired_size]
+
+        sample['image'] = crop_center(sample['image'], is_color=True)
+        if 'alpha' in sample and sample['alpha'] is not None:
+            sample['alpha'] = crop_center(sample['alpha'], is_color=False)
+        if 'trimap' in sample and sample['trimap'] is not None:
+            sample['trimap'] = crop_center(sample['trimap'], is_color=False)
+        if 'fg' in sample and sample['fg'] is not None:
+            sample['fg'] = crop_center(sample['fg'], is_color=True)
+        if 'bg' in sample and sample['bg'] is not None:
+            sample['bg'] = crop_center(sample['bg'], is_color=True)
 
         return sample
 
 
 class Resize(object):
     """
-    Resize the image (and alpha, and optionally trimap) to a fixed size.
+    Resize the image (and alpha, and optionally trimap, fg, bg) to a fixed size.
     """
 
     def __init__(self, size: Tuple[int, int]):
@@ -461,10 +504,18 @@ class Resize(object):
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         sample["image"] = cv2.resize(sample["image"], self.size, interpolation=cv2.INTER_LINEAR)
 
-        if "alpha" in sample:
+        # Optional fields
+        if "alpha" in sample and sample["alpha"] is not None:
             sample["alpha"] = cv2.resize(sample["alpha"], self.size, interpolation=cv2.INTER_NEAREST)
-        if "trimap" in sample:
+
+        if "trimap" in sample and sample["trimap"] is not None:
             sample["trimap"] = cv2.resize(sample["trimap"], self.size, interpolation=cv2.INTER_NEAREST)
+
+        if "fg" in sample and sample["fg"] is not None:
+            sample["fg"] = cv2.resize(sample["fg"], self.size, interpolation=cv2.INTER_LINEAR)
+
+        if "bg" in sample and sample["bg"] is not None:
+            sample["bg"] = cv2.resize(sample["bg"], self.size, interpolation=cv2.INTER_LINEAR)
 
         return sample
 
@@ -475,38 +526,27 @@ class ToTensor(object):
     """
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, torch.Tensor]:
-        if "image" in sample:
-            image = sample['image'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32)
+        if "image" in sample and sample["image"] is not None:
+            image = sample["image"][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32)
             sample["image"] = torch.from_numpy(image)
 
-        if "alpha" in sample:
-            alpha = sample["alpha"]
-            alpha = np.clip(alpha, 0, 1)
+        if "alpha" in sample and sample["alpha"] is not None:
+            alpha = np.clip(sample["alpha"], 0, 1)
             if alpha.ndim == 2:
                 alpha = np.expand_dims(alpha, axis=0)
             sample["alpha"] = torch.from_numpy(alpha.astype(np.float32))
 
-        if "trimap" in sample:
+        if "trimap" in sample and sample["trimap"] is not None:
             trimap = torch.from_numpy(sample["trimap"]).float()
-
-            # Remap values from {0, 128, 255} → {0.0, 0.5, 1.0}
-            trimap[trimap == 0] = 0.0
-            trimap[trimap == 128] = 0.5
-            trimap[trimap == 255] = 1.0
-
-            # Ensure trimap has shape [1, H, W
+            trimap = torch.where(trimap < 0.25, 0.0, torch.where(trimap > 0.75, 1.0, 0.5))
             if trimap.ndim == 2:
                 trimap = trimap.unsqueeze(0)
-
             sample["trimap"] = trimap
 
-        if "fg" in sample:
-            fg = sample['fg'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32)
-            sample["fg"] = torch.from_numpy(fg)
-
-        if "bg" in sample:
-            bg = sample['bg'][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32)
-            sample["bg"] = torch.from_numpy(bg)
+        for key in ["fg", "bg"]:
+            if key in sample and sample[key] is not None:
+                tensor = sample[key][:, :, ::-1].transpose((2, 0, 1)).astype(np.float32)
+                sample[key] = torch.from_numpy(tensor)
 
         return sample
 
@@ -520,12 +560,9 @@ class Rescale(object):
         self.scale = scale
 
     def __call__(self, sample: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-        if "image" in sample:
-            sample["image"] = sample["image"] * self.scale
-        if "fg" in sample:
-            sample["fg"] = sample["fg"] * self.scale
-        if "bg" in sample:
-            sample["bg"] = sample["bg"] * self.scale
+        for key in ["image", "fg", "bg"]:
+            if key in sample and sample[key] is not None:
+                sample[key] = sample[key] * self.scale
 
         return sample
 
@@ -541,12 +578,9 @@ class Normalize(object):
         self.inplace = inplace
 
     def __call__(self, sample: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
-        if "image" in sample:
-            sample["image"] = F.normalize(sample["image"], self.mean, self.std, self.inplace)
-        if "fg" in sample:
-            sample["fg"] = F.normalize(sample["fg"], self.mean, self.std, self.inplace)
-        if "bg" in sample:
-            sample["bg"] = F.normalize(sample["bg"], self.mean, self.std, self.inplace)
+        for key in ["image", "fg", "bg"]:
+            if key in sample and sample[key] is not None:
+                sample[key] = F.normalize(sample[key], self.mean, self.std, self.inplace)
 
         return sample
 

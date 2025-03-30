@@ -10,8 +10,7 @@ import matplotlib.gridspec as gridspec
 from enum import Enum
 
 from libs.configuration.configuration import get_configuration, ConfigurationMode, ConfigurationSuffix
-from libs.datasets.transforms import RandomAffine, TopBiasedRandomCrop, RandomJitter, GenerateTrimap, ToTensor, \
-    Normalize, Rescale, GenerateFGBG
+from libs.datasets.transforms import RandomAffine, RandomJitter, ToTensor, Normalize, Rescale, TopBiasedRandomCrop
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 
@@ -47,6 +46,16 @@ class SyntheticDataset(Dataset):
         self.images = sorted(os.listdir(self.images_dir))
         self.alphas = sorted(os.listdir(self.alpha_dir))
 
+        if phase == DatasetPhase.Train:
+            self.fg_dir = os.path.join(base_directory, "fg")
+            self.bg_dir = os.path.join(base_directory, "bg")
+            self.trimap_dir = os.path.join(base_directory, "trimaps")
+
+            self.fg = sorted(os.listdir(self.fg_dir))
+            self.bg = sorted(os.listdir(self.bg_dir))
+            self.trimaps = sorted(os.listdir(self.trimap_dir))
+
+        self.phase = phase
         self.transforms = transforms
 
     def __len__(self):
@@ -59,7 +68,19 @@ class SyntheticDataset(Dataset):
         alpha_path = os.path.join(self.alpha_dir, self.alphas[idx])
         alpha = cv2.imread(alpha_path, flags=0).astype(np.float32) / 255.0
 
-        return self.transforms({'image': image, 'alpha': alpha})
+        sample = {"image": image, "alpha": alpha, "fg": None, "bg": None, "trimap": None}
+        if self.phase == DatasetPhase.Train:
+            fg_path = os.path.join(self.fg_dir, self.fg[idx])
+            bg_path = os.path.join(self.bg_dir, self.bg[idx])
+            trimap_path = os.path.join(self.trimap_dir, self.trimaps[idx])
+
+            fg = cv2.imread(fg_path)
+            bg = cv2.imread(bg_path)
+            trimap = cv2.imread(trimap_path, flags=0).astype(np.float32) / 255.0
+
+            sample.update({"fg": fg, "bg": bg, "trimap": trimap})
+
+        return self.transforms(sample)
 
 
 if __name__ == "__main__":
@@ -71,8 +92,6 @@ if __name__ == "__main__":
         RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
         TopBiasedRandomCrop(output_size=(224, 224), vertical_bias_ratio=0.2),
         RandomJitter(),
-        GenerateTrimap(),
-        GenerateFGBG(),
         ToTensor(),
         Rescale(scale=1 / 255.0),
         Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
