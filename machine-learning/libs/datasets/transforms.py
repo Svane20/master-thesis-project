@@ -524,12 +524,13 @@ class ToTensor(object):
 
         if "trimap" in sample and sample["trimap"] is not None:
             trimap = torch.from_numpy(sample["trimap"]).float()
+            if trimap.max() > 1.0:
+                trimap = trimap / 255.0
 
-            # Remap values from {0, 128, 255} → {0.0, 0.5, 1.0}
-            trimap = trimap / 255.0  # [0, 128, 255] → [0.0, ~0.502, 1.0]
-            trimap = torch.where(trimap < 0.25, 0.0, torch.where(trimap > 0.75, 1.0, 0.5))
+            unique_vals = torch.unique(trimap)
+            if not set(unique_vals.tolist()).issubset({0.0, 0.5, 1.0}):
+                trimap = torch.where(trimap < 0.25, 0.0, torch.where(trimap > 0.75, 1.0, 0.5))
 
-            # Ensure trimap has shape [1, H, W
             if trimap.ndim == 2:
                 trimap = trimap.unsqueeze(0)
 
