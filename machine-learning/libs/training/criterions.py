@@ -2,11 +2,12 @@ import torch
 import torch.nn.functional as F
 from typing import Dict
 
-from libs.training.utils.criterion_utils import CriterionBase, BaseCriterionConfig, register_loss
+from libs.training.utils.criterion_utils import CriterionBase, BaseCriterionConfig, register_loss, CORE_LOSS_KEY
 
 
 class MattingCriterion(CriterionBase):
     SUPPORTED_LOSSES = {
+        "l1_loss",
         "gradient_loss",
         "unknown_l1_loss",
         "known_l1_loss",
@@ -23,9 +24,22 @@ class MattingCriterion(CriterionBase):
 
         return super().forward(preds, targets, **kwargs)
 
+    @register_loss(name="l1_loss", signature=())
+    def l1_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        L1 loss between predicted and ground truth alpha mattes.
+        """
+        return F.l1_loss(pred, target)
+
     # Loss Functions
     @register_loss(name="gradient_loss", signature=("sample_map",))
-    def gradient_loss(self, pred: torch.Tensor, target: torch.Tensor, sample_map: torch.Tensor = None) -> torch.Tensor:
+    def gradient_loss(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            sample_map: torch.Tensor = None,
+            penalty_weight: float = 0.01
+    ) -> torch.Tensor:
         sobel_x = torch.tensor([[[[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]]], device=pred.device, dtype=pred.dtype)
         sobel_y = torch.tensor([[[[-1, -2, -1], [0, 0, 0], [1, 2, 1]]]], device=pred.device, dtype=pred.dtype)
 
@@ -38,37 +52,21 @@ class MattingCriterion(CriterionBase):
             return (
                     F.l1_loss(grad_pred_x * sample_map, grad_target_x * sample_map) +
                     F.l1_loss(grad_pred_y * sample_map, grad_target_y * sample_map) +
-                    0.01 * torch.mean(torch.abs(grad_pred_x * sample_map)) +
-                    0.01 * torch.mean(torch.abs(grad_pred_y * sample_map))
+                    penalty_weight * torch.mean(torch.abs(grad_pred_x * sample_map)) +
+                    penalty_weight * torch.mean(torch.abs(grad_pred_y * sample_map))
             ) * self._safe_scale(sample_map)
 
         return (
                 F.l1_loss(grad_pred_x, grad_target_x) +
                 F.l1_loss(grad_pred_y, grad_target_y) +
-                0.01 * torch.mean(torch.abs(grad_pred_x)) +
-                0.01 * torch.mean(torch.abs(grad_pred_y))
+                penalty_weight * torch.mean(torch.abs(grad_pred_x)) +
+                penalty_weight * torch.mean(torch.abs(grad_pred_y))
         )
 
-    @register_loss(name="composition_loss", signature=("image", "fg", "bg"))
-    def composition_loss(
-            self,
-            pred: torch.Tensor,
-            target: torch.Tensor,
-            image: torch.Tensor = None,
-            fg: torch.Tensor = None,
-            bg: torch.Tensor = None
-    ) -> torch.Tensor:
-        if fg is not None and bg is not None:
-            comp_pred = pred * fg + (1 - pred) * bg
-            comp_gt = target * fg + (1 - target) * bg
-        elif image is not None:
-            comp_pred = pred * image
-            comp_gt = target * image
-        else:
-            raise ValueError("For composition loss, either (fg, bg) or image must be provided.")
+    @register_loss(name="laplacian_pha_loss", signature=())
+    def laplacian_pha_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        return laplacian_loss(pred, target)
 
-        loss = torch.abs(comp_pred - comp_gt).mean()
-        return loss
 
     @register_loss(name="unknown_l1_loss", signature=("sample_map",))
     def unknown_l1_loss(
@@ -88,21 +86,9 @@ class MattingCriterion(CriterionBase):
             return F.l1_loss(pred * known_map, target * known_map) * self._safe_scale(known_map)
         return F.l1_loss(pred, target)
 
-    @register_loss(name="laplacian_pha_loss", signature=())
-    def laplacian_pha_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        return laplacian_loss(pred, target)
-
     def _safe_scale(self, mask: torch.Tensor, default_area: int = 262144, epsilon: float = 1e-6) -> torch.Tensor:
         total = torch.sum(mask)
         return mask.shape[0] * default_area / (total + epsilon)
-
-
-def l1_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
-    """
-    L1 loss between predicted and ground truth alpha mattes.
-    """
-    loss = torch.abs(pred - gt).mean()
-    return loss
 
 
 def composition_loss(
@@ -189,48 +175,6 @@ def crop_to_even_size(img):
     return img[:, :, :H - H % 2, :W - W % 2]
 
 
-def gradient_loss(
-        pred: torch.Tensor,
-        gt: torch.Tensor,
-        use_grad_penalty: bool = False,
-        grad_penalty_lambda: float = 0.0
-) -> torch.Tensor:
-    """
-    Gradient loss that computes the L1 difference on Sobel-filtered gradients.
-    Optionally, a gradient penalty (scaled by grad_penalty_lambda) is added.
-
-    Args:
-        pred (torch.Tensor): Predicted alpha matte.
-        gt (torch.Tensor): Ground truth alpha matte.
-        use_grad_penalty (bool): If True, adds a gradient penalty term.
-        grad_penalty_lambda (float): Scaling factor for the gradient penalty.
-
-    Returns:
-        torch.Tensor: Computed gradient loss.
-    """
-    # Sobel filters for computing gradients
-    sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=pred.dtype, device=pred.device).view(1, 1, 3, 3)
-    sobel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=pred.dtype, device=pred.device).view(1, 1, 3, 3)
-
-    # Compute gradients for prediction and ground truth using Sobel filters.
-    grad_pred_x = F.conv2d(pred, sobel_x, padding=1)
-    grad_pred_y = F.conv2d(pred, sobel_y, padding=1)
-    grad_gt_x = F.conv2d(gt, sobel_x, padding=1)
-    grad_gt_y = F.conv2d(gt, sobel_y, padding=1)
-
-    # Compute the L1 difference between the corresponding gradients.
-    loss_x = torch.abs(grad_pred_x - grad_gt_x)
-    loss_y = torch.abs(grad_pred_y - grad_gt_y)
-    loss = torch.mean(loss_x + loss_y)
-
-    # Optionally add a gradient penalty term based on the predicted gradients.
-    if use_grad_penalty:
-        penalty = torch.mean(torch.abs(grad_pred_x)) + torch.mean(torch.abs(grad_pred_y))
-        loss = loss + grad_penalty_lambda * penalty
-
-    return loss
-
-
 def boundary_loss(pred: torch.Tensor, gt: torch.Tensor) -> torch.Tensor:
     """
     Boundary-aware loss that weights the L1 loss based on the boundary map.
@@ -305,13 +249,11 @@ if __name__ == "__main__":
     # Initialize the loss function
     criterion = MattingCriterion(
         BaseCriterionConfig(
-            losses=["unknown_l1_loss", "known_l1_loss", "gradient_loss", "laplacian_pha_loss", "composition_loss"],
+            losses=["l1_loss", "gradient_loss", "laplacian_pha_loss"],
             weight_dict={
-                "unknown_l1_loss": 1.0,
-                "known_l1_loss": 0.3,
+                "l1_loss": 1.0,
                 "gradient_loss": 0.5,
                 "laplacian_pha_loss": 0.5,
-                "composition_loss": 0.75
             },
             normalize_weights=True
         ),
@@ -324,11 +266,9 @@ if __name__ == "__main__":
         losses = criterion(predictions, targets, trimap=trimap, image=images, fg=fg, bg=bg)
 
         # Print losses
-        print(f"Unknown L1: {losses["unknown_l1_loss"]:.4f}")
-        print(f"Known L1: {losses["known_l1_loss"]:.4f}")
-        print(f"Gradient: {losses["gradient_loss"]:.4f}")
-        print(f"Laplacian: {losses["laplacian_pha_loss"]:.4f}")
-        print(f"Composition: {losses["composition_loss"]:.4f}")
+        # Print losses
+        for name, loss in losses.items():
+            print(f"{name}: {loss.item()}")
 
     # Compute the logs
     logs = criterion.log_dict()
