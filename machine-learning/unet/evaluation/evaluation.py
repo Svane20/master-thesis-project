@@ -5,7 +5,7 @@ from libs.utils.device import get_device
 
 from unet.build_model import build_model_for_evaluation
 from unet.utils.config import load_config_and_checkpoint_path
-from unet.utils.transforms import get_transforms
+from unet.utils.transforms import get_transforms, get_inference_transforms
 
 
 def main() -> None:
@@ -20,11 +20,23 @@ def main() -> None:
         device=device
     )
 
+    # Check if sliding window is enabled
+    use_sliding_window_inference = configuration.evaluation.inference.use_sliding_window
+
     # Create transforms
-    transforms = get_transforms(phase=DatasetPhase.Test, resolution=configuration.scratch.resolution)
+    if use_sliding_window_inference:
+        transforms = get_inference_transforms()
+    else:
+        transforms = get_transforms(phase=DatasetPhase.Test, resolution=configuration.scratch.resolution)
 
     # Run evaluation
-    run_evaluation(model=model, device=device, configuration=configuration, transforms=transforms)
+    run_evaluation(
+        model=model,
+        device=device,
+        configuration=configuration,
+        transforms=transforms,
+        use_sliding_window=use_sliding_window_inference
+    )
 
 
 if __name__ == "__main__":

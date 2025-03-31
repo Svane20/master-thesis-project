@@ -56,6 +56,14 @@ def get_test_transforms(resolution: int = 224) -> T.Compose:
     ])
 
 
+def get_inference_transforms() -> T.Compose:
+    return T.Compose([
+        ToTensor(),
+        Rescale(scale=1 / 255.0),
+        Normalize(mean=MEAN, std=STD),
+    ])
+
+
 if __name__ == "__main__":
     resolution = 224
     my_transforms = get_train_transforms(resolution)

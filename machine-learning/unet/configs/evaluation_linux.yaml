@@ -7,17 +7,23 @@ scratch:
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 16
+  batch_size: 1
   pin_memory: true
   test:
     num_workers: 4
     shuffle: false
     drop_last: false
 
-# Inference configuration
+# Evaluation configuration
 evaluation:
-  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/resnet_50_v1.pt"
+  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/resnet_50_224_v2.pt"
   compile_model: true
+
+  # Inference configuration
+  inference:
+    use_sliding_window: true
+    tile_size: 224
+    overlap: 32
 
 # Model configuration
 
