@@ -1,6 +1,7 @@
 # Global configuration
 scratch:
-  resolution: 256
+  resolution: 256 # 256, 512, 1024
+  crop_resolution: null # 320, 640, 1280
 
 # Deployment configuration
 deployment:

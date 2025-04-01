@@ -75,7 +75,7 @@ def _build_model(
     assert device in ["cuda", "cpu"], f"Invalid device: {device}"
     assert mode in ["train", "eval"], f"Invalid mode: {mode}"
 
-    logging.info(f"Building UNet model in {mode} mode on {device}")
+    logging.info(f"Building DPT model in {mode} mode on {device}")
 
     model = _build(configuration)
     model = model.to(device)

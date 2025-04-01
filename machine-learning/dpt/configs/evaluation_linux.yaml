@@ -1,6 +1,7 @@
 # Global configuration
 scratch:
-  resolution: 256
+  resolution: 256 # 256, 512, 1024
+  crop_resolution: null # 320, 640, 1280
 
 # Dataset configuration
 dataset:
@@ -13,10 +14,16 @@ dataset:
     shuffle: false
     drop_last: false
 
-# Inference configuration
+# Evaluation configuration
 evaluation:
   checkpoint_path: "/mnt/shared/ml/checkpoints/dpt/dpt-swinv2-tiny-256_v1.pt"
   compile_model: true
+
+  # Inference configuration
+  inference:
+    use_sliding_window: false
+    tile_size: 256
+    overlap: 32
 
 # Model configuration
 
