@@ -162,16 +162,12 @@ class Trainer:
                             f"Early stopping activated. Best score: {self.early_stopping.best_score:.4f}"
                         )
                         break
-                else:
-                    # Save model checkpoint based on the save frequency
-                    if self.checkpoint_config.save_freq > 0 and (
-                            int(current_epoch) % self.checkpoint_config.save_freq) == 0:
-                        # Save best stats to file
-                        if self.logging_config.log_metrics:
-                            self._save_stats(filename="best_stats.json", payload=payload)
 
-                        # Save the model at the end of each epoch
-                        self._save_checkpoint(epoch=current_epoch)
+                # Save model checkpoint based on the save frequency
+                save_freq = self.checkpoint_config.save_freq
+                if save_freq > 0 and (int(current_epoch) % save_freq) == 0:
+                    prefix = "latest" if self.early_stopping_config.enabled else None
+                    self._save_checkpoint(epoch=current_epoch, prefix=prefix)
 
                 # Update epoch
                 self.epoch += 1
@@ -621,7 +617,7 @@ class Trainer:
         if self.early_stopping is not None and "early_stopping" in checkpoint:
             self.early_stopping.load_state_dict(checkpoint["early_stopping"])
 
-    def _save_checkpoint(self, epoch: int) -> None:
+    def _save_checkpoint(self, epoch: int, prefix: str = None) -> None:
         """
         Save the checkpoint.
 
@@ -636,7 +632,9 @@ class Trainer:
         save_directory.mkdir(parents=True, exist_ok=True)
 
         # Save the checkpoint
-        checkpoint_path = save_directory / self.checkpoint_config.checkpoint_path
+        base_name, ext = os.path.splitext(self.checkpoint_config.checkpoint_path)
+        checkpoint_filename = f"{base_name}{prefix}{ext}" if prefix else f"{base_name}{ext}"
+        checkpoint_path = save_directory / checkpoint_filename
 
         checkpoint = {
             "model": self.model.state_dict(),
