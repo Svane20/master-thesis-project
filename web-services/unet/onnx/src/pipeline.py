@@ -12,6 +12,7 @@ import numpy as np
 from typing import List
 import zipfile
 import logging
+import time
 
 from src.config import get_configuration
 from src.replacement.foreground_estimation import get_foreground_estimation
@@ -48,6 +49,18 @@ batch_inference_histogram = Histogram(
 single_inference_histogram = Histogram(
     "single_inference_latency_seconds",
     "Single inference latency in seconds",
+    labelnames=["model"],
+)
+
+sky_replacement_histogram = Histogram(
+    "sky_replacement_latency_seconds",
+    "Sky replacement (post-processing) latency in seconds",
+    labelnames=["model"],
+)
+
+total_latency_histogram = Histogram(
+    "total_latency_seconds",
+    "Total processing latency in seconds (inference + sky replacement)",
     labelnames=["model"],
 )
 
@@ -100,12 +113,20 @@ async def batch_predict(files: List[UploadFile]) -> bytes:
 
     # Offload blocking ONNX inference call to a thread
     loop = asyncio.get_running_loop()
+
+    # Start timing before the inference call
+    start_time = time.perf_counter()
     try:
         with batch_inference_histogram.labels(model="onnx").time():
             outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch})
     except Exception as e:
         logging.error("ONNX inference failed", exc_info=e)
         raise HTTPException(status_code=500, detail=f"Inference error: {e}")
+
+    # End timing after the inference call
+    end_time = time.perf_counter()
+    inference_time = end_time - start_time
+    logging.info(f"Batch inference time: {inference_time:.4f} seconds")
 
     masks = _post_process(outputs)
 
@@ -151,12 +172,20 @@ async def single_predict(file: UploadFile) -> bytes:
     batch_np = batch_tensor.numpy()
 
     loop = asyncio.get_running_loop()
+
+    # Start timing before the inference call
+    start_time = time.perf_counter()
     try:
         with single_inference_histogram.labels(model="onnx").time():
             outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch_np})
     except Exception as e:
         logging.error("ONNX inference failed", exc_info=e)
         raise HTTPException(status_code=500, detail=f"Inference error: {e}")
+
+    # End timing after the inference call
+    end_time = time.perf_counter()
+    inference_time = end_time - start_time
+    logging.info(f"Single inference time: {inference_time:.4f} seconds")
 
     # Post-process outputs; _post_process returns a list, take first mask
     masks = _post_process(outputs)
@@ -182,28 +211,44 @@ async def sky_replacement(file: UploadFile):
     batch_np = batch_tensor.numpy()
 
     loop = asyncio.get_running_loop()
-    try:
-        with single_inference_histogram.labels(model="onnx").time():
-            outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch_np})
-    except Exception as e:
-        logging.error("ONNX inference failed", exc_info=e)
-        raise HTTPException(status_code=500, detail=f"Inference error: {e}")
 
-    # Post-process outputs; _post_process returns a list, take first mask
-    masks = _post_process(outputs)
-    mask = masks[0]
+    with total_latency_histogram.labels(model="onnx").time():
+        total_start = time.perf_counter()
 
-    # Downscale the image to fit the model input size
-    image = image.resize(SIZE)
+        # Inference timing using single_inference_histogram
+        inference_start = time.perf_counter()
+        try:
+            with single_inference_histogram.labels(model="onnx").time():
+                outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch_np})
+        except Exception as e:
+            logging.error("ONNX inference failed", exc_info=e)
+            raise HTTPException(status_code=500, detail=f"Inference error: {e}")
+        inference_end = time.perf_counter()
+        inference_time = inference_end - inference_start
 
-    # Convert image to numpy array and normalize it
-    image_array = np.array(image.resize(SIZE)) / 255.0
+        # Post-process outputs; _post_process returns a list, take first mask
+        masks = _post_process(outputs)
+        mask = masks[0]
 
-    # Get the foreground estimation
-    foreground = get_foreground_estimation(image_array, mask)
+        # Resize image and prepare for sky replacement
+        image = image.resize(SIZE)
+        image_array = np.array(image.resize(SIZE)) / 255.0
 
-    # Sky replacement
-    replaced = replace_background(foreground, mask)
+        # Sky replacement (post-processing) timing using its dedicated histogram
+        replacement_start = time.perf_counter()
+        with sky_replacement_histogram.labels(model="onnx").time():
+            foreground = get_foreground_estimation(image_array, mask)
+            replaced = replace_background(foreground, mask)
+        replacement_end = time.perf_counter()
+        replacement_time = replacement_end - replacement_start
+
+        total_end = time.perf_counter()
+        total_time = total_end - total_start
+
+    # Log the timings; these should match what the histograms record.
+    logging.info(f"Inference time: {inference_time:.4f} seconds")
+    logging.info(f"Sky replacement time: {replacement_time:.4f} seconds")
+    logging.info(f"Total time: {total_time:.4f} seconds")
 
     # Convert both mask, foreground and replaced to PNG bytes.
     mask_png = _convert_mask_to_rgb(mask)
