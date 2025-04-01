@@ -1,0 +1,238 @@
+{
+  "addons": [
+    {
+      "plugin_title": "Biome-Reader",
+      "plugin_path": "/content/drive/MyDrive/Blender/blender_data/plugins/BiomeReaderPlugin.zip",
+      "package_path": null,
+      "library_paths": [
+        "/content/drive/MyDrive/Blender/blender_data/assets/data/plant_library"
+      ]
+    },
+    {
+      "plugin_title": "Grassblade",
+      "plugin_path": "/content/drive/MyDrive/Blender/blender_data/plugins/GrassbladePro.zip",
+      "package_path": "/content/drive/MyDrive/Blender/blender_data/packages/GrassbladePro_v2.6.scatpack",
+      "library_paths": null
+    },
+    {
+      "plugin_title": "Vegetation",
+      "plugin_path": "/content/drive/MyDrive/Blender/blender_data/plugins/Vegetation_V5.1_Addon.zip",
+      "package_path": "/content/drive/MyDrive/Blender/blender_data/packages/Vegetation_v5.1fix2_Geoscatter_Biomes_Pro.scatpack",
+      "library_paths": [
+        "/content/drive/MyDrive/Blender/blender_data/assets/data/vegetation"
+      ]
+    }
+  ],
+  "constants": {
+    "playground_directory": "/content/drive/MyDrive/Blender/datasets/raw/synthetic-data",
+    "save_blend_files": false,
+    "render_images": true,
+    "num_iterations": 8,
+    "seed": null
+  },
+  "run_configuration": {
+    "max_runs": 80,
+    "delay": 5,
+    "run_path": "/content/drive/MyDrive/Blender/logs/blender-run.log",
+    "app_path": "/content/drive/MyDrive/Blender/logs/blender-app.log",
+    "save_logs": true
+  },
+  "render_configuration": {
+    "engine": "CYCLES",
+    "temp_folder": "/content/drive/MyDrive/Blender/temp",
+    "resolution_percentage": 100,
+    "file_format": "PNG",
+    "use_border": true,
+    "use_persistent_data": true,
+    "threads_mode": "FIXED",
+    "threads": 54,
+    "compression": 0,
+    "cycles_configuration": {
+      "camera_cull_margin": 1.0,
+      "distance_cull_margin": 200.0,
+      "use_camera_cull": true,
+      "use_distance_cull": true,
+      "feature_set": "SUPPORTED",
+      "device": "GPU",
+      "tile_size": 4096,
+      "samples": 64,
+      "use_denoising": true,
+      "denoising_use_gpu": true,
+      "use_adaptive_sampling": true,
+      "adaptive_threshold": 0.01,
+      "time_limit": 240,
+      "view_transform": "Khronos PBR Neutral"
+    },
+    "preferences_configuration": {
+      "compute_device_type": "CUDA"
+    },
+    "outputs_configuration": {
+      "render_image": true,
+      "render_object_index": false,
+      "render_environment": true,
+      "output_path": "/content/drive/MyDrive/Blender/output",
+      "image_output_configuration": {
+        "title": "Image",
+        "use_node_format": false,
+        "file_format": "JPEG",
+        "color_mode": "RGB",
+        "path": "Image"
+      },
+      "object_index_output_configuration": {
+        "title": "IndexOB",
+        "use_node_format": false,
+        "file_format": "PNG",
+        "color_mode": "BW",
+        "path": "IndexOB"
+      },
+      "id_mask_output_configuration": {
+        "title": "GrassMask",
+        "use_node_format": false,
+        "file_format": "PNG",
+        "color_mode": "BW",
+        "path": "GrassMask"
+      },
+      "environment_output_configuration": {
+        "title": "SkyMask",
+        "use_node_format": false,
+        "file_format": "PNG",
+        "color_mode": "BW",
+        "path": "SkyMask"
+      }
+    }
+  },
+  "camera_configuration": {
+    "image_width": 2048,
+    "image_height": 2048,
+    "camera_fov_mu_deg": 60.0,
+    "camera_fov_std_deg": 10.0
+  },
+  "terrain_configuration": {
+    "world_size": 100.0,
+    "image_size": 2048,
+    "noise_basis": "PERLIN_ORIGINAL",
+    "generate_trees": false,
+    "tree_probability": 0.2,
+    "trees_configuration": {
+      "directory": "/root/.config/blender/data/scatter library/_biomes_/Vegetation",
+      "include": [
+        "coniferous",
+        "deciduous"
+      ],
+      "exclude": [
+        "coniferous_biome02",
+        "coniferous_biome03",
+        "coniferous_biome04",
+        "coniferous_biome13",
+        "deciduous_biome05",
+        "deciduous_biome16"
+      ]
+    },
+    "grass_configuration": {
+      "directory": "/root/.config/blender/data/scatter library/_biomes_/Grassblade",
+      "include": [
+        "clean_grass",
+        "grass_golf",
+        "green_grass"
+      ],
+      "exclude": null
+    },
+    "not_grass_configuration": {
+      "directory": "/root/.config/blender/data/scatter library/_biomes_/Grassblade",
+      "include": [
+        "rock",
+        "flowers"
+      ],
+      "exclude": null
+    },
+    "textures_configuration": {
+      "directory": "/content/drive/MyDrive/Blender/blender_data/renderer/assets/textures/terrain",
+      "include": null,
+      "exclude": null
+    }
+  },
+  "spawn_objects_configuration": {
+    "spawn_objects": [
+      {
+        "should_spawn": true,
+        "use_halton": false,
+        "num_objects": 1,
+        "position": [
+          0,
+          0
+        ],
+        "directory": "/content/drive/MyDrive/Blender/blender_data/renderer/assets/models/houses",
+        "include": null,
+        "exclude": [
+          "_hidden",
+          "Modern House.002",
+          "House.007",
+          "Smart House"
+        ]
+      },
+      {
+        "should_spawn": false,
+        "use_halton": true,
+        "num_objects": 5,
+        "position": null,
+        "directory": "/content/drive/MyDrive/Blender/blender_data/renderer/assets/models/bushes",
+        "include": null,
+        "exclude": null
+      },
+      {
+        "should_spawn": false,
+        "use_halton": true,
+        "num_objects": 5,
+        "position": null,
+        "directory": "/content/drive/MyDrive/Blender/blender_data/renderer/assets/models/fences",
+        "include": null,
+        "exclude": null
+      },
+      {
+        "should_spawn": false,
+        "use_halton": true,
+        "num_objects": 5,
+        "position": null,
+        "directory": "/content/drive/MyDrive/Blender/blender_data/renderer/assets/models/hedges",
+        "include": null,
+        "exclude": null
+      }
+    ]
+  },
+  "sky_configuration": {
+    "directory": "/content/drive/MyDrive/Blender/blender_data/renderer/assets/hdris/pure_skies",
+    "include": null,
+    "exclude": null,
+    "temperature": {
+      "min": 5000,
+      "max": 6500
+    },
+    "strength": {
+      "min": 0.6,
+      "max": 1.0
+    },
+    "density": {
+      "min": 0,
+      "max": 2
+    },
+    "sky_type": "NISHITA",
+    "sun_configuration": {
+      "size": {
+        "min": 1,
+        "max": 3
+      },
+      "elevation": {
+        "min": 45,
+        "max": 90
+      },
+      "rotation": {
+        "min": 0,
+        "max": 360
+      },
+      "intensity": {
+        "min": 0.4,
+        "max": 0.8
+      }
+    }
+  }
+}

@@ -4,10 +4,11 @@ from typing import Tuple
 from pathlib import Path
 import numpy as np
 import logging
+import cv2
 
 
 def get_foreground_estimation(
-        image_path: Path,
+        image: np.ndarray,
         alpha_mask: np.ndarray,
         save_dir: Path,
         save_foreground: bool = False,
@@ -17,7 +18,7 @@ def get_foreground_estimation(
     Estimate the foreground and background of an image.
 
     Args:
-        image_path (Path): Path to the image.
+        image (np.ndarray): The image to estimate the foreground of.
         alpha_mask (numpy.ndarray): Alpha mask with values between 0 and 1.
         save_dir (Path): Directory to save the foreground and background images.
         save_foreground (bool): Whether to save the foreground image. Default is True.
@@ -28,8 +29,8 @@ def get_foreground_estimation(
         numpy.ndarray: Background image.
 
     """
-    # Load the image
-    image = pymatting.load_image(str(image_path))
+    # Normalize the image
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) / 255.0
 
     # IMPORTANT: In our training data, the alpha matte is generated so that the sky/HDRI (our target subject)
     # is marked as 1 and the foreground/geometry is 0. However, the pymatting.estimate_foreground_ml function

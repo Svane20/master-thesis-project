@@ -6,6 +6,7 @@ from numpy.typing import NDArray
 import time
 import logging
 from scipy.stats.qmc import Halton
+import argparse
 
 from bpy_utils.bpy_data import use_backface_culling_on_materials, set_scene_alpha_threshold
 from bpy_utils.bpy_ops import save_as_blend_file, render_image
@@ -24,6 +25,14 @@ from scene.camera import get_camera_iterations, get_random_camera_location, upda
 from scene.light import create_random_light
 from utils.utils import cleanup_files, get_playground_directory_with_tag, move_rendered_images_to_playground
 from custom_logging.custom_logger import setup_logging
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run Blender pipeline")
+    parser.add_argument('--is_colab', action='store_true', default=False,
+                        help="Set if running on Colab (defaults to False)")
+
+    return parser.parse_args()
 
 
 def clear_cube() -> None:
@@ -225,7 +234,7 @@ def setup_the_sky(configuration: Configuration) -> None:
     logging.info("Sky setup completed.")
 
 
-def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
+def setup_scene(configuration: Configuration, start_time: float) -> NDArray[np.float32]:
     """
     Initialize the scene.
 
@@ -235,6 +244,7 @@ def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
 
     Args:
         configuration (Configuration): The configuration for the Blender pipeline
+        start_time (float): The start time of the script execution
 
     Returns:
         Tuple[Path, NDArray[np.float32]]: The configuration and the height map.
@@ -254,15 +264,25 @@ def setup_scene(configuration: Configuration) -> NDArray[np.float32]:
 
     setup_the_sky(configuration)
 
-    logging.info("Scene setup completed.")
+    # Calculate the elapsed time for setting up the scene
+    elapsed_time = time.perf_counter() - start_time
+    days, remainder = divmod(elapsed_time, 86400)
+    hours, remainder = divmod(remainder, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    logging.info(
+        f"Scene setup completed in {int(days)} days, {int(hours)} hours, {int(minutes)} minutes and {seconds:.2f} seconds."
+    )
 
     return height_map
 
 
-def start_run() -> None:
+def main() -> None:
     """The main function to render the images from multiple camera angles."""
+    # Parse the arguments
+    args = parse_args()
+
     # Get configuration
-    configuration = get_configuration()
+    configuration = get_configuration(is_colab=args.is_colab)
 
     # Setup logging
     setup_logging(
@@ -276,7 +296,7 @@ def start_run() -> None:
     logging.info("Script execution started.")
 
     # Set up the scene
-    height_map = setup_scene(configuration)
+    height_map = setup_scene(configuration, script_start_time)
 
     # Create output directory and set camera iterations
     playground_directory = get_playground_directory_with_tag(configuration=configuration)
@@ -387,4 +407,4 @@ def start_run() -> None:
 
 
 if __name__ == "__main__":
-    start_run()
+    main()

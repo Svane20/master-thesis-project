@@ -3,9 +3,18 @@ import logging
 import os
 import subprocess
 import sys
+import argparse
 
 from configuration.configuration import get_configuration
 from custom_logging.custom_logger import setup_logging
+
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run Blender pipeline")
+    parser.add_argument('--is_colab', action='store_true', default=False,
+                        help="Set if running on Colab (defaults to False)")
+
+    return parser.parse_args()
 
 
 def delete_logs_from_previous_runs(log_path: str) -> None:
@@ -34,8 +43,11 @@ def delete_logs_from_previous_runs(log_path: str) -> None:
 
 
 def main():
+    # Parse the arguments
+    args = parse_args()
+
     # Load configuration
-    configuration = get_configuration()
+    configuration = get_configuration(is_colab=args.is_colab)
     max_runs = configuration.run_configuration.max_runs
     delay = configuration.run_configuration.delay
 
@@ -58,7 +70,11 @@ def main():
         logging.info(f"Starting run {i + 1} of {max_runs}...")
 
         try:
-            result = subprocess.run(["python", "run.py"], check=True)
+            cmd = ["python", "run.py"]
+            if args.is_colab:
+                cmd.append("--is_colab")
+
+            result = subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError as e:
             # Check if the return code indicates a SIGKILL
             if e.returncode == -9:

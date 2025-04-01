@@ -1,14 +1,31 @@
 # Global configuration
 scratch:
-  resolution: 512
-
-# Model configuration
-model:
-  encoder:
-    pretrained: true
-    freeze_pretrained: true
+  resolution: 224
+  crop_resolution: null
 
 # Deployment configuration
 deployment:
   checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v1.pt"
   destination_directory: "/mnt/shared/ml/models/unet"
+
+# Model configuration
+
+# ResNet-34
+#model:
+#  model_name: "ResNet34Matte"
+#  encoder:
+#    pretrained: true
+#  decoder:
+#    encoder_channels: [ 64, 64, 128, 256, 512 ]
+#    decoder_channels: [ 256, 128, 64, 64 ]
+#    final_channels: 64
+
+# ResNet-50
+model:
+  model_name: "ResNet50Matte"
+  encoder:
+    pretrained: true
+  decoder:
+    encoder_channels: [ 64, 256, 512, 1024, 2048 ]
+    decoder_channels: [ 512, 256, 128, 64 ]
+    final_channels: 64

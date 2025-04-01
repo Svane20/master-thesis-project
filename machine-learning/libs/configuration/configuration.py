@@ -37,7 +37,12 @@ class ConfigurationMode(str, Enum):
     Deployment = "deployment"
 
 
-def get_configuration_and_checkpoint_path(mode: ConfigurationMode, suffix: str) -> Tuple[Config, Path]:
+class ConfigurationSuffix(str, Enum):
+    UNET = "unet"
+    DPT = "dpt"
+
+
+def get_configuration_and_checkpoint_path(mode: ConfigurationMode, suffix: ConfigurationSuffix) -> Tuple[Config, Path]:
     config = get_configuration(mode=mode, suffix=suffix)
 
     if mode == ConfigurationMode.Training:
@@ -52,13 +57,13 @@ def get_configuration_and_checkpoint_path(mode: ConfigurationMode, suffix: str) 
     return config, checkpoint_path
 
 
-def get_configuration(mode: ConfigurationMode, suffix: str) -> Config:
+def get_configuration(mode: ConfigurationMode, suffix: ConfigurationSuffix) -> Config:
     configuration_path = _get_base_configuration_path(mode=mode, suffix=suffix)
 
     return _load_configuration(configuration_path)
 
 
-def _get_base_configuration_path(mode: ConfigurationMode, suffix: str) -> Path:
+def _get_base_configuration_path(mode: ConfigurationMode, suffix: ConfigurationSuffix) -> Path:
     base_directory = Path(__file__).resolve().parent.parent.parent
     os_suffix = "windows" if platform.system() == "Windows" else "linux"
 
@@ -73,7 +78,7 @@ def _get_base_configuration_path(mode: ConfigurationMode, suffix: str) -> Path:
     except KeyError:
         raise ValueError(f"Unknown mode: {mode}")
 
-    return base_directory / suffix / "configs" / f"{base_name}_{os_suffix}.yaml"
+    return base_directory / suffix.value / "configs" / f"{base_name}_{os_suffix}.yaml"
 
 
 def _load_configuration(configuration_path: Path) -> Config:

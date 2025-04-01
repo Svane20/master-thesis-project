@@ -13,14 +13,15 @@ import numpy as np
 import json
 import platform
 
+from .utils.criterion_utils import BaseCriterionConfig, CORE_LOSS_KEY
 from ..configuration.configuration import Config
-from .criterions import CORE_LOSS_KEY, MattingLossV2
+from .criterions import MattingCriterion
 from .early_stopping import EarlyStopping
 from .optimizers import construct_optimizer, GradientClipper
 from .schedulers import SchedulerWrapper
 from .utils.checkpoint_utils import load_state_dict_into_model
 from .utils.logger import setup_logging, Logger
-from ..metrics.utils import compute_training_metrics
+from ..metrics.utils import compute_training_metrics, get_grad_filter
 from .utils.train_utils import get_amp_type, get_resume_checkpoint, DurationMeter, makedir, AverageMeter, \
     MemMeter, Phase, ProgressMeter, Meter, human_readable_time
 
@@ -67,7 +68,7 @@ class Trainer:
         self.logs_dir = logs_directory
 
         # Logging
-        makedir(self.logging_config.log_directory)
+        makedir(str(self.logs_dir))
         setup_logging(__name__)
 
         # Device
@@ -97,10 +98,12 @@ class Trainer:
         train_data_loader = self.train_data_loader
         val_data_loader = self.val_data_loader
 
+        grad_filter = get_grad_filter(device=self.device, dtype=get_amp_type(self.optimizer_config.amp.amp_dtype))
+
         try:
             while self.epoch < self.max_epochs:
                 train_stats, train_losses = self._train_one_epoch(train_data_loader)
-                val_stats, val_metrics, val_losses = self._val_one_epoch(val_data_loader)
+                val_stats, val_metrics, val_losses = self._val_one_epoch(val_data_loader, grad_filter)
 
                 # Validation metric
                 val_metric_key = self.early_stopping_config.monitor \
@@ -235,7 +238,7 @@ class Trainer:
                 mem_meter,
             ],
             real_meters=self._get_meters([phase]),
-            prefix="Train | Epoch: [{}]".format(self.epoch),
+            prefix=f"Train | Epoch: [{self.epoch}/{self.max_epochs}]",
         )
 
         stats = {}
@@ -245,17 +248,21 @@ class Trainer:
         self.model.train()
         end = time.time()
 
-        for batch_idx, (X, y) in enumerate(data_loader):
+        for batch_idx, sample in enumerate(data_loader):
             # Measure data loading time
             data_time_meter.update(time.time() - end)
             data_times.append(data_time_meter.val)
 
             # Move data to device
-            X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
+            inputs = sample["image"].to(self.device, non_blocking=True)
+            targets = sample["alpha"].to(self.device, non_blocking=True)
+            trimap = sample["trimap"].to(self.device, non_blocking=True) if "trimap" in sample else None
+            fg = sample["fg"].to(self.device, non_blocking=True) if "fg" in sample else None
+            bg = sample["bg"].to(self.device, non_blocking=True) if "bg" in sample else None
 
             try:
                 # Run a single step
-                self._run_step(X, y, phase, loss_meter, extra_losses_meters)
+                self._run_step(inputs, targets, phase, loss_meter, extra_losses_meters, trimap, fg, bg)
 
                 # Clipping gradients
                 if self.gradient_clipper is not None:
@@ -308,13 +315,15 @@ class Trainer:
 
     def _val_one_epoch(
             self,
-            data_loader: torch.utils.data.DataLoader
+            data_loader: torch.utils.data.DataLoader,
+            grad_filter: torch.Tensor
     ) -> Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]:
         """
         Validate the model for one epoch.
 
         Args:
             data_loader (torch.utils.data.DataLoader): Data loader for validation.
+            grad_filter (torch.Tensor): Gradient filter for computing the gradient loss.
 
         Returns:
             Tuple[Dict[str, float], Dict[str, float], Dict[str, float]]: Validation metrics, matting metrics and losses.
@@ -333,6 +342,8 @@ class Trainer:
         # Initialize metrics meters
         mse_meter = AverageMeter(name="MSE", device=str(self.device), fmt=":.2e")
         mae_meter = AverageMeter(name="MAE", device=str(self.device), fmt=":.2e")
+        sad_meter = AverageMeter(name="SAD", device=str(self.device), fmt=":.2e")
+        grad_meter = AverageMeter(name="Grad", device=str(self.device), fmt=":.2e")
         extra_metrics_meters = {}
 
         # Progress bar
@@ -344,12 +355,14 @@ class Trainer:
                 self.time_elapsed_meter,
                 mse_meter,
                 mae_meter,
+                sad_meter,
+                grad_meter,
                 batch_time_meter,
                 data_time_meter,
                 mem_meter,
             ],
             real_meters=self._get_meters([phase]),
-            prefix="Val | Epoch: [{}]".format(self.epoch),
+            prefix=f"Val | Epoch: [{self.epoch}/{self.max_epochs}]",
         )
 
         stats = {}
@@ -360,13 +373,14 @@ class Trainer:
         self.model.eval()
         end = time.time()
 
-        for batch_idx, (X, y) in enumerate(data_loader):
+        for batch_idx, sample in enumerate(data_loader):
             # Measure data loading time
             data_time_meter.update(time.time() - end)
             data_times.append(data_time_meter.val)
 
             # Move data to device
-            X, y = X.to(self.device, non_blocking=True), y.to(self.device, non_blocking=True)
+            inputs = sample["image"].to(self.device, non_blocking=True)
+            targets = sample["alpha"].to(self.device, non_blocking=True)
 
             try:
                 with torch.no_grad():
@@ -377,7 +391,12 @@ class Trainer:
                             dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
                     ):
                         # Run a single step
-                        loss_dict, extra_losses, extra_metrics = self._step(X, y, phase)
+                        loss_dict, extra_losses, extra_metrics = self._step(
+                            inputs,
+                            targets,
+                            phase,
+                            grad_filter=grad_filter
+                        )
 
                         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
                         _, loss = loss_dict.popitem()
@@ -392,9 +411,11 @@ class Trainer:
                             extra_losses_meters[k].update(val=v.item(), n=1)
 
                         # Update metrics meters
-                        batch_size = y.size(0)
+                        batch_size = targets.size(0)
                         mse_meter.update(val=extra_metrics["mse"], n=batch_size)
                         mae_meter.update(val=extra_metrics["mae"], n=batch_size)
+                        sad_meter.update(val=extra_metrics["sad"], n=batch_size)
+                        grad_meter.update(val=extra_metrics["grad"], n=batch_size)
                         for k, v in extra_metrics.items():
                             if k not in extra_metrics_meters:
                                 extra_metrics_meters[k] = AverageMeter(
@@ -430,6 +451,8 @@ class Trainer:
         # Compute average metrics
         metrics["mse"] = mse_meter.avg
         metrics["mae"] = mae_meter.avg
+        metrics["sad"] = sad_meter.avg
+        metrics["grad"] = grad_meter.avg
         for k, v in extra_metrics_meters.items():
             metrics[k] = v.avg
 
@@ -454,7 +477,10 @@ class Trainer:
             targets: torch.Tensor,
             phase: str,
             loss_meter: AverageMeter,
-            extra_losses_meters: Dict[str, AverageMeter]
+            extra_losses_meters: Dict[str, AverageMeter],
+            trimap: torch.Tensor = None,
+            fg: torch.Tensor = None,
+            bg: torch.Tensor = None,
     ) -> None:
         """
         Run a single step of training.
@@ -465,6 +491,9 @@ class Trainer:
             phase (str): Phase of training.
             loss_meter (AverageMeter): Loss meter.
             extra_losses_meters (Dict[str, AverageMeter]): Extra loss meters.
+            trimap (torch.Tensor): Trimap data.
+            fg (torch.Tensor): Foreground data.
+            bg (torch.Tensor): Background data.
         """
         # It's important to set grads to None, especially with Adam
         # since 0 grads will also update a model even if the step doesn't produce gradient
@@ -475,7 +504,14 @@ class Trainer:
                 enabled=self.optimizer_config.amp.enabled and torch.cuda.is_available(),
                 dtype=get_amp_type(self.optimizer_config.amp.amp_dtype)
         ):
-            loss_dict, extra_losses, _ = self._step(inputs, targets, phase)
+            loss_dict, extra_losses, _ = self._step(
+                inputs,
+                targets,
+                phase,
+                trimap=trimap,
+                fg=fg,
+                bg=bg,
+            )
 
         assert len(loss_dict) == 1, f"Expected a single loss, got {len(loss_dict)} losses."
         _, loss = loss_dict.popitem()
@@ -497,7 +533,11 @@ class Trainer:
             self,
             inputs: torch.Tensor,
             targets: torch.Tensor,
-            phase: str
+            phase: str,
+            grad_filter: torch.Tensor = None,
+            trimap: torch.Tensor = None,
+            fg: torch.Tensor = None,
+            bg: torch.Tensor = None,
     ) -> Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]:
         """
         Calculate the loss and metrics for the current batch.
@@ -505,6 +545,10 @@ class Trainer:
         Args:
             inputs (torch.Tensor): Input data.
             targets (torch.Tensor): Target data.
+            phase (str): Phase of training.
+            trimap (torch.Tensor): Trimap data.
+            fg (torch.Tensor): Foreground data.
+            bg (torch.Tensor): Background data.
 
         Returns:
             Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]: Loss dictionary, step losses and metrics.
@@ -513,7 +557,7 @@ class Trainer:
         outputs = self.model(inputs)
 
         # Calculate losses
-        losses = self.criterion(outputs, targets, inputs)
+        losses = self.criterion(outputs, targets, trimap=trimap, image=inputs, fg=fg, bg=bg)
 
         # Extract the core loss and step losses
         loss = {}
@@ -527,13 +571,14 @@ class Trainer:
         metrics = {}
         if phase == Phase.VAL:
             # Calculate metrics
-            metrics = compute_training_metrics(outputs, targets)
+            metrics = compute_training_metrics(outputs, targets, grad_filter=grad_filter)
 
             # Log predictions for every 10 epochs
-            if self.epoch > 0 and self.epoch % 10 == 0:
-                # Take 8 samples for visualization
-                sample_targets = targets[:8].detach().cpu()
-                sample_outputs = outputs[:8].detach().cpu()
+            if self.epoch > 0 and self.epoch % self.logging_config.log_images_freq == 0:
+                # Take N samples for visualization
+                sample_count = self.logging_config.image_log_count
+                sample_targets = targets[:sample_count].detach().cpu()
+                sample_outputs = outputs[:sample_count].detach().cpu()
 
                 # Create grid images (assumes the tensors have shape [B, C, H, W])
                 produced_grid = make_grid(sample_outputs, nrow=4, normalize=True)
@@ -643,13 +688,16 @@ class Trainer:
 
         # Components
         self.model = model
-        print_model_summary(self.model, self.logging_config.log_directory)
+        print_model_summary(self.model, str(self.logs_dir))
 
         # Criterion, optimizer, scheduler
-        self.criterion = MattingLossV2(
-            weight_dict=self.criterion_config.weight_dict,
-            dtype=torch.float16 if self.optimizer_config.amp.enabled else torch.float32,
-            device=self.device
+        self.criterion = MattingCriterion(
+            config=BaseCriterionConfig(
+                losses=self.criterion_config.losses,
+                weight_dict=self.criterion_config.weight_dict,
+                normalize_weights=self.criterion_config.normalize_weights,
+            ),
+            device=self.device,
         )
         self.optimizer = construct_optimizer(model, self.train_config.optimizer)
         self.scheduler = SchedulerWrapper(optimizer=self.optimizer, config=self.train_config)

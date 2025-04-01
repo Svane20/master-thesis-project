@@ -3,21 +3,21 @@ from pathlib import Path
 
 from libs.configuration.configuration import ConfigurationMode
 from libs.configuration.training.root import TrainConfig
+from libs.datasets.synthetic.synthetic_dataset import DatasetPhase
 from libs.training.train import start_training
 from libs.training.utils.train_utils import set_seeds
 
-from build_model import build_model_for_train
-from utils import load_config
-from dataset.transforms import get_train_transforms, get_val_transforms
+from unet.build_model import build_model_for_train
+from unet.utils.config import load_config
+from unet.utils.transforms import get_transforms
 
 
 def main() -> None:
     # Define logs directory
     logs_directory = Path(__file__).resolve().parent / "logs"
 
-    # Get the configuration and load model
+    # Get the configuration
     config = load_config(ConfigurationMode.Training)
-    model = build_model_for_train(config.model)
 
     # Get the configuration values
     training_config: TrainConfig = config.training
@@ -29,16 +29,19 @@ def main() -> None:
     # Set seed for reproducibility
     set_seeds(training_config.seed)
 
+    # Load the model
+    model = build_model_for_train(config.model)
+
     # Get the transforms
-    train_transforms = get_train_transforms(resolution=config.scratch.resolution)
-    val_transforms = get_val_transforms(resolution=config.scratch.resolution)
+    train_transforms = get_transforms(DatasetPhase.Train, config.scratch.resolution, config.scratch.crop_resolution)
+    val_transforms = get_transforms(DatasetPhase.Val, config.scratch.resolution)
 
     # Start training
     start_training(
         model=model,
+        config=config,
         train_transforms=train_transforms,
         val_transforms=val_transforms,
-        config=config,
         logs_directory=logs_directory
     )
 

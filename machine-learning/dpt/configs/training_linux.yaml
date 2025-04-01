@@ -1,0 +1,101 @@
+# @package _global_
+
+# Global configuration
+scratch:
+  resolution: 256 # 256, 512, 1024
+  crop_resolution: null # 320, 640, 1280
+
+# Dataset configuration
+dataset:
+  name: "synthetic-data"
+  root: "/mnt/shared/datasets/processed"
+  batch_size: 8
+  pin_memory: true
+  train:
+    num_workers: 4
+    shuffle: true
+    drop_last: true
+  val:
+    num_workers: 4
+    shuffle: false
+    drop_last: false
+
+# Training configuration
+training:
+  max_epochs: 100
+  warmup_epochs: 2
+  accelerator: cuda
+  seed: 42
+  compile_model: true
+
+  # Criterion configuration
+  criterion:
+    losses: [ "l1_loss", "gradient_loss", "laplacian_pha_loss" ]
+    normalize_weights: true
+    weight_dict:
+      l1_loss: 1.0
+      gradient_loss: 0.5
+      laplacian_pha_loss: 0.5
+
+  # Optimizer configuration
+  optimizer:
+    name: "AdamW"
+    lr: 4e-4
+    weight_decay: 1.0e-7
+    amp:
+      enabled: true
+      amp_dtype: float16
+    gradient_clip:
+      enabled: true
+      max_norm: 0.1
+      norm_type: 2
+
+  # Scheduler configuration
+  scheduler:
+    name: "CosineAnnealingLR"
+    enabled: true
+    parameters:
+      eta_min: 1.0e-7
+
+  # Early stopping configuration
+  early_stopping:
+    enabled: true
+    verbose: true
+    patience: 30
+    min_delta: 0.0
+    monitor: "mae"
+    mode: "min"
+
+  # Logging configuration
+  logging:
+    wandb:
+      enabled: true
+      project: "DPT"
+      entity: "svane20-keyshot"
+      tags: [ "dpt", "intel/dpt-swinv2-tiny-256", "synthetic-data" ]
+      notes: "Training with DPT Swin V2 Tiny 256 backbone on synthetic data."
+      group: "dpt-swinv2-tiny-256"
+      job_type: "training"
+    log_metrics: false
+    log_freq: 10
+    log_images_freq: 10
+    image_log_count: 8
+
+  # Checkpoint configuration
+  checkpoint:
+    save_directory: "/mnt/shared/ml/checkpoints/dpt"
+    save_freq: 5
+    checkpoint_path: "dpt-swinv2-tiny-256_v1.pt"
+    resume_from: null # "/mnt/shared/ml/checkpoints/dpt/<CHECKPOINT>" or null
+
+# Model configuration
+
+# DPT Swin V2 Tiny 256
+model:
+  model_name: "DPTSwinV2Tiny256Matte"
+  encoder:
+    model_name: "Intel/dpt-swinv2-tiny-256"
+  decoder:
+    in_channels: 768
+    convstream_out: [48, 96, 192, 384, 512]
+    fusion_out: [48, 96, 192, 384, 512]

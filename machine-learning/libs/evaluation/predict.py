@@ -1,17 +1,15 @@
 import torch
-import torchvision
+import torchvision.transforms as T
 
 from pathlib import Path
-import random
-from PIL import Image
 import numpy as np
+import cv2
 
+from .utils.utils import get_random_image
 from ..configuration.configuration import Config
-from ..datasets.transforms import Transform
 from ..replacements.foreground_estimation import get_foreground_estimation
 from ..replacements.replacement import replace_background
 from ..training.utils.logger import setup_logging
-
 from .utils.inference import predict_image
 from .utils.visualization import save_prediction
 
@@ -21,65 +19,57 @@ setup_logging(__name__)
 def run_prediction(
         configuration: Config,
         model: torch.nn.Module,
-        transforms: Transform,
+        transforms: T.Compose,
         device: torch.device,
         output_dir: Path,
+        save_image: bool = True,
+        seed: int = None
 ) -> None:
     # Get the test images and masks directories
     dataset_path = Path(configuration.dataset.root) / configuration.dataset.name
     test_dir = dataset_path / "test"
-    images_dir = test_dir / "images"
     masks_dir = test_dir / "masks"
 
-    # Select a random image from the test set
-    image_files = [f for f in images_dir.iterdir() if f.suffix in [".png", ".jpg", ".jpeg"]]
-    chosen_image_path = random.choice(image_files)
-    image = Image.open(chosen_image_path).convert("RGB")
-    image_array = np.asarray(image)
+    # Get random image from the test set
+    image, chosen_image_path = get_random_image(
+        configuration=configuration,
+        output_dir=output_dir,
+        save_image=save_image,
+        seed=seed
+    )
 
     # Get the corresponding mask based on the stem of the image path
     mask_path = masks_dir / f"{chosen_image_path.stem}.png"
-    mask = Image.open(mask_path).convert("L")
-    mask_array = np.asarray(mask)
+    mask = cv2.imread(str(mask_path), flags=0).astype(np.float32) / 255.0
 
     # Predict the mask
-    raw_mask, predicted_mask, metrics = predict_image(
+    predicted_mask, metrics = predict_image(
+        transforms=transforms,
         image=image,
         mask=mask,
         model=model,
-        transform=transforms,
-        device=device
+        device=device,
+        save_dir=output_dir,
+        save_image=save_image,
     )
 
-    # Save the predicted mask
-    torchvision.utils.save_image(raw_mask, output_dir / "output.png")
-
-    # Normalize the alpha mask to [0, 1]
-    if predicted_mask.shape[2] == 4:
-        # Extract the alpha channel properly.
-        predicted_mask = predicted_mask[..., 3].astype(np.float64) / 255.0
-    else:
-        # If there’s no fourth channel, assume the mask is the output.
-        predicted_mask = np.squeeze(predicted_mask, axis=0)
-
-    # Upscale the predicted mask to the original image size
-    predicted_mask = np.array(
-        Image.fromarray((predicted_mask * 255).astype(np.uint8)).resize(
-            (image_array.shape[1], image_array.shape[0]))).astype(
-        np.float32) / 255.0
+    # Downscale the image and ground truth mask to fit the predicted alpha
+    h, w = predicted_mask.shape
+    downscaled_image = cv2.resize(image, dsize=(w, h), interpolation=cv2.INTER_AREA)
+    downscaled_mask = cv2.resize(mask, dsize=(w, h), interpolation=cv2.INTER_AREA)
 
     # Save the prediction
     save_prediction(
-        image=image_array,
+        image=downscaled_image,
         predicted_mask=predicted_mask,
-        gt_mask=mask_array,
+        gt_mask=downscaled_mask,
         metrics=metrics,
         directory=output_dir
     )
 
     # Get the foreground estimation
     foreground, _ = get_foreground_estimation(
-        chosen_image_path,
+        image=downscaled_image,
         alpha_mask=predicted_mask,
         save_dir=output_dir,
         save_foreground=True,

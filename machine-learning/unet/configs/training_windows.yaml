@@ -2,13 +2,14 @@
 
 # Global configuration
 scratch:
-  resolution: 512
+  resolution: 224 # 224, 512, 1024
+  crop_resolution: null # 323, 640, 1280
 
 # Dataset configuration
 dataset:
-  name: "synthetic-data-new"
+  name: "synthetic-data"
   root: "D:/OneDrive/Master Thesis/datasets/processed"
-  batch_size: 16
+  batch_size: 8
   pin_memory: true
   train:
     num_workers: 4
@@ -22,25 +23,24 @@ dataset:
 # Training configuration
 training:
   max_epochs: 100
-  warmup_epochs: 10 # 5-10% of max_epochs
+  warmup_epochs: 2
   accelerator: cuda
   seed: 42
   compile_model: false
 
   # Criterion configuration
   criterion:
-    name: "MattingLossV2"
+    losses: [ "l1_loss", "gradient_loss", "laplacian_pha_loss" ]
+    normalize_weights: true
     weight_dict:
-      boundary: 0.5
-      composition: 1.0
-      gradient: 0.5
-      l1: 1.0
-      laplacian: 1.0
+      l1_loss: 1.0
+      gradient_loss: 0.5
+      laplacian_pha_loss: 0.5
 
   # Optimizer configuration
   optimizer:
     name: "AdamW"
-    lr: 3e-4
+    lr: 4e-4
     weight_decay: 1.0e-7
     amp:
       enabled: true
@@ -72,23 +72,40 @@ training:
       enabled: true
       project: "U-NET"
       entity: "svane20-keyshot"
-      tags: [ "unet", "resnet-34", "synthetic-data" ]
-      notes: "Training U-Net with ResNet-34 backbone on synthetic data."
-      group: "unet"
+      tags: [ "unet", "resnet-50", "synthetic-data" ]
+      notes: "Training with ResNet-50 backbone on synthetic data."
+      group: "resnet_50"
       job_type: "training"
-    log_directory: "./logs"
     log_metrics: false
     log_freq: 10
+    log_images_freq: 10
+    image_log_count: 8
 
   # Checkpoint configuration
   checkpoint:
     save_directory: "D:/OneDrive/Master Thesis/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "unet_v1.pt"
+    checkpoint_path: "resnet_50_224_v1.pt"
     resume_from: null # "D:/OneDrive/Master Thesis/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration
+
+# ResNet-34
+#model:
+#  model_name: "ResNet34Matte"
+#  encoder:
+#    pretrained: true
+#  decoder:
+#    encoder_channels: [ 64, 64, 128, 256, 512 ]
+#    decoder_channels: [ 256, 128, 64, 64 ]
+#    final_channels: 64
+
+# ResNet-50
 model:
+  model_name: "ResNet50Matte"
   encoder:
     pretrained: true
-    freeze_pretrained: false
+  decoder:
+    encoder_channels: [ 64, 256, 512, 1024, 2048 ]
+    decoder_channels: [ 512, 256, 128, 64 ]
+    final_channels: 64

@@ -37,9 +37,12 @@ class Configuration(BaseModel):
     sky_configuration: SkyConfiguration
 
 
-def get_configuration() -> Configuration:
+def get_configuration(is_colab: bool = False) -> Configuration:
     """
     Loads the configuration for the Blender pipeline.
+
+    Args:
+        is_colab (bool): Whether the pipeline is running in Google Colab. Defaults to False.
 
     Returns:
         Configuration: The configuration for the Blender pipeline
@@ -51,6 +54,8 @@ def get_configuration() -> Configuration:
 
     if platform.system() == "Windows":
         configuration_path: Path = configs_directory / "configuration_windows.json"
+    elif is_colab:
+        configuration_path: Path = configs_directory / "configuration_colab.json"
     else:  # Assume Linux for any non-Windows OS
         configuration_path: Path = configs_directory / "configuration_linux.json"
 

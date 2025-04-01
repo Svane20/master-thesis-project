@@ -1,26 +1,12 @@
 import logging
 from typing import Dict
-
-from PIL import Image
+import os
 from pathlib import Path
 import numpy as np
+import cv2
+
+os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 import matplotlib.pyplot as plt
-
-
-def resize_to_match(image: np.ndarray, target_shape: tuple) -> np.ndarray:
-    """
-    Resize an image or mask to match the target shape.
-
-    Args:
-        image (np.ndarray): Input image or mask.
-        target_shape (tuple): Desired shape (height, width).
-
-    Returns:
-        np.ndarray: Resized image or mask.
-    """
-    pil_image = Image.fromarray((image * 255).astype(np.uint8) if image.dtype != np.uint8 else image)
-    resized_pil = pil_image.resize((target_shape[1], target_shape[0]), Image.BILINEAR)
-    return np.array(resized_pil, dtype=np.float32) / 255.0 if image.dtype != np.uint8 else np.array(resized_pil)
 
 
 def save_prediction(
@@ -51,32 +37,29 @@ def save_prediction(
     if alpha_mask.ndim == 3 and alpha_mask.shape[0] == 1:
         alpha_mask = alpha_mask.squeeze(0)
 
-    # Resize all images to match the predicted mask dimensions
-    target_shape = alpha_mask.shape
-    image_resized = resize_to_match(image, target_shape)
-    gt_mask_resized = resize_to_match(gt_mask, target_shape)
-
     # Create figure with 2 rows and 2 columns
     fig, ax = plt.subplots(2, 2, figsize=(14, 10))
 
     # Display input image
-    ax[0, 0].imshow(image_resized)
+    ax[0, 0].imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
     ax[0, 0].set_title("Input Image", fontsize=12)
     ax[0, 0].axis("off")
 
     # Display metrics
-    metrics_str = "\n".join([f"{key}: {value:.3f}" for key, value in metrics.items()])
+    formatted_lines = [f"{key:<15s}: {value}" for key, value in metrics.items()]
+    metrics_str = "\n".join(formatted_lines)
+    metrics_title = "Evaluation Summary"
     ax[0, 1].text(
-        0.5, 0.5, metrics_str, fontsize=14, ha="center", va="center",
-        bbox=dict(facecolor="white", alpha=0.8, edgecolor="black")
+        0.5, 0.5, f"{metrics_title}\n\n{metrics_str}",
+        fontsize=12, ha="center", va="center",
+        fontfamily="monospace",  # Better alignment
+        bbox=dict(facecolor="white", alpha=0.9, edgecolor="black", boxstyle="round,pad=1")
     )
     ax[0, 1].set_title("Evaluation Metrics", fontsize=12)
     ax[0, 1].axis("off")
 
     # Display ground truth mask
-    gt_mask_stretched = (gt_mask_resized - 0.93) / (1 - 0.93)
-    gt_mask_stretched = np.clip(gt_mask_stretched, 0, 1)
-    ax[1, 0].imshow(gt_mask_stretched, cmap="gray", vmin=0, vmax=1)
+    ax[1, 0].imshow(gt_mask, cmap="gray")
     ax[1, 0].set_title("Ground Truth Mask", fontsize=12)
     ax[1, 0].axis("off")
 

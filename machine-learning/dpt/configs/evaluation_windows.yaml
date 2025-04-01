@@ -1,0 +1,31 @@
+# Global configuration
+scratch:
+  resolution: 256
+
+# Dataset configuration
+dataset:
+  name: "synthetic-data"
+  root: "D:/OneDrive/Master Thesis/datasets/processed"
+  batch_size: 16
+  pin_memory: true
+  test:
+    num_workers: 4
+    shuffle: false
+    drop_last: false
+
+# Inference configuration
+evaluation:
+  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/dpt/dpt-swinv2-tiny-256_v1.pt"
+  compile_model: false
+
+# Model configuration
+
+# DPT Swin V2 Tiny 256
+model:
+  model_name: "DPTSwinV2Tiny256Matte"
+  encoder:
+    model_name: "Intel/dpt-swinv2-tiny-256"
+  decoder:
+    in_channels: 768
+    convstream_out: [48, 96, 192, 384, 512]
+    fusion_out: [48, 96, 192, 384, 512]

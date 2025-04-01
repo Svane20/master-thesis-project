@@ -24,7 +24,7 @@
     }
   ],
   "constants": {
-    "playground_directory": "/mnt/shared/datasets/raw/synthetic-data-new",
+    "playground_directory": "/mnt/shared/datasets/raw/synthetic-data",
     "save_blend_files": false,
     "render_images": true,
     "num_iterations": 8,
@@ -166,7 +166,8 @@
         "exclude": [
           "_hidden",
           "Modern House.002",
-          "House.007"
+          "House.007",
+          "Smart House"
         ]
       },
       {
