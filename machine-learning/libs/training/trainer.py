@@ -633,7 +633,7 @@ class Trainer:
 
         # Save the checkpoint
         base_name, ext = os.path.splitext(self.checkpoint_config.checkpoint_path)
-        checkpoint_filename = f"{base_name}{prefix}{ext}" if prefix else f"{base_name}{ext}"
+        checkpoint_filename = f"{base_name}_{prefix}{ext}" if prefix else f"{base_name}{ext}"
         checkpoint_path = save_directory / checkpoint_filename
 
         checkpoint = {
