@@ -106,7 +106,7 @@ class MattingCriterion(CriterionBase):
     ) -> torch.Tensor:
         # Handle the case in validation where there are no FG and BG
         if fg is None or bg is None:
-            return torch.tensor(0.0, device=pred.device)
+            return torch.tensor(0.0, dtype=pred.dtype, device=pred.device)
 
         comp_pred = pred * fg + (1 - pred) * bg
         comp_gt = target * fg + (1 - target) * bg
