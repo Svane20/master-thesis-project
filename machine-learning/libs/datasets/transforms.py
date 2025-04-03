@@ -206,6 +206,33 @@ class RandomJitter(object):
         image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
         sample['image'] = image * 255
 
+        hue_shift_float = float(hue_jitter)
+
+        for key in ["fg", "bg"]:
+            if key in sample and sample[key] is not None:
+                # Convert to HSV
+                # (No alpha check here, because 'fg' or 'bg' presumably is already a separate "layer")
+                hsv = cv2.cvtColor(sample[key].astype(np.float32) / 255.0, cv2.COLOR_BGR2HSV)
+
+                # Apply the same hue shift
+                hsv[:, :, 0] = np.remainder(hsv[:, :, 0] + hue_shift_float, 360)
+
+                # Apply sat_jitter
+                s = hsv[:, :, 1]
+                s = np.abs(s + sat_jitter)
+                s[s > 1] = 2 - s[s > 1]
+                hsv[:, :, 1] = s
+
+                # Apply val_jitter
+                v = hsv[:, :, 2]
+                v = np.abs(v + val_jitter)
+                v[v > 1] = 2 - v[v > 1]
+                hsv[:, :, 2] = v
+
+                # Convert back
+                bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
+                sample[key] = bgr * 255
+
         return sample
 
 
@@ -238,40 +265,68 @@ class RandomHorizontalFlip(object):
 
 
 class TopBiasedRandomCrop(object):
-    def __init__(self, output_size=(512, 512), top_crop_ratio=0.4):
+    def __init__(
+            self,
+            output_size=(512, 512),
+            top_crop_ratio=0.4,
+            low_threshold: float = 0.0,
+            high_threshold: float = 1.0,
+    ):
         """
         Args:
             output_size (tuple): Desired crop size (H, W).
             top_crop_ratio (float): Proportion of the height to consider as top region (e.g., 0.4 = top 40%).
+            low_threshold (float): Lower bound of the output image (e.g., 0.0).
+            high_threshold (float): Upper bound of the output image (e.g., 1.0).
         """
         self.output_size = output_size
         self.top_crop_ratio = top_crop_ratio
+        self.low_threshold = low_threshold
+        self.high_threshold = high_threshold
 
     def __call__(self, sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-        image, alpha = sample['image'], sample['alpha']
+        image = sample['image']
         h, w, _ = image.shape
         crop_h, crop_w = self.output_size
 
-        max_y = max(h - crop_h, 1)
-        max_x = max(w - crop_w, 1)
+        max_y = max(h - crop_h, 0)
+        max_x = max(w - crop_w, 0)
 
-        # Restrict vertical crop start within top region
-        top_limit_y = int(max_y * self.top_crop_ratio)
-        start_y = random.randint(0, max(1, top_limit_y))
+        # Default: use top-biased random crop.
+        start_y = random.randint(0, max(1, int(max_y * self.top_crop_ratio))) if max_y > 0 else 0
+        start_x = random.randint(0, max_x) if max_x > 0 else 0
 
-        # X remains uniform
-        start_x = random.randint(0, max_x)
+        # If alpha exists, try to focus on the intermediate region.
+        if "alpha" in sample and sample["alpha"] is not None:
+            alpha = sample["alpha"]
 
-        # Apply crop
+            # Define thresholds for intermediate values (you can adjust these)
+            intermediate_mask = (alpha > self.low_threshold) & (alpha < self.high_threshold)
+
+            if np.any(intermediate_mask):
+                # Get bounding box coordinates of the intermediate area
+                coords = np.argwhere(intermediate_mask)
+                y_min, x_min = coords.min(axis=0)
+                y_max, x_max = coords.max(axis=0)
+
+                # Compute the center of the bounding box
+                center_y = (y_min + y_max) // 2
+                center_x = (x_min + x_max) // 2
+
+                # Set start positions so that the crop is centered around the intermediate region,
+                # ensuring they fall within valid limits.
+                start_y = max(0, min(center_y - crop_h // 2, max_y))
+                start_x = max(0, min(center_x - crop_w // 2, max_x))
+
+        # Apply crop to image and alpha.
         sample["image"] = image[start_y:start_y + crop_h, start_x:start_x + crop_w, :]
-        sample["alpha"] = alpha[start_y:start_y + crop_h, start_x:start_x + crop_w]
+        if "alpha" in sample:
+            sample["alpha"] = sample["alpha"][start_y:start_y + crop_h, start_x:start_x + crop_w]
 
         if "trimap" in sample and sample["trimap"] is not None:
             sample["trimap"] = sample["trimap"][start_y:start_y + crop_h, start_x:start_x + crop_w]
-
         if "fg" in sample and sample["fg"] is not None:
             sample["fg"] = sample["fg"][start_y:start_y + crop_h, start_x:start_x + crop_w, :]
-
         if "bg" in sample and sample["bg"] is not None:
             sample["bg"] = sample["bg"][start_y:start_y + crop_h, start_x:start_x + crop_w, :]
 

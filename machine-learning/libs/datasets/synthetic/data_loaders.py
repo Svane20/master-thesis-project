@@ -7,13 +7,20 @@ from .synthetic_dataset import SyntheticDataset, DatasetPhase
 from ...configuration.dataset import DatasetConfig
 
 
-def create_train_data_loader(config: DatasetConfig, transforms: T.Compose) -> DataLoader[SyntheticDataset]:
+def create_train_data_loader(
+        config: DatasetConfig,
+        transforms: T.Compose,
+        use_trimap: bool = False,
+        use_composition: bool = False,
+) -> DataLoader[SyntheticDataset]:
     """
     Create a data loader for the training phase.
     
     Args:
         config (DatasetConfig): The configuration of the dataset.
         transforms (transforms.Compose): Transforms to apply to the data.
+        use_trimap (bool): Whether to use trimap images or not.
+        use_composition (bool): Whether to use composition images or not.
 
     Returns:
         DataLoader[SyntheticDataset]: The data loader for the training phase.
@@ -24,7 +31,9 @@ def create_train_data_loader(config: DatasetConfig, transforms: T.Compose) -> Da
         phase=DatasetPhase.Train,
         num_workers=config.train.num_workers,
         shuffle=config.train.shuffle,
-        drop_last=config.train.drop_last
+        drop_last=config.train.drop_last,
+        use_trimap=use_trimap,
+        use_composition=use_composition,
     )
 
 
@@ -77,6 +86,8 @@ def create_data_loader(
         num_workers: int,
         shuffle: bool = True,
         drop_last: bool = True,
+        use_trimap: bool = False,
+        use_composition: bool = False
 ) -> DataLoader[SyntheticDataset]:
     """
     Create a data loader for the given phase.
@@ -88,13 +99,21 @@ def create_data_loader(
         num_workers (int): The number of workers for the data loader.
         shuffle (bool, optional): Whether to shuffle the data. Defaults to True.
         drop_last (bool, optional): Whether to drop the last batch if it is smaller than the batch size. Defaults to True.
+        use_trimap (bool, optional): Whether to use trimap images. Defaults to False.
+        use_composition (bool, optional): Whether to use composition images. Defaults to False.
         
     Returns:
         DataLoader[SyntheticDataset]: The data loader for the given phase.
     """
     root_directory = os.path.join(config.root, config.name)
 
-    dataset = SyntheticDataset(root_directory=root_directory, transforms=transforms, phase=phase)
+    dataset = SyntheticDataset(
+        root_directory=root_directory,
+        transforms=transforms,
+        phase=phase,
+        use_trimap=use_trimap,
+        use_composition=use_composition,
+    )
 
     return DataLoader(
         dataset,

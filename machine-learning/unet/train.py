@@ -42,7 +42,9 @@ def main() -> None:
         config=config,
         train_transforms=train_transforms,
         val_transforms=val_transforms,
-        logs_directory=logs_directory
+        logs_directory=logs_directory,
+        use_trimap=True,
+        use_composition=True,
     )
 
 

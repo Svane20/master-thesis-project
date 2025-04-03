@@ -553,7 +553,7 @@ class Trainer:
         outputs = self.model(inputs)
 
         # Calculate losses
-        losses = self.criterion(outputs, targets, trimap=trimap, image=inputs, fg=fg, bg=bg)
+        losses = self.criterion(outputs, targets, trimap=trimap, fg=fg, bg=bg)
 
         # Extract the core loss and step losses
         loss = {}
