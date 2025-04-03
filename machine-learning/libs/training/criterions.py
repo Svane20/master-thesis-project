@@ -269,17 +269,12 @@ if __name__ == "__main__":
         losses = criterion(predictions, targets, trimap=trimap, fg=fg, bg=bg)
 
         # Print losses
-        # Print losses
         for name, loss in losses.items():
             print(f"{name}: {loss.item()}")
 
     # Compute the logs
     logs = criterion.log_dict()
     print(f"Logs: {logs}")
-
-    # Compute the total loss
-    total_loss = losses["core_loss"]
-    print("Total loss:", total_loss)
 
     # Print criterion state dict
     print(f"Criterion state dict: {criterion.state_dict()}")
