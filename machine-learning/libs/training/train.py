@@ -12,7 +12,7 @@ def start_training(
         config: Config,
         train_transforms: T.Compose,
         val_transforms: T.Compose,
-        logs_directory: Path,
+        logs_directory: Path
 ) -> None:
     """
     Start the training process.
