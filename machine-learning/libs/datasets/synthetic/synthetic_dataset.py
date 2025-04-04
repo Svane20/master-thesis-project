@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 import torchvision.transforms as T
 
 import os
@@ -8,8 +8,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 from enum import Enum
 from typing import Dict
-from tqdm import tqdm
-from PIL import Image
 
 from libs.configuration.configuration import get_configuration, ConfigurationMode, ConfigurationSuffix
 from libs.datasets.transforms import RandomAffine, RandomJitter, ToTensor, Normalize, Rescale, TopBiasedRandomCrop
@@ -223,40 +221,3 @@ if __name__ == "__main__":
     )
     train_sample = train_dataset[3]
     debug_sample(train_sample)
-
-    train_data_loader = DataLoader(
-        train_dataset,
-        batch_size=16,
-        shuffle=True,
-        num_workers=max(1, 8),
-        persistent_workers=True,
-        pin_memory=True,
-        drop_last=True
-    )
-
-    try:
-        img = Image.open('/mnt/shared/datasets/processed/synthetic-data/train/fg/1396.png')
-        img.verify()
-    except Exception as e:
-        print(f"Failed to verify image: {e}")
-
-    # for batch_idx, sample in enumerate(tqdm(train_data_loader, total=len(train_data_loader))):
-    #     image = sample["image"]
-    #     if image is None:
-    #         print(f"Missing image for batch {batch_idx}")
-    #
-    #     alpha = sample["alpha"]
-    #     if alpha is None:
-    #         print(f"Missing alpha for batch {batch_idx}")
-    #
-    #     trimap = sample["trimap"]
-    #     if trimap is None:
-    #         print(f"Missing trimap for batch {batch_idx}")
-    #
-    #     fg = sample["fg"]
-    #     if fg is None:
-    #         print(f"Missing fg for batch {batch_idx}")
-    #
-    #     bg = sample["bg"]
-    #     if bg is None:
-    #         print(f"Missing bg for batch {batch_idx}")
