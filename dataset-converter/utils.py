@@ -45,3 +45,57 @@ def collect_samples(directory: Path) -> Dict[str, Dict[str, Path]]:
             )
 
     return samples
+
+def collect_samples_extra(directory: Path) -> Dict[str, Dict[str, Path]]:
+    """
+    Collect the samples from the specified directory.
+
+    Args:
+        directory (Path): The directory containing the data.
+
+    Returns:
+        Dict[str, Dict[str, Path]]: A dictionary containing the samples.
+    """
+    samples = {}
+
+    images_folder = directory / "images"
+    masks_folder = directory / "masks"
+    trimaps_folder = directory / "trimaps"
+    fg_folder = directory / "fg"
+    bg_folder = directory / "bg"
+
+    for image_file in images_folder.glob("*.jpg"):
+        sample_id = f"{directory.name}_{image_file.name}"
+
+        sample = {"image": image_file}
+        sample["mask"] = masks_folder / f"{image_file.stem}.png"
+        sample["trimap"] = trimaps_folder / f"{image_file.stem}.png"
+        sample["fg"] = fg_folder / f"{image_file.stem}.png"
+        sample["bg"] = bg_folder / f"{image_file.stem}.png"
+
+        samples[sample_id] = sample
+
+    # Check for missing corresponding files
+    for sample_id, sample in samples.items():
+        if "mask" not in sample:
+            raise ValueError(
+                f"Missing mask for image '{sample['image'].name}' in folder '{sample['image'].parent}' for sample: '{sample_id}'"
+            )
+        if "image" not in sample:
+            raise ValueError(
+                f"Missing image for mask '{sample['mask'].name}' in folder '{sample['mask'].parent}' for sample: '{sample_id}'"
+            )
+        if "trimap" not in sample:
+            raise ValueError(
+                f"Missing trimap for image '{sample['image'].name}' in folder '{sample['image'].parent}' for sample: '{sample_id}'"
+            )
+        if "fg" not in sample:
+            raise ValueError(
+                f"Missing fg for image '{sample['image'].name}' in folder '{sample['image'].parent}' for sample: '{sample_id}'"
+            )
+        if "bg" not in sample:
+            raise ValueError(
+                f"Missing bg for image '{sample['image'].name}' in folder '{sample['image'].parent}' for sample: '{sample_id}'"
+            )
+
+    return samples
