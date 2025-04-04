@@ -9,7 +9,7 @@ scratch:
 dataset:
   name: "synthetic-data"
   root: "C:/Users/svane/Desktop/Thesis/datasets"
-  batch_size: 8
+  batch_size: 2
   pin_memory: true
   train:
     num_workers: 4

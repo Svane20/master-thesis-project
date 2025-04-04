@@ -28,7 +28,7 @@ training:
   warmup_epochs: 2
   accelerator: cuda
   seed: 42
-  compile_model: true
+  compile_model: false
 
   # Criterion configuration
   criterion:
