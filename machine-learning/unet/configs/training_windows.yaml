@@ -8,7 +8,7 @@ scratch:
 # Dataset configuration
 dataset:
   name: "synthetic-data"
-  root: "/mnt/shared/datasets/processed"
+  root: "C:/Users/svane/Desktop/Thesis/datasets"
   batch_size: 8
   pin_memory: true
   train:
