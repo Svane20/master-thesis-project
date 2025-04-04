@@ -19,7 +19,7 @@ def collect_samples(directory: Path) -> Dict[str, Dict[str, Path]]:
             images_folder = folder / "images"
             masks_folder = folder / "masks"
 
-            for image_file in images_folder.glob("*.jpg"):
+            for image_file in sorted(images_folder.glob("*.jpg")):
                 sample_id = f"{folder.name}_{image_file.name}"
                 sample = {"image": image_file}
 
@@ -64,7 +64,7 @@ def collect_samples_extra(directory: Path) -> Dict[str, Dict[str, Path]]:
     fg_folder = directory / "fg"
     bg_folder = directory / "bg"
 
-    for image_file in images_folder.glob("*.jpg"):
+    for image_file in sorted(images_folder.glob("*.jpg")):
         sample_id = f"{directory.name}_{image_file.name}"
 
         sample = {"image": image_file}

@@ -6,7 +6,6 @@ import os
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 from enum import Enum
 from typing import Dict
 
@@ -31,17 +30,23 @@ class SyntheticDataset(Dataset):
             self,
             root_directory: str,
             transforms: T.Compose,
-            phase: DatasetPhase = DatasetPhase.Train
+            phase: DatasetPhase = DatasetPhase.Train,
+            use_trimap: bool = False,
+            use_composition: bool = False,
     ) -> None:
         """
         Args:
             root_directory (str): Root directory of the dataset.
             transforms (transforms.Compose): Transform to apply to the data.
             phase (str): Phase of the dataset. Default: "train".
+            use_trimap (bool): If True, use trimap images. Default: False.
+            use_composition (bool): If True, use composition images. Default: False.
         """
         super().__init__()
 
         self.phase = phase
+        self.use_trimap = use_trimap
+        self.use_composition = use_composition
         self.transforms = transforms
 
         base_directory = os.path.join(root_directory, phase)
@@ -54,6 +59,23 @@ class SyntheticDataset(Dataset):
             for f in os.listdir(os.path.join(base_directory, "masks"))
         ])
 
+        if phase == DatasetPhase.Train:
+            if use_trimap:
+                self.trimap_paths = sorted([
+                    os.path.join(base_directory, "trimaps", f)
+                    for f in os.listdir(os.path.join(base_directory, "trimaps"))
+                ])
+
+            if use_composition:
+                self.fg_paths = sorted([
+                    os.path.join(base_directory, "fg", f)
+                    for f in os.listdir(os.path.join(base_directory, "fg"))
+                ])
+                self.bg_paths = sorted([
+                    os.path.join(base_directory, "bg", f)
+                    for f in os.listdir(os.path.join(base_directory, "bg"))
+                ])
+
     def _safe_listdir(self, path: str):
         return sorted([os.path.join(path, f) for f in os.listdir(path)]) if os.path.exists(path) else []
 
@@ -62,9 +84,34 @@ class SyntheticDataset(Dataset):
 
     def __getitem__(self, idx: int):
         image = cv2.imread(self.images_paths[idx])
-        alpha = cv2.imread(self.alpha_paths[idx], flags=0).astype(np.float32) / 255.0
+        if image is None:
+            raise ValueError(f"Failed to read image at {self.images_paths[idx]}")
+        sample = {"image": image}
 
-        return self.transforms({"image": image, "alpha": alpha})
+        alpha = cv2.imread(self.alpha_paths[idx], flags=0)
+        if alpha is None:
+            raise ValueError(f"Failed to read alpha mask at {self.alpha_paths[idx]}")
+        sample["alpha"] = alpha.astype(np.float32) / 255.0
+
+        if self.phase == DatasetPhase.Train:
+            if self.use_trimap:
+                trimap = cv2.imread(self.trimap_paths[idx], flags=0)
+                if trimap is None:
+                    raise ValueError(f"Failed to read trimap at {self.trimap_paths[idx]}")
+                sample["trimap"] = trimap.astype(np.float32) / 255.0
+
+            if self.use_composition:
+                fg = cv2.imread(self.fg_paths[idx])
+                if fg is None:
+                    raise ValueError(f"Failed to read foreground at {self.fg_paths[idx]}")
+                sample["fg"] = fg
+
+                bg = cv2.imread(self.bg_paths[idx])
+                if bg is None:
+                    raise ValueError(f"Failed to read background at {self.bg_paths[idx]}")
+                sample["bg"] = bg
+
+        return self.transforms(sample)
 
 
 def debug_sample(sample: Dict[str, torch.Tensor]):
@@ -78,26 +125,69 @@ def debug_sample(sample: Dict[str, torch.Tensor]):
     print(f"Image range: [{image.min().item():.3f}, {image.max().item():.3f}]")
     print(f"Alpha range: [{alpha.min().item():.3f}, {alpha.max().item():.3f}]")
 
+    if "trimap" in sample:
+        trimap = sample["trimap"]
+
+        assert trimap.ndim == 3 and trimap.shape[0] == 1, "Trimap should be [1, H, W]"
+        print(f"Trimap unique values: {torch.unique(trimap)}")
+
+        sample_map = (trimap == 0.5).float()
+        print(f"Sample map unique values: {torch.unique(sample_map)}")
+
+    if "fg" in sample:
+        fg = sample["fg"]
+
+        assert fg.shape == image.shape, "FG must match image shape"
+        print(f"FG range: [{fg.min().item():.3f}, {fg.max().item():.3f}]")
+
+    if "bg" in sample:
+        bg = sample["bg"]
+
+        assert bg.shape == image.shape, "BG must match image shape"
+        print(f"BG range: [{bg.min().item():.3f}, {bg.max().item():.3f}]")
+
     def denormalize(img, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
         mean = torch.tensor(mean).view(3, 1, 1).to(img.device)
         std = torch.tensor(std).view(3, 1, 1).to(img.device)
         return img * std + mean
 
+    # Prepare a list of items to visualize
+    items = []
+
+    # Image
     image_vis = denormalize(image).permute(1, 2, 0).clamp(0, 1).cpu().numpy()
+    items.append(("Image", image_vis, "rgb"))
+
+    # Alpha
     alpha_vis = alpha.squeeze().cpu().numpy()
+    items.append(("Alpha", alpha_vis, "gray"))
 
-    fig = plt.figure(figsize=(18, 10))
-    gs = gridspec.GridSpec(1, 2)
+    # Trimap
+    if "trimap" in sample:
+        trimap = sample["trimap"]
+        trimap_vis = trimap.squeeze().cpu().numpy()
+        items.append(("Trimap", trimap_vis, "gray"))
 
-    ax_image = fig.add_subplot(gs[0, 0])
-    ax_image.imshow(image_vis)
-    ax_image.set_title("Normalized RGB Image")
-    ax_image.axis("off")
+    # Foreground
+    if "fg" in sample:
+        fg = sample["fg"]
+        fg_vis = denormalize(fg).permute(1, 2, 0).clamp(0, 1).cpu().numpy()
+        items.append(("FG", fg_vis, "rgb"))
 
-    ax_alpha = fig.add_subplot(gs[0, 1])
-    ax_alpha.imshow(alpha_vis, cmap="gray")
-    ax_alpha.set_title("Alpha Mask (0=FG, 1=BG)")
-    ax_alpha.axis("off")
+    # Background
+    if "bg" in sample:
+        bg = sample["bg"]
+        bg_vis = denormalize(bg).permute(1, 2, 0).clamp(0, 1).cpu().numpy()
+        items.append(("BG", bg_vis, "rgb"))
+
+    # Create subplots based on the number of items to visualize
+    num_items = len(items)
+    fig, axes = plt.subplots(1, num_items, figsize=(6 * num_items, 5))
+
+    for ax, (title, img, cmap) in zip(axes, items):
+        ax.imshow(img, cmap=cmap if cmap == "gray" else None)
+        ax.set_title(title)
+        ax.axis("off")
 
     plt.tight_layout()
     plt.show()
@@ -110,7 +200,12 @@ if __name__ == "__main__":
     # Create transforms for the training phase
     train_transforms = T.Compose([
         RandomAffine(degrees=30, scale=[0.8, 1.25], shear=10, flip=0.5),
-        TopBiasedRandomCrop(output_size=(224, 224), top_crop_ratio=0.4),
+        TopBiasedRandomCrop(
+            output_size=(224, 224),
+            top_crop_ratio=0.4,
+            low_threshold=0.1,
+            high_threshold=0.9,
+        ),
         RandomJitter(),
         ToTensor(),
         Rescale(scale=1 / 255.0),
@@ -121,6 +216,8 @@ if __name__ == "__main__":
         root_directory=root_directory,
         transforms=train_transforms,
         phase=DatasetPhase.Train,
+        use_trimap=True,
+        use_composition=True,
     )
-    sample = train_dataset[3]
-    debug_sample(sample)
+    train_sample = train_dataset[3]
+    debug_sample(train_sample)

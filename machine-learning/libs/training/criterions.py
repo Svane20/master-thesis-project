@@ -9,9 +9,9 @@ class MattingCriterion(CriterionBase):
     SUPPORTED_LOSSES = {
         "l1_loss",
         "gradient_loss",
+        "laplacian_pha_loss",
         "unknown_l1_loss",
         "known_l1_loss",
-        "laplacian_pha_loss",
         "composition_loss"
     }
 
@@ -49,24 +49,34 @@ class MattingCriterion(CriterionBase):
         grad_target_y = F.conv2d(target, weight=sobel_y, padding=1)
 
         if sample_map is not None:
-            return (
-                    F.l1_loss(grad_pred_x * sample_map, grad_target_x * sample_map) +
-                    F.l1_loss(grad_pred_y * sample_map, grad_target_y * sample_map) +
-                    penalty_weight * torch.mean(torch.abs(grad_pred_x * sample_map)) +
-                    penalty_weight * torch.mean(torch.abs(grad_pred_y * sample_map))
-            ) * self._safe_scale(sample_map)
+            loss_val = (F.l1_loss(grad_pred_x * sample_map, grad_target_x * sample_map) +
+                        F.l1_loss(grad_pred_y * sample_map, grad_target_y * sample_map))
+            reg_val = penalty_weight * (torch.mean(torch.abs(grad_pred_x * sample_map)) +
+                                        torch.mean(torch.abs(grad_pred_y * sample_map)))
 
-        return (
-                F.l1_loss(grad_pred_x, grad_target_x) +
-                F.l1_loss(grad_pred_y, grad_target_y) +
-                penalty_weight * torch.mean(torch.abs(grad_pred_x)) +
-                penalty_weight * torch.mean(torch.abs(grad_pred_y))
-        )
+            return (loss_val + reg_val) * self._safe_scale(sample_map)
+
+        loss_val = F.l1_loss(grad_pred_x, grad_target_x) + F.l1_loss(grad_pred_y, grad_target_y)
+        reg_val = penalty_weight * (torch.mean(torch.abs(grad_pred_x)) +
+                                    torch.mean(torch.abs(grad_pred_y)))
+        return loss_val + reg_val
 
     @register_loss(name="laplacian_pha_loss", signature=())
-    def laplacian_pha_loss(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        return laplacian_loss(pred, target)
+    def laplacian_pha_loss(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            max_levels: int = 5
+    ) -> torch.Tensor:
+        kernel = gauss_kernel(device=pred.device, dtype=pred.dtype)
+        pred_pyramid = laplacian_pyramid(pred, kernel, max_levels)
+        target_pyramid = laplacian_pyramid(target, kernel, max_levels)
 
+        loss = 0
+        for level in range(max_levels):
+            loss += (2 ** level) * F.l1_loss(pred_pyramid[level], target_pyramid[level])
+
+        return loss / max_levels
 
     @register_loss(name="unknown_l1_loss", signature=("sample_map",))
     def unknown_l1_loss(
@@ -86,45 +96,26 @@ class MattingCriterion(CriterionBase):
             return F.l1_loss(pred * known_map, target * known_map) * self._safe_scale(known_map)
         return F.l1_loss(pred, target)
 
+    @register_loss(name="composition_loss", signature=("fg", "bg"))
+    def composition_loss(
+            self,
+            pred: torch.Tensor,
+            target: torch.Tensor,
+            fg: torch.Tensor = None,
+            bg: torch.Tensor = None
+    ) -> torch.Tensor:
+        # Handle the case in validation where there are no FG and BG
+        if fg is None or bg is None:
+            return torch.tensor(0.0, dtype=pred.dtype, device=pred.device)
+
+        comp_pred = pred * fg + (1 - pred) * bg
+        comp_gt = target * fg + (1 - target) * bg
+
+        return torch.abs(comp_pred - comp_gt).mean()
+
     def _safe_scale(self, mask: torch.Tensor, default_area: int = 262144, epsilon: float = 1e-6) -> torch.Tensor:
         total = torch.sum(mask)
         return mask.shape[0] * default_area / (total + epsilon)
-
-
-def composition_loss(
-        pred: torch.Tensor,
-        gt: torch.Tensor,
-        image: torch.Tensor = None,
-        fg: torch.Tensor = None,
-        bg: torch.Tensor = None
-) -> torch.Tensor:
-    """
-    Composition loss ensures that the predicted alpha, when used to composite the image,
-    reconstructs the ground truth composite.
-    If fg and bg are not available, it uses the provided image (assumed to be the composite)
-    and multiplies by alpha (i.e. black background for (1-alpha)).
-    """
-    if fg is not None and bg is not None:
-        comp_pred = pred * fg + (1 - pred) * bg
-        comp_gt = gt * fg + (1 - gt) * bg
-    elif image is not None:
-        comp_pred = pred * image
-        comp_gt = gt * image
-    else:
-        raise ValueError("For composition loss, either (fg, bg) or image must be provided.")
-
-    loss = torch.abs(comp_pred - comp_gt).mean()
-    return loss
-
-
-def laplacian_loss(pred: torch.Tensor, target: torch.Tensor, max_levels=5):
-    kernel = gauss_kernel(device=pred.device, dtype=pred.dtype)
-    pred_pyramid = laplacian_pyramid(pred, kernel, max_levels)
-    target_pyramid = laplacian_pyramid(target, kernel, max_levels)
-    loss = 0
-    for level in range(max_levels):
-        loss += (2 ** level) * F.l1_loss(pred_pyramid[level], target_pyramid[level])
-    return loss / max_levels
 
 
 def laplacian_pyramid(img, kernel, max_levels):
@@ -236,24 +227,36 @@ if __name__ == "__main__":
     # Generate some random predictions and ground truth
     dtype = torch.float16
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    predictions = torch.rand((4, 1, 256, 256), dtype=dtype, requires_grad=True).to(device)
-    targets = torch.rand((4, 1, 256, 256), dtype=dtype).to(device)
-    images = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
-    trimap = torch.rand((4, 1, 256, 256), dtype=dtype).to(device)
+    batch_size = 1
+    image_size = 224
+
+    predictions = torch.rand((batch_size, 1, image_size, image_size), dtype=dtype, requires_grad=True).to(device)
+    targets = torch.rand((batch_size, 1, image_size, image_size), dtype=dtype).to(device)
+    trimap = torch.rand((batch_size, 1, image_size, image_size), dtype=dtype).to(device)
     trimap[trimap == 0] = 0.0
     trimap[trimap == 128] = 0.5
     trimap[trimap == 255] = 1.0
-    fg = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
-    bg = torch.rand((4, 3, 256, 256), dtype=dtype).to(device)
+    fg = torch.rand((batch_size, 3, image_size, image_size), dtype=dtype).to(device)
+    bg = torch.rand((batch_size, 3, image_size, image_size), dtype=dtype).to(device)
 
     # Initialize the loss function
     criterion = MattingCriterion(
         BaseCriterionConfig(
-            losses=["l1_loss", "gradient_loss", "laplacian_pha_loss"],
+            losses=[
+                "l1_loss",
+                "gradient_loss",
+                "laplacian_pha_loss",
+                "unknown_l1_loss",
+                "known_l1_loss",
+                "composition_loss"
+            ],
             weight_dict={
                 "l1_loss": 1.0,
                 "gradient_loss": 0.5,
                 "laplacian_pha_loss": 0.5,
+                "unknown_l1_loss": 1.0,
+                "known_l1_loss": 0.1,
+                "composition_loss": 1.0
             },
             normalize_weights=True
         ),
@@ -263,9 +266,8 @@ if __name__ == "__main__":
 
     with torch.amp.autocast(device_type=device.type, enabled=torch.cuda.is_available(), dtype=dtype):
         # Compute the loss
-        losses = criterion(predictions, targets, trimap=trimap, image=images, fg=fg, bg=bg)
+        losses = criterion(predictions, targets, trimap=trimap, fg=fg, bg=bg)
 
-        # Print losses
         # Print losses
         for name, loss in losses.items():
             print(f"{name}: {loss.item()}")
@@ -273,10 +275,6 @@ if __name__ == "__main__":
     # Compute the logs
     logs = criterion.log_dict()
     print(f"Logs: {logs}")
-
-    # Compute the total loss
-    total_loss = losses["core_loss"]
-    print("Total loss:", total_loss)
 
     # Print criterion state dict
     print(f"Criterion state dict: {criterion.state_dict()}")

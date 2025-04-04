@@ -1,50 +1,72 @@
 import logging
 from pathlib import Path
+from PIL import Image
+from tqdm.auto import tqdm
+import json
 
 from configuration.root import get_configurations
 from custom_logging.custom_logger import setup_logging
 from utils import collect_samples_extra
+
+
+def verify_image_file(file_path: Path) -> bool:
+    """
+    Try to open and verify an image file.
+    Returns True if the image is valid, False otherwise.
+    """
+    try:
+        with Image.open(file_path) as img:
+            img.verify()  # Verify that the image is not corrupted
+        return True
+    except Exception as e:
+        logging.error(f"Invalid image file: {file_path} - {e}")
+        return False
+
 
 def validate_train_directory(path: Path) -> None:
     samples = collect_samples_extra(path)
     total_samples = len(samples)
     logging.info(f"Found {total_samples} samples in the train directory.")
 
-    for sample_id, sample in samples.items():
-        image = sample.get("image")
-        mask = sample.get("mask")
-        trimap = sample.get("trimap")
-        fg = sample.get("fg")
-        bg = sample.get("bg")
+    invalid_files = []  # List of dictionaries for invalid files
+    output_json = Path("invalid_files.json")
 
-        # Check image existence and log the folder and filename if missing
-        if image is None or not image.exists():
-            image_name = image.name if image else "Unknown image name"
-            folder_name = image.parent if image else "Unknown folder"
-            logging.error(f"Missing image file: '{image_name}' in folder: '{folder_name}' for sample: '{sample_id}'")
+    pbar = tqdm(samples.items(), total=total_samples, desc="Validating samples")
+    for sample_id, sample in pbar:
+        pbar.set_postfix({"current_id": sample_id})
+        for key in ["image", "mask", "trimap", "fg", "bg"]:
+            file_path = sample.get(key)
+            if file_path is None or not file_path.exists():
+                file_name = file_path.name if file_path else "Unknown"
+                folder_name = file_path.parent if file_path else "Unknown folder"
+                logging.error(f"Missing {key} file: '{file_name}' in folder: '{folder_name}' for sample: '{sample_id}'")
+                invalid_files.append({
+                    "sample_id": sample_id,
+                    "key": key,
+                    "reason": "Missing file",
+                    "file_name": file_name,
+                    "file_path": str(file_path) if file_path else "None"
+                })
+                with output_json.open("w") as f:
+                    json.dump(invalid_files, f, indent=4)
+            else:
+                # Verify that the file can be opened and is not corrupted
+                if not verify_image_file(file_path):
+                    invalid_files.append({
+                        "sample_id": sample_id,
+                        "key": key,
+                        "reason": "Invalid file",
+                        "file_name": file_path.name,
+                        "file_path": str(file_path)
+                    })
+                    with output_json.open("w") as f:
+                        json.dump(invalid_files, f, indent=4)
 
-        # Check mask existence and log the folder and filename if missing
-        if mask is None or not mask.exists():
-            mask_name = mask.name if mask else "Unknown mask name"
-            folder_name = mask.parent if mask else "Unknown folder"
-            logging.error(f"Missing mask file: '{mask_name}' in folder: '{folder_name}' for sample: '{sample_id}'")
+    if invalid_files:
+        logging.error("Invalid files found. See invalid_files.json for details.")
+    else:
+        logging.info("All files are valid.")
 
-        # Check trimap existence and log the folder and filename if missing
-        if trimap is None or not trimap.exists():
-            trimap_name = trimap.name if trimap else "Unknown trimap name"
-            folder_name = trimap.parent if trimap else "Unknown folder"
-            logging.error(f"Missing trimap file: '{trimap_name}' in folder: '{folder_name}' for sample: '{sample_id}'")
-
-        # Check fg existence and log the folder and filename if missing
-        if fg is None or not fg.exists():
-            fg_name = fg.name if fg else "Unknown fg name"
-            folder_name = fg.parent if fg else "Unknown folder"
-            logging.error(f"Missing foreground file: '{fg_name}' in folder: '{folder_name}' for sample: '{sample_id}'")
-
-        if bg is None or not bg.exists():
-            bg_name = bg.name if bg else "Unknown bg name"
-            folder_name = bg.parent if bg else "Unknown folder"
-            logging.error(f"Missing background file: '{bg_name}' in folder: '{folder_name}' for sample: '{sample_id}'")
 
 if __name__ == '__main__':
     # Setup logging
