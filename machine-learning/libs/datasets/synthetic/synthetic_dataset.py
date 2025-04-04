@@ -1,5 +1,5 @@
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as T
 
 import os
@@ -8,6 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from enum import Enum
 from typing import Dict
+from tqdm import tqdm
+from PIL import Image
 
 from libs.configuration.configuration import get_configuration, ConfigurationMode, ConfigurationSuffix
 from libs.datasets.transforms import RandomAffine, RandomJitter, ToTensor, Normalize, Rescale, TopBiasedRandomCrop
@@ -84,19 +86,31 @@ class SyntheticDataset(Dataset):
 
     def __getitem__(self, idx: int):
         image = cv2.imread(self.images_paths[idx])
-        alpha = cv2.imread(self.alpha_paths[idx], flags=0).astype(np.float32) / 255.0
+        if image is None:
+            raise ValueError(f"Failed to read image at {self.images_paths[idx]}")
+        sample = {"image": image}
 
-        sample = {"image": image, "alpha": alpha}
+        alpha = cv2.imread(self.alpha_paths[idx], flags=0)
+        if alpha is None:
+            raise ValueError(f"Failed to read alpha mask at {self.alpha_paths[idx]}")
+        sample["alpha"] = alpha.astype(np.float32) / 255.0
 
         if self.phase == DatasetPhase.Train:
             if self.use_trimap:
-                trimap = cv2.imread(self.trimap_paths[idx], flags=0).astype(np.float32) / 255.0
-                sample["trimap"] = trimap
+                trimap = cv2.imread(self.trimap_paths[idx], flags=0)
+                if trimap is None:
+                    raise ValueError(f"Failed to read trimap at {self.trimap_paths[idx]}")
+                sample["trimap"] = trimap.astype(np.float32) / 255.0
 
             if self.use_composition:
                 fg = cv2.imread(self.fg_paths[idx])
-                bg = cv2.imread(self.bg_paths[idx])
+                if fg is None:
+                    raise ValueError(f"Failed to read foreground at {self.fg_paths[idx]}")
                 sample["fg"] = fg
+
+                bg = cv2.imread(self.bg_paths[idx])
+                if bg is None:
+                    raise ValueError(f"Failed to read background at {self.bg_paths[idx]}")
                 sample["bg"] = bg
 
         return self.transforms(sample)
@@ -207,5 +221,42 @@ if __name__ == "__main__":
         use_trimap=True,
         use_composition=True,
     )
-    sample = train_dataset[3]
-    debug_sample(sample)
+    train_sample = train_dataset[3]
+    debug_sample(train_sample)
+
+    train_data_loader = DataLoader(
+        train_dataset,
+        batch_size=16,
+        shuffle=True,
+        num_workers=max(1, 8),
+        persistent_workers=True,
+        pin_memory=True,
+        drop_last=True
+    )
+
+    try:
+        img = Image.open('/mnt/shared/datasets/processed/synthetic-data/train/fg/1396.png')
+        img.verify()
+    except Exception as e:
+        print(f"Failed to verify image: {e}")
+
+    # for batch_idx, sample in enumerate(tqdm(train_data_loader, total=len(train_data_loader))):
+    #     image = sample["image"]
+    #     if image is None:
+    #         print(f"Missing image for batch {batch_idx}")
+    #
+    #     alpha = sample["alpha"]
+    #     if alpha is None:
+    #         print(f"Missing alpha for batch {batch_idx}")
+    #
+    #     trimap = sample["trimap"]
+    #     if trimap is None:
+    #         print(f"Missing trimap for batch {batch_idx}")
+    #
+    #     fg = sample["fg"]
+    #     if fg is None:
+    #         print(f"Missing fg for batch {batch_idx}")
+    #
+    #     bg = sample["bg"]
+    #     if bg is None:
+    #         print(f"Missing bg for batch {batch_idx}")
