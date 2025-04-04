@@ -13,8 +13,6 @@ def start_training(
         train_transforms: T.Compose,
         val_transforms: T.Compose,
         logs_directory: Path,
-        use_trimap: bool = False,
-        use_composition: bool = False,
 ) -> None:
     """
     Start the training process.
@@ -25,16 +23,9 @@ def start_training(
         train_transforms (transforms.Compose): The transforms to apply to the training data.
         val_transforms (transforms.Compose): The transforms to apply to the validation data.
         logs_directory (Path): The directory to save the logs.
-        use_trimap (bool): Whether to use trimap images or not.
-        use_composition (bool): Whether to use composition images or not.
     """
     # Set up the data loaders
-    train_data_loader = create_train_data_loader(
-        config=config.dataset,
-        transforms=train_transforms,
-        use_trimap=use_trimap,
-        use_composition=use_composition,
-    )
+    train_data_loader = create_train_data_loader(config=config.dataset, transforms=train_transforms)
     val_data_loader = create_val_data_loader(config=config.dataset, transforms=val_transforms)
 
     # Set up the trainer

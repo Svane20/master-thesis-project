@@ -7,20 +7,13 @@ from .synthetic_dataset import SyntheticDataset, DatasetPhase
 from ...configuration.dataset import DatasetConfig
 
 
-def create_train_data_loader(
-        config: DatasetConfig,
-        transforms: T.Compose,
-        use_trimap: bool = False,
-        use_composition: bool = False,
-) -> DataLoader[SyntheticDataset]:
+def create_train_data_loader(config: DatasetConfig, transforms: T.Compose) -> DataLoader[SyntheticDataset]:
     """
     Create a data loader for the training phase.
     
     Args:
         config (DatasetConfig): The configuration of the dataset.
         transforms (transforms.Compose): Transforms to apply to the data.
-        use_trimap (bool): Whether to use trimap images or not.
-        use_composition (bool): Whether to use composition images or not.
 
     Returns:
         DataLoader[SyntheticDataset]: The data loader for the training phase.
@@ -32,8 +25,8 @@ def create_train_data_loader(
         num_workers=config.train.num_workers,
         shuffle=config.train.shuffle,
         drop_last=config.train.drop_last,
-        use_trimap=use_trimap,
-        use_composition=use_composition,
+        use_trimap=config.train.use_trimap,
+        use_composition=config.train.use_composition
     )
 
 
