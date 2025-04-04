@@ -206,33 +206,6 @@ class RandomJitter(object):
         image = cv2.cvtColor(image, cv2.COLOR_HSV2BGR)
         sample['image'] = image * 255
 
-        hue_shift_float = float(hue_jitter)
-
-        for key in ["fg", "bg"]:
-            if key in sample and sample[key] is not None:
-                # Convert to HSV
-                # (No alpha check here, because 'fg' or 'bg' presumably is already a separate "layer")
-                hsv = cv2.cvtColor(sample[key].astype(np.float32) / 255.0, cv2.COLOR_BGR2HSV)
-
-                # Apply the same hue shift
-                hsv[:, :, 0] = np.remainder(hsv[:, :, 0] + hue_shift_float, 360)
-
-                # Apply sat_jitter
-                s = hsv[:, :, 1]
-                s = np.abs(s + sat_jitter)
-                s[s > 1] = 2 - s[s > 1]
-                hsv[:, :, 1] = s
-
-                # Apply val_jitter
-                v = hsv[:, :, 2]
-                v = np.abs(v + val_jitter)
-                v[v > 1] = 2 - v[v > 1]
-                hsv[:, :, 2] = v
-
-                # Convert back
-                bgr = cv2.cvtColor(hsv, cv2.COLOR_HSV2BGR)
-                sample[key] = bgr * 255
-
         return sample
 
 
@@ -322,7 +295,6 @@ class TopBiasedRandomCrop(object):
         sample["image"] = image[start_y:start_y + crop_h, start_x:start_x + crop_w, :]
         if "alpha" in sample:
             sample["alpha"] = sample["alpha"][start_y:start_y + crop_h, start_x:start_x + crop_w]
-
         if "trimap" in sample and sample["trimap"] is not None:
             sample["trimap"] = sample["trimap"][start_y:start_y + crop_h, start_x:start_x + crop_w]
         if "fg" in sample and sample["fg"] is not None:
