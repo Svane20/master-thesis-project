@@ -2,7 +2,7 @@
 
 # Global configuration
 scratch:
-  resolution: 256 # 256, 512, 1024
+  resolution: 512 # 256, 512, 1024
   crop_resolution: null # 320, 640, 1280
 
 # Dataset configuration
@@ -16,7 +16,7 @@ dataset:
     shuffle: true
     drop_last: true
     use_trimap: true
-    use_composition: false
+    use_composition: true
   val:
     num_workers: 4
     shuffle: false
@@ -32,11 +32,12 @@ training:
 
   # Criterion configuration
   criterion:
-    losses: [ "unknown_l1_loss", "known_l1_loss", "gradient_loss", "laplacian_pha_loss" ]
+    losses: [ "unknown_l1_loss", "known_l1_loss", "composition_loss", "gradient_loss", "laplacian_pha_loss" ]
     normalize_weights: true
     weight_dict:
       unknown_l1_loss: 1.0
       known_l1_loss: 0.1
+      composition_loss: 1.0
       gradient_loss: 0.5
       laplacian_pha_loss: 0.5
 
@@ -88,7 +89,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/dpt"
     save_freq: 5
-    checkpoint_path: "dpt-swinv2-tiny-256_v3.pt"
+    checkpoint_path: "dpt-swinv2-tiny-512_v1.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/dpt/<CHECKPOINT>" or null
 
 # Model configuration
