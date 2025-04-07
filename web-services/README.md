@@ -9,8 +9,22 @@ docker compose up --build -d
 
 ### Local development
 
+1. Run the following command:
+
 ````text
 docker compose -f .\docker-compose.dev.yml up --build -d
+````
+
+2. Stop the containers
+
+````text
+docker compose -f .\docker-compose.dev.yml down
+````
+
+#### Test scaling
+
+````text
+docker compose -f .\docker-compose.dev.yml up --build --scale unet-onnx=2 -d
 ````
 
 ## Add tracking to Grafana
