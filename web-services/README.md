@@ -7,6 +7,12 @@
 docker compose up --build -d
 ````
 
+### Local development
+
+````text
+docker compose -f .\docker-compose.dev.yml up --build -d
+````
+
 ## Add tracking to Grafana
 
 1. Go to Grafana

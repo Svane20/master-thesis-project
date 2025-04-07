@@ -1,19 +1,4 @@
 services:
-#  unet-onnx:
-#    build:
-#      context: ./unet/onnx
-#      dockerfile: Dockerfile
-#    ports:
-#      - "8001:8000"
-#    environment:
-#      - PROMETHEUS_METRICS_ENABLED=true
-#      - NVIDIA_VISIBLE_DEVICES=all
-#      - MODEL_PATH=./models/unet_v1.onnx
-#    runtime: nvidia
-#    restart: always
-#    depends_on:
-#      - prometheus
-
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
