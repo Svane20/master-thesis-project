@@ -122,7 +122,7 @@ class ModelService:
             with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for file, mask in zip(files, masks):
                     base, _ = os.path.splitext(file.filename)
-                    filename = f"{base}_mask.png"
+                    filename = f"{base}.png"
                     png_bytes = convert_mask_to_rgb(mask)
                     zip_file.writestr(filename, png_bytes)
             buffer.seek(0)
@@ -169,7 +169,7 @@ class ModelService:
         png_bytes = convert_mask_to_rgb(mask)
         return png_bytes
 
-    async def sky_replacement(self, file: UploadFile) -> bytes:
+    async def sky_replacement(self, file: UploadFile, extra: bool = False) -> bytes:
         """
         Perform sky replacement on an image and return a ZIP archive containing the mask, foreground, and replaced images.
         """
@@ -219,12 +219,15 @@ class ModelService:
         logging.info(f"Sky replacement time: {replacement_time:.4f} seconds")
         logging.info(f"Total time: {total_time:.4f} seconds")
 
+        replaced_png = convert_image_to_png(replaced)
+        if not extra:
+            return replaced_png
+
         mask_png = convert_mask_to_rgb(mask)
         foreground_png = convert_image_to_png(foreground)
-        replaced_png = convert_image_to_png(replaced)
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-            zip_file.writestr("mask.png", mask_png)
+            zip_file.writestr("alpha.png", mask_png)
             zip_file.writestr("foreground.png", foreground_png)
             zip_file.writestr("replaced.png", replaced_png)
         zip_buffer.seek(0)

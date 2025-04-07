@@ -67,7 +67,7 @@ async def batch_predict(files: List[UploadFile] = File(...)):
     return StreamingResponse(
         io.BytesIO(zip_bytes),
         media_type="application/zip",
-        headers={"Content-Disposition": "attachment; filename=masks.zip"}
+        headers={"Content-Disposition": "attachment; filename=alphas.zip"}
     )
 
 
@@ -80,16 +80,29 @@ async def single_predict(file: UploadFile = File(...)):
     return StreamingResponse(
         io.BytesIO(png_bytes),
         media_type="image/png",
-        headers={"Content-Disposition": "attachment; filename=mask.png"}
+        headers={"Content-Disposition": "attachment; filename=alpha.png"}
     )
 
 
 @app.post(f"{prefix}/sky-replacement")
 async def sky_replacement(file: UploadFile = File(...)):
     try:
-        zip_bytes = await model_service.sky_replacement(file)
+        png_bytes = await model_service.sky_replacement(file)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to predict: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to perform sky replacement: {e}")
+    return StreamingResponse(
+        io.BytesIO(png_bytes),
+        media_type="image/png",
+        headers={"Content-Disposition": "attachment; filename=replaced.png"}
+    )
+
+
+@app.post(f"{prefix}/sky-replacement-extra")
+async def sky_replacement(file: UploadFile = File(...)):
+    try:
+        zip_bytes = await model_service.sky_replacement(file, extra=True)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to perform sky replacement: {e}")
     return StreamingResponse(
         io.BytesIO(zip_bytes),
         media_type="application/zip",
