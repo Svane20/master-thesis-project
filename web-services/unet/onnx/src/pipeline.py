@@ -63,6 +63,7 @@ total_latency_histogram = Histogram(
     "Total processing latency in seconds (inference + sky replacement)",
     labelnames=["model"],
 )
+MODEL_PREFIX_NAME = "unet-onnx"
 
 
 def load_model() -> None:
@@ -83,7 +84,7 @@ def load_model() -> None:
     # Select providers based on GPU availability
     providers = ['CUDAExecutionProvider'] if torch.cuda.is_available() else ['CPUExecutionProvider']
     try:
-        with model_startup_histogram.labels(model="onnx").time():
+        with model_startup_histogram.labels(model=MODEL_PREFIX_NAME).time():
             session = ort.InferenceSession(config.MODEL_PATH, providers=providers)
 
         logging.info(f"ONNX model loaded with providers: {providers}")
@@ -117,7 +118,7 @@ async def batch_predict(files: List[UploadFile]) -> bytes:
     # Start timing before the inference call
     start_time = time.perf_counter()
     try:
-        with batch_inference_histogram.labels(model="onnx").time():
+        with batch_inference_histogram.labels(model=MODEL_PREFIX_NAME).time():
             outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch})
     except Exception as e:
         logging.error("ONNX inference failed", exc_info=e)
@@ -176,7 +177,7 @@ async def single_predict(file: UploadFile) -> bytes:
     # Start timing before the inference call
     start_time = time.perf_counter()
     try:
-        with single_inference_histogram.labels(model="onnx").time():
+        with single_inference_histogram.labels(model=MODEL_PREFIX_NAME).time():
             outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch_np})
     except Exception as e:
         logging.error("ONNX inference failed", exc_info=e)
@@ -212,13 +213,13 @@ async def sky_replacement(file: UploadFile):
 
     loop = asyncio.get_running_loop()
 
-    with total_latency_histogram.labels(model="onnx").time():
+    with total_latency_histogram.labels(model=MODEL_PREFIX_NAME).time():
         total_start = time.perf_counter()
 
         # Inference timing using single_inference_histogram
         inference_start = time.perf_counter()
         try:
-            with single_inference_histogram.labels(model="onnx").time():
+            with single_inference_histogram.labels(model=MODEL_PREFIX_NAME).time():
                 outputs = await loop.run_in_executor(None, session.run, [output_name], {input_name: batch_np})
         except Exception as e:
             logging.error("ONNX inference failed", exc_info=e)
@@ -236,7 +237,7 @@ async def sky_replacement(file: UploadFile):
 
         # Sky replacement (post-processing) timing using its dedicated histogram
         replacement_start = time.perf_counter()
-        with sky_replacement_histogram.labels(model="onnx").time():
+        with sky_replacement_histogram.labels(model=MODEL_PREFIX_NAME).time():
             foreground = get_foreground_estimation(image_array, mask)
             replaced = replace_background(foreground, mask)
         replacement_end = time.perf_counter()

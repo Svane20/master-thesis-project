@@ -6,19 +6,23 @@ from contextlib import asynccontextmanager
 import io
 from typing import List
 
+from src.config import get_configuration
 from src.middlewares import register_middlewares
-import src.pipeline as pipeline
 from src.schemas import HealthResponse
+from src.services.model_service import ModelService
 from src.utils.logger import setup_logging
 
 # Setup logging
 setup_logging()
 
+# Setup model pipeline
+model_service = ModelService()
+
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
     try:
-        pipeline.load_model()
+        model_service.load_model()
     except Exception as e:
         raise e
     yield
@@ -56,7 +60,7 @@ async def health():
 @app.post(f"{prefix}/batch-predict")
 async def batch_predict(files: List[UploadFile] = File(...)):
     try:
-        zip_bytes = await pipeline.batch_predict(files)
+        zip_bytes = await model_service.batch_predict(files)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to predict: {e}")
 
@@ -70,7 +74,7 @@ async def batch_predict(files: List[UploadFile] = File(...)):
 @app.post(f"{prefix}/single-predict")
 async def single_predict(file: UploadFile = File(...)):
     try:
-        png_bytes = await pipeline.single_predict(file)
+        png_bytes = await model_service.single_predict(file)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to predict: {e}")
     return StreamingResponse(
@@ -79,10 +83,11 @@ async def single_predict(file: UploadFile = File(...)):
         headers={"Content-Disposition": "attachment; filename=mask.png"}
     )
 
+
 @app.post(f"{prefix}/sky-replacement")
 async def sky_replacement(file: UploadFile = File(...)):
     try:
-        zip_bytes = await pipeline.sky_replacement(file)
+        zip_bytes = await model_service.sky_replacement(file)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to predict: {e}")
     return StreamingResponse(
@@ -93,4 +98,6 @@ async def sky_replacement(file: UploadFile = File(...)):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app="src.main:app", host="127.0.0.1", port=8001, reload=True)
+    configuration = get_configuration()
+
+    uvicorn.run(app="src.main:app", host=configuration.HOST, port=configuration.PORT, reload=True)

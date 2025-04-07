@@ -24,7 +24,6 @@ def replace_background(foreground: np.ndarray,alpha_mask: np.ndarray) -> np.ndar
     """
     root_directory = Path(__file__).parent.parent
     background_image_path = root_directory / "backgrounds" / "skies" / "new_sky.webp"
-    print(f"background_image_path: {background_image_path}")
 
     # Ensure the new background (sky) image exists
     if not background_image_path.exists():
