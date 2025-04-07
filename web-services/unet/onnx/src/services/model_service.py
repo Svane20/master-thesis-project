@@ -9,7 +9,6 @@ import torch
 import torchvision.transforms as T
 import onnxruntime as ort
 from fastapi import UploadFile, HTTPException
-from PIL import Image
 from prometheus_client import Histogram
 
 from src.config import get_configuration
