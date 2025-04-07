@@ -13,7 +13,5 @@ uvicorn==0.34.0
 onnxruntime-gpu==1.21.0
 prometheus-fastapi-instrumentator==7.0.2
 prometheus-client==0.21.1
-numba==0.60.0
-llvmlite==0.43.0
 pymatting==1.1.13
 opencv-python-headless==4.10.0.84

@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 import io
 from typing import List
 
-from src.config import get_configuration
 from src.middlewares import register_middlewares
 from src.schemas import HealthResponse
 from src.services.model_service import ModelService
@@ -111,6 +110,4 @@ async def sky_replacement(file: UploadFile = File(...)):
 
 
 if __name__ == "__main__":
-    configuration = get_configuration()
-
-    uvicorn.run(app="src.main:app", host=configuration.HOST, port=configuration.PORT, reload=True)
+    uvicorn.run(app="src.main:app", host="0.0.0.0", port=8001, reload=True)

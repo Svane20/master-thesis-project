@@ -60,7 +60,6 @@ total_latency_histogram = Histogram(
 
 class ModelService:
     def __init__(self):
-        self.model_path = None
         self.session = None
         self.input_name = None
         self.output_name = None
@@ -71,15 +70,15 @@ class ModelService:
         """
         # Load the configuration
         configuration = get_configuration()
-        self.model_path = configuration.MODEL_PATH
 
         try:
             session_options = ort.SessionOptions()
             session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
             session_options.intra_op_num_threads = min(1, os.cpu_count() - 1)
-            providers = ['CUDAExecutionProvider'] if torch.cuda.is_available() else ['CPUExecutionProvider']
+            providers = ['CUDAExecutionProvider'] if torch.cuda.is_available() and configuration.USE_GPU \
+                else ['CPUExecutionProvider']
             with model_startup_histogram.labels(model=MODEL_PREFIX_NAME).time():
-                self.session = ort.InferenceSession(self.model_path, providers=providers)
+                self.session = ort.InferenceSession(configuration.MODEL_PATH, providers=providers)
             logging.info(f"ONNX model loaded with providers: {providers}")
         except Exception as e:
             logging.error("Failed to load ONNX model", exc_info=e)

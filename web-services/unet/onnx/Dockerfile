@@ -1,59 +1,19 @@
-# -----------------------------------------------------------------------------
-# 1) BUILDER STAGE
-# -----------------------------------------------------------------------------
-FROM nvidia/cuda:12.4.1-cudnn-devel-ubuntu22.04 AS builder
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip python3-dev \
-    build-essential \
-    libffi-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Make python commands consistent
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \
-    update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
-
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-
-COPY requirements.txt .
-
-RUN pip install --upgrade pip && \
-    pip install --no-cache-dir --target="/install" -r requirements.txt
-
-# -----------------------------------------------------------------------------
-# 2) FINAL STAGE (RUNTIME)
-# -----------------------------------------------------------------------------
 FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip libgl1 libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip && \
+    rm -rf /var/lib/apt/lists/*
 
-# Make python commands consistent
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3 1 && \
-    update-alternatives --install /usr/bin/pip pip /usr/bin/pip3 1
+COPY requirements.txt .
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+RUN pip3 install --upgrade pip && \
+    pip3 install --no-cache-dir -r requirements.txt
 
-# Copy installed Python packages from builder
-COPY --from=builder /install /usr/local
-
-# Ensure binaries and Python modules are found
-ENV PATH="/usr/local/bin:${PATH}"
-ENV PYTHONPATH="/usr/local:${PYTHONPATH}"
-
-COPY src/ ./src/
-
-ENV MODEL_PATH="/app/src/models/unet_v1.onnx"
+COPY . .
 
 EXPOSE 8001
 
-ENTRYPOINT []
-
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001"]
