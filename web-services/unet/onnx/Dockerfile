@@ -30,9 +30,8 @@ FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
 WORKDIR /app
 
-# Install Python, pip, and libgl1
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip libgl1 \
+    python3 python3-pip libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Make python commands consistent
@@ -47,7 +46,7 @@ COPY --from=builder /install /usr/local
 
 # Ensure binaries and Python modules are found
 ENV PATH="/usr/local/bin:${PATH}"
-ENV PYTHONPATH="/usr/local/lib/python3.10/site-packages:${PYTHONPATH}"
+ENV PYTHONPATH="/usr/local:${PYTHONPATH}"
 
 COPY src/ ./src/
 
@@ -55,7 +54,6 @@ ENV MODEL_PATH="/app/src/models/unet_v1.onnx"
 
 EXPOSE 8001
 
-# Override the NVIDIA entrypoint if needed
 ENTRYPOINT []
 
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001", "--workers", "2"]

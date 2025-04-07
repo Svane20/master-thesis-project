@@ -16,4 +16,4 @@ prometheus-client==0.21.1
 numba==0.60.0
 llvmlite==0.43.0
 pymatting==1.1.13
-opencv-python==4.10.0.84
+opencv-python-headless==4.10.0.84
