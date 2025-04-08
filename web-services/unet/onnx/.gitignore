@@ -1,1 +1,2 @@
-unet*.onnx
+*.onnx
+__pycache__

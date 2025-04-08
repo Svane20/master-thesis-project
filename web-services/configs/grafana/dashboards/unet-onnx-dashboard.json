@@ -1,0 +1,20 @@
+{
+  "title": "U-Net ONNX",
+  "panels": [
+    {
+      "id": 1,
+      "type": "graph",
+      "title": "Model Startup Time",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(model_startup_latency_seconds_bucket[5m])) by (le, model))",
+          "format": "time_series"
+        }
+      ],
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+    }
+  ],
+  "schemaVersion": 27,
+  "version": 0,
+  "refresh": "15s"
+}

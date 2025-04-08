@@ -1,23 +1,19 @@
-# Stage 1: Build dependencies
-FROM python:3.11-slim as builder
+FROM nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04
 
 WORKDIR /app
+
+# Install dependencies
+RUN apt-get update && \
+    apt-get install -y python3 python3-pip && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 
-RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
-
-# Stage 2: Final image
-FROM python:3.11-slim as base
-
-WORKDIR /app
-
-COPY --from=builder /wheels /wheels
-
-RUN pip install --no-cache-dir --no-index --find-links=/wheels /wheels/*.whl
+RUN pip3 install --upgrade pip && \
+    pip3 install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-EXPOSE 8000
+EXPOSE 8001
 
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--workers", "4"]
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8001"]
