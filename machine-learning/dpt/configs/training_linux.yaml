@@ -15,7 +15,7 @@ dataset:
     num_workers: 4
     shuffle: true
     drop_last: true
-    use_trimap: true
+    use_trimap: false
     use_composition: false
   val:
     num_workers: 4
@@ -32,11 +32,10 @@ training:
 
   # Criterion configuration
   criterion:
-    losses: [ "unknown_l1_loss", "known_l1_loss", "gradient_loss", "laplacian_pha_loss" ]
+    losses: [ "l1_loss", "gradient_loss", "laplacian_pha_loss" ]
     normalize_weights: true
     weight_dict:
-      unknown_l1_loss: 1.0
-      known_l1_loss: 0.1
+      l1_loss: 1.0
       gradient_loss: 0.25
       laplacian_pha_loss: 0.5
 
