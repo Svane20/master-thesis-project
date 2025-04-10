@@ -36,22 +36,13 @@ def main() -> None:
     train_transforms = get_transforms(DatasetPhase.Train, config.scratch.resolution, config.scratch.crop_resolution)
     val_transforms = get_transforms(DatasetPhase.Val, config.scratch.resolution)
 
-    # # Start training
-    start_training(
-        model=model,
-        config=config,
-        train_transforms=train_transforms,
-        val_transforms=val_transforms,
-        logs_directory=logs_directory
-    )
-
     # Start training
     start_training(
         model=model,
         config=config,
         train_transforms=train_transforms,
         val_transforms=val_transforms,
-        logs_directory=logs_directory
+        logs_directory=logs_directory,
     )
 
 
