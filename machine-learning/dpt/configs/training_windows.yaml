@@ -11,11 +11,8 @@ transforms:
       flip: 0.5
       resample: false
       fillcolor: 0
-    TopBiasedRandomCrop:
+    RandomCrop:
       output_size: [ 512, 512 ]
-      top_crop_ratio: 0.4
-      low_threshold: 0.1
-      high_threshold: 0.9
     RandomJitter:
       enabled: true # Hack to show in wandb
     ToTensor:
@@ -48,7 +45,7 @@ dataset:
     num_workers: 4
     shuffle: true
     drop_last: true
-    use_trimap: true
+    use_trimap: false
     use_composition: false
   val:
     num_workers: 4
@@ -65,15 +62,12 @@ training:
 
   # Criterion configuration
   criterion:
-    losses: [ "known_l1_loss", "unknown_l1_loss", "gradient_loss", "laplacian_pha_loss" ]
-    normalize_weights: false
+    losses: [ "l1_loss", "gradient_loss", "laplacian_pha_loss" ]
+    normalize_weights: true
     weight_dict:
-
-  #    weight_dict:
-  #      known_l1_loss: 1.0
-  #      unknown_l1_loss: 0.3
-  #      gradient_loss: 0.25
-  #      laplacian_pha_loss: 0.5
+      l1_loss: 1.0
+      gradient_loss: 0.50
+      laplacian_pha_loss: 0.7
 
   # Optimizer configuration
   optimizer:
@@ -123,7 +117,7 @@ training:
   checkpoint:
     save_directory: "D:/OneDrive/Master Thesis/ml/checkpoints/dpt"
     save_freq: 5
-    checkpoint_path: "dpt-swinv2-tiny-512_v3.pt"
+    checkpoint_path: "dpt-swinv2-tiny-512_v1.pt"
     resume_from: null # "D:/OneDrive/Master Thesis/ml/checkpoints/dpt/<CHECKPOINT>" or null
 
 # Model configuration

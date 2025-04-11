@@ -337,7 +337,6 @@ class RandomCrop(object):
 
         if "trimap" in sample and sample["trimap"] is not None:
             trimap = sample["trimap"]
-            # Resize logic if needed
             if w < self.output_size[0] + 1 or h < self.output_size[1] + 1:
                 ratio = 1.1 * self.output_size[0] / h if h < w else 1.1 * self.output_size[1] / w
                 while h < self.output_size[0] + 1 or w < self.output_size[1] + 1:
@@ -367,7 +366,6 @@ class RandomCrop(object):
 
             y0, x0 = left_top
         else:
-            # Simple random crop if no trimap
             if w < self.output_size[1] or h < self.output_size[0]:
                 y0 = (h - self.output_size[0]) // 2
                 x0 = (w - self.output_size[1]) // 2

@@ -7,9 +7,10 @@ from typing import Dict, Tuple
 import logging
 from pathlib import Path
 import cv2
+import time
 
 from libs.metrics.utils import compute_evaluation_metrics, get_grad_filter
-from libs.training.utils.train_utils import AverageMeter, ProgressMeter, MemMeter
+from libs.training.utils.train_utils import AverageMeter, ProgressMeter, MemMeter, DurationMeter
 
 
 def evaluate_model(
@@ -25,15 +26,16 @@ def evaluate_model(
         data_loader (torch.utils.data.DataLoader): Data loader
         device (torch.device): Device to use for evaluation
     """
-    # Set model to evaluation mode
-    model.eval()
-
     # Gradient filter
     dtype = torch.float16 if torch.cuda.is_available() else torch.float32
     grad_filter = get_grad_filter(device=device, dtype=dtype)
 
     # Stat meters
+    elapsed_time_meter = DurationMeter(name="Time Elapsed", device=device, fmt=":.2f")
+    batch_time_meter = AverageMeter(name="Batch Time", device=str(device), fmt=":.2f")
+    data_time_meter = AverageMeter(name="Data Time", device=str(device), fmt=":.2f")
     mem_meter = MemMeter(name="Mem (GB)", device=str(device), fmt=":.2f")
+    data_times = []
 
     # Metric meters
     mae_meter = AverageMeter(name="MAE", device=str(device), fmt=":.2e")
@@ -51,13 +53,25 @@ def evaluate_model(
             sad_meter,
             grad_meter,
             conn_meter,
+            elapsed_time_meter,
+            batch_time_meter,
+            data_time_meter,
             mem_meter,
         ],
         real_meters={},
         prefix="Test | Epoch: [{}]".format(1),
     )
 
+    # Set model to evaluation mode
+    model.eval()
+    start_time = time.time()
+    end = time.time()
+
     for batch_idx, sample in enumerate(data_loader):
+        # Measure data loading time
+        data_time_meter.update(time.time() - end)
+        data_times.append(data_time_meter.val)
+
         # Move data to device
         inputs = sample["image"].to(device, non_blocking=True)
         targets = sample["alpha"].to(device, non_blocking=True)
@@ -82,6 +96,11 @@ def evaluate_model(
                     sad_meter.update(scores["sad"], n=batch_size)
                     grad_meter.update(scores["grad"], n=batch_size)
                     conn_meter.update(scores["conn"], n=batch_size)
+
+            # Measure elapsed time
+            batch_time_meter.update(time.time() - end)
+            end = time.time()
+            elapsed_time_meter.update(time.time() - start_time)
 
             # Measure memory usage
             if torch.cuda.is_available():
