@@ -39,7 +39,7 @@ transforms:
 dataset:
   name: "synthetic-data"
   root: "C:/Users/svane/Desktop/Thesis/datasets"
-  batch_size: 2
+  batch_size: 4
   pin_memory: true
   train:
     num_workers: 4
