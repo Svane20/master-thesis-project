@@ -39,7 +39,7 @@ transforms:
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 4
+  batch_size: 2
   pin_memory: true
   train:
     num_workers: 4
