@@ -9,13 +9,13 @@ import platform
 from .dataset import DatasetConfig
 from .deployment.root import DeploymentConfig
 from .evaluation.root import EvaluationConfig
-from .scratch import ScratchConfig
 from .training.root import TrainConfig
+from .transforms import TransformsConfig
 
 
 @dataclass
 class Config:
-    scratch: Optional[ScratchConfig] = None
+    transforms: Optional[TransformsConfig] = None
     dataset: Optional[DatasetConfig] = None
     training: Optional[TrainConfig] = None
     evaluation: Optional[EvaluationConfig] = None
@@ -24,7 +24,7 @@ class Config:
 
     def asdict(self):
         return {
-            "scratch": self.scratch.asdict() if self.scratch is not None else None,
+            "transforms": self.transforms.asdict() if self.transforms is not None else None,
             "dataset": self.dataset.asdict() if self.dataset is not None else None,
             "training": self.training.asdict() if self.training is not None else None,
             "model": self.model if self.model is not None else None,

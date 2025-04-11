@@ -1,22 +1,16 @@
 import torch
 import torchvision.transforms.functional as F
+import torchvision.transforms as T
 
 import cv2
 import math
 import numbers
 import numpy as np
 import random
-from typing import Dict, Tuple
-from easydict import EasyDict
+from typing import Dict, Tuple, Any, List
 
-# Base default config
-CONFIG = EasyDict({})
-
-# Dataloader config
-CONFIG.data = EasyDict({})
-CONFIG.data.random_interp = True
-
-interp_list = [cv2.INTER_NEAREST, cv2.INTER_LINEAR, cv2.INTER_CUBIC, cv2.INTER_LANCZOS4]
+from libs.configuration.transforms import TransformsConfig
+from libs.utils.mem_utils import profile_large_dataset
 
 
 class RandomAffine(object):
@@ -152,6 +146,16 @@ class RandomAffine(object):
 
         return matrix
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"degrees={self.degrees}, "
+                f"translate={self.translate}, "
+                f"scale={self.scale}, "
+                f"shear={self.shear}, "
+                f"flip={self.flip}), "
+                f"resample={self.resample}, "
+                f"fillcolor={self.fillcolor})")
+
 
 class RandomJitter(object):
     """
@@ -208,6 +212,9 @@ class RandomJitter(object):
 
         return sample
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
+
 
 class RandomHorizontalFlip(object):
     """
@@ -235,6 +242,9 @@ class RandomHorizontalFlip(object):
                 sample["bg"] = flip(sample["bg"])
 
         return sample
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(prob={self.prob})"
 
 
 class TopBiasedRandomCrop(object):
@@ -304,6 +314,13 @@ class TopBiasedRandomCrop(object):
 
         return sample
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"output_size={self.output_size}, "
+                f"top_crop_ratio={self.top_crop_ratio}, "
+                f"low_threshold={self.low_threshold}, "
+                f"high_threshold={self.high_threshold})")
+
 
 class RandomCrop(object):
     def __init__(self, output_size=(512, 512)):
@@ -324,10 +341,8 @@ class RandomCrop(object):
             if w < self.output_size[0] + 1 or h < self.output_size[1] + 1:
                 ratio = 1.1 * self.output_size[0] / h if h < w else 1.1 * self.output_size[1] / w
                 while h < self.output_size[0] + 1 or w < self.output_size[1] + 1:
-                    image = cv2.resize(image, (int(w * ratio), int(h * ratio)),
-                                       interpolation=_maybe_random_interp(cv2.INTER_NEAREST))
-                    alpha = cv2.resize(alpha, (int(w * ratio), int(h * ratio)),
-                                       interpolation=_maybe_random_interp(cv2.INTER_NEAREST))
+                    image = cv2.resize(image, (int(w * ratio), int(h * ratio)), interpolation=cv2.INTER_NEAREST)
+                    alpha = cv2.resize(alpha, (int(w * ratio), int(h * ratio)), interpolation=cv2.INTER_NEAREST)
                     trimap = cv2.resize(trimap, (int(w * ratio), int(h * ratio)), interpolation=cv2.INTER_NEAREST)
 
                     if "fg" in sample and sample["fg"] is not None:
@@ -376,6 +391,10 @@ class RandomCrop(object):
 
         return sample
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"output_size={self.output_size})")
+
 
 class GenerateTrimap(object):
     """
@@ -415,6 +434,11 @@ class GenerateTrimap(object):
 
         return sample
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"min_width={self.min_width}, "
+                f"max_width={self.max_width})")
+
 
 class GenerateFGBG(object):
     """
@@ -448,6 +472,9 @@ class GenerateFGBG(object):
         sample["fg"] = fg
         sample["bg"] = bg
         return sample
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
 
 
 class OriginScale(object):
@@ -505,6 +532,10 @@ class OriginScale(object):
 
         return sample
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"output_size={self.output_size})")
+
 
 class Resize(object):
     """
@@ -531,6 +562,10 @@ class Resize(object):
             sample["bg"] = cv2.resize(sample["bg"], self.size, interpolation=cv2.INTER_LINEAR)
 
         return sample
+
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"size={self.size})")
 
 
 class ToTensor(object):
@@ -570,6 +605,9 @@ class ToTensor(object):
 
         return sample
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}()"
+
 
 class Rescale(object):
     """
@@ -585,6 +623,9 @@ class Rescale(object):
                 sample[key] = sample[key] * self.scale
 
         return sample
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}(scale={self.scale})"
 
 
 class Normalize(object):
@@ -604,9 +645,144 @@ class Normalize(object):
 
         return sample
 
+    def __repr__(self):
+        return (f"{self.__class__.__name__}("
+                f"mean={self.mean}, "
+                f"std={self.std}, "
+                f"inplace={self.inplace})")
 
-def _maybe_random_interp(cv2_interp):
-    if CONFIG.data.random_interp:
-        return np.random.choice(interp_list)
+
+def get_transforms(config: TransformsConfig, phases: List[str]) -> Dict[str, T.Compose]:
+    """
+    Get the transformation pipelines for the specified phases.
+
+    Args:
+        config (TransformsConfig): Configuration dictionary containing transformation parameters.
+        phases (List[str]): List of dataset phases (e.g., 'train', 'val', 'test').
+
+    Returns:
+        Dict[str, T.Compose]: Dictionary mapping phase names to their respective transformation pipelines.
+    """
+    config_dict = config.asdict()  # Convert to a dict
+
+    transforms_for_phase = {}
+    for phase in phases:
+        if phase not in config_dict:
+            raise ValueError(f"Transform configuration for phase '{phase}' is missing in the provided config.")
+        transforms_for_phase[phase] = build_transforms(config, phase)
+    return transforms_for_phase
+
+
+def get_train_transforms(config: TransformsConfig) -> T.Compose:
+    """
+    Get the training transformation pipeline based on the provided configuration.
+
+    Args:
+        config (TransformsConfig): Configuration dictionary containing transformation parameters.
+
+    Returns:
+        Torchvision.transforms.Compose: Composed transformation pipeline.
+    """
+    return build_transforms(config, phase="train")
+
+
+def get_val_transforms(config: TransformsConfig) -> T.Compose:
+    """
+    Get the validation transformation pipeline based on the provided configuration.
+
+    Args:
+        config (TransformsConfig): Configuration dictionary containing transformation parameters.
+
+    Returns:
+        Torchvision.transforms.Compose: Composed transformation pipeline.
+    """
+    return build_transforms(config, phase="val")
+
+
+def get_test_transforms(config: TransformsConfig) -> T.Compose:
+    """
+    Get the testing transformation pipeline based on the provided configuration.
+
+    Args:
+        config (TransformsConfig): Configuration dictionary containing transformation parameters.
+
+    Returns:
+        Torchvision.transforms.Compose: Composed transformation pipeline.
+    """
+    return build_transforms(config, phase="test")
+
+
+def build_transforms(config: TransformsConfig, phase: str) -> T.Compose:
+    """
+    Build the transformation pipeline based on the provided configuration and phase.
+
+    Args:
+        config (TransformsConfig): Configuration dictionary containing transformation parameters.
+        phase (str): Phase of the dataset (e.g., 'train', 'val', 'test').
+
+    Returns:
+        Torchvision.transforms.Compose: Composed transformation pipeline.
+    """
+    config_dict = config.asdict()  # Convert to a dict
+    if phase not in config_dict:
+        raise ValueError(
+            f"Phase '{phase}' not found in the configuration. Available phases: {list(config_dict.keys())}")
+
+    transforms_list = []
+    for t_name, params in config_dict[phase].items():
+        transforms_list.append(_get_transforms(t_name, params))
+    return T.Compose(transforms_list)
+
+
+def _get_transforms(transform_name: str, params: Dict[str, Any]):
+    if transform_name == "RandomAffine":
+        return RandomAffine(**params)
+    elif transform_name == "RandomJitter":
+        return RandomJitter()
+    elif transform_name == "RandomHorizontalFlip":
+        return RandomHorizontalFlip(**params)
+    elif transform_name == "TopBiasedRandomCrop":
+        return TopBiasedRandomCrop(**params)
+    elif transform_name == "RandomCrop":
+        return RandomCrop(**params)
+    elif transform_name == "GenerateTrimap":
+        return GenerateTrimap(**params)
+    elif transform_name == "GenerateFGBG":
+        return GenerateFGBG()
+    elif transform_name == "OriginScale":
+        return OriginScale(**params)
+    elif transform_name == "Resize":
+        return Resize(**params)
+    elif transform_name == "ToTensor":
+        return ToTensor()
+    elif transform_name == "Rescale":
+        return Rescale(**params)
+    elif transform_name == "Normalize":
+        return Normalize(**params)
     else:
-        return cv2_interp
+        raise ValueError(f"Unknown transform name: {transform_name}")
+
+
+if __name__ == "__main__":
+    config = {
+        "RandomAffine": {"degrees": 10, "translate": (0.1, 0.1), "scale": (0.8, 1.2), "shear": (0, 10),
+                         "flip": (0, 1)},
+        "RandomJitter": {},
+        "RandomHorizontalFlip": {"prob": 0.5},
+        "TopBiasedRandomCrop": {"output_size": (512, 512), "top_crop_ratio": 0.4},
+        "RandomCrop": {"output_size": (512, 512)},
+        "GenerateTrimap": {"min_width": 5, "max_width": 15},
+        "GenerateFGBG": {},
+        "OriginScale": {"output_size": 512},
+        "Resize": {"size": (512, 512)},
+        "ToTensor": {},
+        "Rescale": {"scale": 1 / 255.0},
+        "Normalize": {"mean": (0.485, 0.456, 0.406), "std": (0.229, 0.224, 0.225)}
+    }
+
+    profile_large_dataset(
+        transforms_pipeline=get_train_transforms(TransformsConfig(train=config)),
+        n_images=100,
+        batch_size=16,
+        image_shape=(2048, 2048, 3)
+    )

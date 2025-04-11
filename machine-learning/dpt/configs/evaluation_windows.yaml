@@ -1,13 +1,23 @@
-# Global configuration
-scratch:
-  resolution: 256 # 256, 512, 1024
-  crop_resolution: null # 320, 640, 1280
+# @package _global_
+
+# Data augmentation configuration
+transforms:
+  test:
+    Resize:
+      size: [ 256, 256 ]
+    ToTensor: { }
+    Rescale:
+      scale: 0.00392156862745098 # 1/255
+    Normalize:
+      mean: [ 0.5, 0.5, 0.5 ]
+      std: [ 0.5, 0.5, 0.5 ]
+      inplace: false
 
 # Dataset configuration
 dataset:
   name: "synthetic-data"
   root: "C:/Users/svane/Desktop/Thesis/datasets"
-  batch_size: 16
+  batch_size: 8
   pin_memory: true
   test:
     num_workers: 4
@@ -19,20 +29,12 @@ evaluation:
   checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/dpt/dpt-swinv2-tiny-256_v1.pt"
   compile_model: false
 
-  # Inference configuration
-  inference:
-    use_sliding_window: false
-    tile_size: 256
-    overlap: 32
-
 # Model configuration
-
-# DPT Swin V2 Tiny 256
 model:
   model_name: "DPTSwinV2Tiny256Matte"
   encoder:
     model_name: "Intel/dpt-swinv2-tiny-256"
   decoder:
     in_channels: 768
-    convstream_out: [48, 96, 192, 384, 512]
-    fusion_out: [48, 96, 192, 384, 512]
+    convstream_out: [ 48, 96, 192, 384, 512 ]
+    fusion_out: [ 48, 96, 192, 384, 512 ]

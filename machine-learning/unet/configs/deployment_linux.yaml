@@ -1,11 +1,9 @@
-# Global configuration
-scratch:
-  resolution: 224
-  crop_resolution: null
+# @package _global_
 
 # Deployment configuration
 deployment:
-  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/unet_v1.pt"
+  resolution: 512
+  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/resnet_50_512_v1.pt"
   destination_directory: "/mnt/shared/ml/models/unet"
 
 # Model configuration

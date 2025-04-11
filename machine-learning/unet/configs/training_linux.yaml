@@ -1,9 +1,42 @@
 # @package _global_
 
-# Global configuration
-scratch:
-  resolution: 512 # 224, 512, 1024
-  crop_resolution: null # 323, 640, 1280
+# Data augmentation configuration
+transforms:
+  train:
+    RandomAffine:
+      degrees: 30
+      translate: null
+      scale: [ 0.8, 1.25 ]
+      shear: 10
+      flip: 0.5
+      resample: false
+      fillcolor: 0
+    TopBiasedRandomCrop:
+      output_size: [ 512, 512 ]
+      top_crop_ratio: 0.4
+      low_threshold: 0.1
+      high_threshold: 0.9
+    RandomJitter:
+      enabled: true # Hack to show in wandb
+    ToTensor:
+      enabled: true # Hack to show in wandb
+    Rescale:
+      scale: 0.00392156862745098 # 1/255
+    Normalize:
+      mean: [ 0.485, 0.456, 0.406 ]
+      std: [ 0.229, 0.224, 0.225 ]
+      inplace: false
+  val:
+    OriginScale:
+      output_size: 512
+    ToTensor:
+      enabled: true # Hack to show in wandb
+    Rescale:
+      scale: 0.00392156862745098 # 1/255
+    Normalize:
+      mean: [ 0.485, 0.456, 0.406 ]
+      std: [ 0.229, 0.224, 0.225 ]
+      inplace: false
 
 # Dataset configuration
 dataset:
@@ -36,8 +69,8 @@ training:
     normalize_weights: true
     weight_dict:
       l1_loss: 1.0
-      gradient_loss: 0.25
-      laplacian_pha_loss: 0.5
+      gradient_loss: 0.50
+      laplacian_pha_loss: 0.7
 
   # Optimizer configuration
   optimizer:
@@ -87,7 +120,7 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/unet"
     save_freq: 5
-    checkpoint_path: "resnet_50_512_v4.pt"
+    checkpoint_path: "resnet_50_512_v6.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
 
 # Model configuration

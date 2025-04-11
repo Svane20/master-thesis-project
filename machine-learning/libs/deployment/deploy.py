@@ -4,7 +4,7 @@ from pathlib import Path
 import logging
 
 from ..configuration.configuration import Config
-from .utils.minimal import export_minimal_model, export_model_with_compile
+from .utils.minimal import export_minimal_model
 from .utils.onnx import export_to_onnx
 from ..training.utils.logger import setup_logging
 
@@ -18,18 +18,10 @@ def deploy_model(
         configuration: Config,
 ) -> None:
     destination_directory = Path(configuration.deployment.destination_directory)
-    dummy_input = torch.randn(1, 3, configuration.scratch.resolution, configuration.scratch.resolution).to(device)
+    dummy_input = torch.randn(1, 3, configuration.deployment.resolution, configuration.deployment.resolution).to(device)
 
     # Export the minimal model checkpoint
     export_minimal_model(
-        model=model,
-        device=device,
-        directory=destination_directory,
-        model_name=model_name,
-    )
-
-    # Export model checkpoint with torch.compile
-    export_model_with_compile(
         model=model,
         device=device,
         directory=destination_directory,

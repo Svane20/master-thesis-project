@@ -6,7 +6,7 @@ from typing import Optional, Dict, List
 class CriterionConfig:
     losses: List[str]
     normalize_weights: bool
-    weight_dict: Optional[Dict[str, float]]
+    weight_dict: Optional[Dict[str, float]] = None
 
     def asdict(self):
         return {

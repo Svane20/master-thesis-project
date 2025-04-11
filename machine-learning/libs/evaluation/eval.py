@@ -1,48 +1,32 @@
 import torch
-import torchvision.transforms as T
 
 from pathlib import Path
 from datetime import datetime
 import csv
 import logging
 
-from .utils.inference import evaluate_model, evaluate_model_sliding_window
+from .utils.inference import evaluate_model
 from ..configuration.configuration import Config
 from ..datasets.synthetic.data_loaders import create_test_data_loader
+from ..datasets.transforms import get_transforms
 from ..training.utils.logger import setup_logging
 
 setup_logging(__name__)
 
 
-def run_evaluation(
-        configuration: Config,
-        model: torch.nn.Module,
-        device: torch.device,
-        transforms: T.Compose,
-        use_sliding_window: bool = False
-) -> None:
+def run_evaluation(configuration: Config, model: torch.nn.Module, device: torch.device) -> None:
     # Directories
     root_directory = Path(__file__).resolve().parent.parent.parent
     metrics_directory = root_directory / "metrics"
 
+    # Get transforms
+    transforms = get_transforms(config=configuration.transforms, phases=["test"])
+
     # Create data loader
-    if use_sliding_window:
-        assert configuration.dataset.batch_size == 1, (
-            "When using sliding window inference, batch size must be 1."
-        )
-    data_loader = create_test_data_loader(config=configuration.dataset, transforms=transforms)
+    data_loader = create_test_data_loader(config=configuration.dataset, transforms=transforms["test"])
 
     # Model evaluation
-    if use_sliding_window:
-        metrics = evaluate_model_sliding_window(
-            model=model,
-            data_loader=data_loader,
-            device=device,
-            tile_size=configuration.evaluation.inference.tile_size,
-            overlap=configuration.evaluation.inference.overlap,
-        )
-    else:
-        metrics = evaluate_model(model=model, data_loader=data_loader, device=device)
+    metrics = evaluate_model(model=model, data_loader=data_loader, device=device)
 
     # Get model name (or fallback)
     model_name = getattr(model, '__class__', type(model)).__name__
@@ -59,11 +43,10 @@ def run_evaluation(
         "model": model_name,
         "checkpoint": checkpoint_name,
         "dataset": configuration.dataset.name,
-        "resolution": configuration.scratch.resolution,
+        "resolution": configuration.transforms.asdict()["test"]["Resize"]["size"][0],
         "num_parameters": round(num_params, 2),
         "device": device.type,
         "compiled": configuration.evaluation.compile_model,
-        "used_sliding_window": use_sliding_window,
         **metrics
     }
 

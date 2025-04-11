@@ -1,32 +1,27 @@
 import torch
-import torchvision.transforms as T
 from pathlib import Path
 
 from ..configuration.configuration import Config
 from ..datasets.synthetic.data_loaders import create_train_data_loader, create_val_data_loader
+from ..datasets.transforms import get_transforms
 from ..training.trainer import Trainer
 
 
-def start_training(
-        model: torch.nn.Module,
-        config: Config,
-        train_transforms: T.Compose,
-        val_transforms: T.Compose,
-        logs_directory: Path
-) -> None:
+def start_training(model: torch.nn.Module, config: Config, logs_directory: Path) -> None:
     """
     Start the training process.
 
     Args:
         model (torch.nn.Module): The model to be trained.
         config (Config): The configuration object.
-        train_transforms (transforms.Compose): The transforms to apply to the training data.
-        val_transforms (transforms.Compose): The transforms to apply to the validation data.
         logs_directory (Path): The directory to save the logs.
     """
+    # Get the transforms
+    transforms = get_transforms(config=config.transforms, phases=["train", "val"])
+
     # Set up the data loaders
-    train_data_loader = create_train_data_loader(config=config.dataset, transforms=train_transforms)
-    val_data_loader = create_val_data_loader(config=config.dataset, transforms=val_transforms)
+    train_data_loader = create_train_data_loader(config=config.dataset, transforms=transforms["train"])
+    val_data_loader = create_val_data_loader(config=config.dataset, transforms=transforms["val"])
 
     # Set up the trainer
     trainer = Trainer(

@@ -51,7 +51,7 @@ class CheckpointConfig:
     save_directory: str
     save_freq: int
     checkpoint_path: str
-    resume_from: Optional[str]
+    resume_from: Optional[str] = None
 
     def asdict(self):
         return {

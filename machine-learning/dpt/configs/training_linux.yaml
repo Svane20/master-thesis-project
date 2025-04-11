@@ -1,21 +1,54 @@
 # @package _global_
 
-# Global configuration
-scratch:
-  resolution: 256 # 256, 512, 1024
-  crop_resolution: null # 320, 640, 1280
+# Data augmentation configuration
+transforms:
+  train:
+    RandomAffine:
+      degrees: 30
+      translate: null
+      scale: [ 0.8, 1.25 ]
+      shear: 10
+      flip: 0.5
+      resample: false
+      fillcolor: 0
+    TopBiasedRandomCrop:
+      output_size: [ 512, 512 ]
+      top_crop_ratio: 0.4
+      low_threshold: 0.1
+      high_threshold: 0.9
+    RandomJitter:
+      enabled: true # Hack to show in wandb
+    ToTensor:
+      enabled: true # Hack to show in wandb
+    Rescale:
+      scale: 0.00392156862745098 # 1/255
+    Normalize:
+      mean: [ 0.5, 0.5, 0.5 ]
+      std: [ 0.5, 0.5, 0.5 ]
+      inplace: false
+  val:
+    OriginScale:
+      output_size: 512
+    ToTensor:
+      enabled: true # Hack to show in wandb
+    Rescale:
+      scale: 0.00392156862745098 # 1/255
+    Normalize:
+      mean: [ 0.5, 0.5, 0.5 ]
+      std: [ 0.5, 0.5, 0.5 ]
+      inplace: false
 
 # Dataset configuration
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 8
+  batch_size: 2
   pin_memory: true
   train:
     num_workers: 4
     shuffle: true
     drop_last: true
-    use_trimap: false
+    use_trimap: true
     use_composition: false
   val:
     num_workers: 4
@@ -32,12 +65,15 @@ training:
 
   # Criterion configuration
   criterion:
-    losses: [ "l1_loss", "gradient_loss", "laplacian_pha_loss" ]
-    normalize_weights: true
+    losses: [ "known_l1_loss", "unknown_l1_loss", "gradient_loss", "laplacian_pha_loss" ]
+    normalize_weights: false
     weight_dict:
-      l1_loss: 1.0
-      gradient_loss: 0.25
-      laplacian_pha_loss: 0.5
+
+  #    weight_dict:
+  #      known_l1_loss: 1.0
+  #      unknown_l1_loss: 0.3
+  #      gradient_loss: 0.25
+  #      laplacian_pha_loss: 0.5
 
   # Optimizer configuration
   optimizer:
@@ -87,17 +123,15 @@ training:
   checkpoint:
     save_directory: "/mnt/shared/ml/checkpoints/dpt"
     save_freq: 5
-    checkpoint_path: "dpt-swinv2-tiny-256_v2.pt"
+    checkpoint_path: "dpt-swinv2-tiny-512_v3.pt"
     resume_from: null # "/mnt/shared/ml/checkpoints/dpt/<CHECKPOINT>" or null
 
 # Model configuration
-
-# DPT Swin V2 Tiny 256
 model:
   model_name: "DPTSwinV2Tiny256Matte"
   encoder:
     model_name: "Intel/dpt-swinv2-tiny-256"
   decoder:
     in_channels: 768
-    convstream_out: [48, 96, 192, 384, 512]
-    fusion_out: [48, 96, 192, 384, 512]
+    convstream_out: [ 48, 96, 192, 384, 512 ]
+    fusion_out: [ 48, 96, 192, 384, 512 ]

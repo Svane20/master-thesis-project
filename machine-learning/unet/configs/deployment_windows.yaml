@@ -1,11 +1,9 @@
-# Global configuration
-scratch:
-  resolution: 224
-  crop_resolution: null
+# @package _global_
 
 # Deployment configuration
 deployment:
-  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/unet_v1.pt"
+  resolution: 512
+  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/resnet_50_512_v1.pt"
   destination_directory: "D:/OneDrive/Master Thesis/ml/models/unet"
 
 # Model configuration

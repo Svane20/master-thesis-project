@@ -1,21 +1,17 @@
-# Global configuration
-scratch:
-  resolution: 256 # 256, 512, 1024
-  crop_resolution: null # 320, 640, 1280
+# @package _global_
 
 # Deployment configuration
 deployment:
+  resolution: 256
   checkpoint_path: "/mnt/shared/ml/checkpoints/dpt/dpt-swinv2-tiny-256_v1.pt"
   destination_directory: "/mnt/shared/ml/models/dpt"
 
 # Model configuration
-
-# DPT Swin V2 Tiny 256
 model:
   model_name: "DPTSwinV2Tiny256Matte"
   encoder:
     model_name: "Intel/dpt-swinv2-tiny-256"
   decoder:
     in_channels: 768
-    convstream_out: [48, 96, 192, 384, 512]
-    fusion_out: [48, 96, 192, 384, 512]
+    convstream_out: [ 48, 96, 192, 384, 512 ]
+    fusion_out: [ 48, 96, 192, 384, 512 ]

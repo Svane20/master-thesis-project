@@ -1,5 +1,4 @@
 import torch
-from torchvision import transforms as T
 
 from pathlib import Path
 import cv2
@@ -10,6 +9,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "True"
 import matplotlib.pyplot as plt
 
 from ..configuration.configuration import Config
+from ..datasets.transforms import get_transforms
 from ..replacements.foreground_estimation import get_foreground_estimation
 from ..replacements.replacement import replace_background
 from ..training.utils.logger import setup_logging
@@ -22,7 +22,6 @@ setup_logging(__name__)
 def run_pipeline(
         configuration: Config,
         model: torch.nn.Module,
-        transforms: T.Compose,
         device: torch.device,
         output_dir: Path,
         save_image: bool = True,
@@ -36,10 +35,13 @@ def run_pipeline(
         seed=seed
     )
 
+    # Get transforms
+    transforms = get_transforms(config=configuration.transforms, phases=["test"])
+
     # Perform inference
     predicted_alpha = predict(
         model=model,
-        transforms=transforms,
+        transforms=transforms["test"],
         device=device,
         image=image,
         save_dir=output_dir,
