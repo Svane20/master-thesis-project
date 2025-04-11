@@ -3,7 +3,6 @@ import torch
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
 import numpy as np
 import os
-from timeit import default_timer as timer
 from PIL import Image
 import onnxruntime as ort
 
