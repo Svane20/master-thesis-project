@@ -59,7 +59,7 @@ def evaluate_model(
             mem_meter,
         ],
         real_meters={},
-        prefix="Test | Epoch: [{}]".format(1),
+        prefix="Test | Batch: ",
     )
 
     # Set model to evaluation mode
