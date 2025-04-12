@@ -36,6 +36,20 @@ nohup python -m dpt.train &
 ps -ef | grep dpt.train
 ````
 
+### SWIN
+
+1. Run this command from the root directory to run training
+
+````bash
+nohup python -m swin.train &
+````
+
+2. Find the running process
+
+````bash
+ps -ef | grep swin.train
+````
+
 ### U-Net
 
 1. Run this command from the root directory to run training
@@ -52,13 +66,13 @@ ps -ef | grep unet.train
 
 ### Common
 
-2. Check the running process
+1. Check the running process
 
 ````bash
 tail -f nohup.out
 ````
 
-3. Kill the process with the following command:
+2. Kill the process with the following command:
 
 ````text
 kill -9 <PID>
