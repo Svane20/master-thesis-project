@@ -40,6 +40,7 @@ class ConfigurationMode(str, Enum):
 class ConfigurationSuffix(str, Enum):
     UNET = "unet"
     DPT = "dpt"
+    SWIN = "swin"
 
 
 def get_configuration_and_checkpoint_path(mode: ConfigurationMode, suffix: ConfigurationSuffix) -> Tuple[Config, Path]:

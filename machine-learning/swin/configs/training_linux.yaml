@@ -41,7 +41,7 @@ transforms:
 # Dataset configuration
 dataset:
   name: "synthetic-data"
-  root: "C:/Users/svane/Desktop/Thesis/datasets"
+  root: "/mnt/shared/datasets/processed"
   batch_size: 8
   pin_memory: true
   train:
@@ -61,7 +61,7 @@ training:
   warmup_epochs: 2
   accelerator: cuda
   seed: 42
-  compile_model: false
+  compile_model: true
 
   # Criterion configuration
   criterion:
@@ -69,8 +69,8 @@ training:
     normalize_weights: true
     weight_dict:
       l1_loss: 1.0
-      gradient_loss: 0.50
-      laplacian_pha_loss: 0.7
+      gradient_loss: 0.5
+      laplacian_pha_loss: 0.5
 
   # Optimizer configuration
   optimizer:
@@ -105,11 +105,11 @@ training:
   logging:
     wandb:
       enabled: true
-      project: "U-NET"
+      project: "SWIN"
       entity: "svane20-keyshot"
-      tags: [ "unet", "resnet-50", "synthetic-data" ]
-      notes: "Training with ResNet-50 backbone on synthetic data."
-      group: "resnet_50"
+      tags: [ "swin", "swin-small-patch4-window7-224", "synthetic-data" ]
+      notes: "Training with swin-small-patch4-window7-224 backbone on synthetic data."
+      group: "swin-small-patch4-window7-224"
       job_type: "training"
     log_metrics: false
     log_freq: 10
@@ -118,29 +118,16 @@ training:
 
   # Checkpoint configuration
   checkpoint:
-    save_directory: "D:/OneDrive/Master Thesis/ml/checkpoints/unet"
+    save_directory: "/mnt/shared/ml/checkpoints/swin"
     save_freq: 5
-    checkpoint_path: "resnet_50_512_v6.pt"
-    resume_from: null # "D:/OneDrive/Master Thesis/ml/checkpoints/unet/<CHECKPOINT>" or null
+    checkpoint_path: "swin_small_patch4_window7_224_512_v1.pt"
+    resume_from: null # "/mnt/shared/ml/checkpoints/swin/<CHECKPOINT>" or null
 
 # Model configuration
-
-# ResNet-34
-#model:
-#  model_name: "ResNet34Matte"
-#  encoder:
-#    pretrained: true
-#  decoder:
-#    encoder_channels: [ 64, 64, 128, 256, 512 ]
-#    decoder_channels: [ 256, 128, 64, 64 ]
-#    final_channels: 64
-
-# ResNet-50
 model:
-  model_name: "ResNet50Matte"
+  model_name: "SwinMattingModel"
   encoder:
-    pretrained: true
+    model_name: "microsoft/swin-small-patch4-window7-224"
   decoder:
-    encoder_channels: [ 64, 256, 512, 1024, 2048 ]
-    decoder_channels: [ 512, 256, 128, 64 ]
-    final_channels: 64
+    use_attn: true
+    refine_channels: 16

@@ -2,16 +2,24 @@ import torch
 import torch.nn as nn
 from torchsummary import summary
 
+from typing import Any, Dict
+
 from swin.modeling.backbone.swin_small_patch4_window7_224 import SwinEncoder
 from swin.modeling.decoder.matting_decoder import MattingDecoder
 from libs.utils.mem_utils import estimate_max_batch_size
 
 
-class MattingModel(nn.Module):
-    def __init__(self, use_attn=False):
+class SwinMattingModel(nn.Module):
+    def __init__(self, config: Dict[str, Any]):
         super().__init__()
-        self.encoder = SwinEncoder()  # Swin-Small backbone encoder
-        self.decoder = MattingDecoder(use_attn=use_attn)  # Decoder with optional attention gating
+        encoder_config = config['encoder']
+        decoder_config = config['decoder']
+
+        self.encoder = SwinEncoder(model_name=encoder_config["model_name"])
+        self.decoder = MattingDecoder(
+            use_attn=decoder_config["use_attn"],
+            refine_channels=decoder_config["refine_channels"]
+        )
 
     def forward(self, x):
         """
@@ -21,7 +29,8 @@ class MattingModel(nn.Module):
             torch.Tensor: Alpha matte [B, 1, 512, 512].
         """
         features = self.encoder(x)  # list of 4 feature maps
-        return self.decoder(features, x) # decoded and refined alpha matte
+        return self.decoder(features, x)  # decoded and refined alpha matte
+
 
 if __name__ == "__main__":
     image_size = 512
@@ -29,7 +38,17 @@ if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     dummy_input = torch.randn(1, 3, image_size, image_size).to(device)  # (1, 3, H, W)
 
-    model = MattingModel(use_attn=True).to(device)
+    config = {
+        "encoder": {
+            "model_name": "microsoft/swin-small-patch4-window7-224"
+        },
+        "decoder": {
+            "use_attn": True,
+            "refine_channels": 16
+        }
+    }
+
+    model = SwinMattingModel(config).to(device)
     summary(model, input_size=input_size)
 
     with torch.no_grad():
@@ -98,6 +117,7 @@ if __name__ == "__main__":
         refined_alpha = model.decoder.refine_conv3(r)
         alpha_out = torch.sigmoid(refined_alpha)
         print(f"Decoder: refined alpha output shape: {alpha_out.shape}")
+
 
     def generate_inputs(batch_size, input_size, device):
         return (torch.randn(batch_size, *input_size, device=device),)

@@ -1,0 +1,16 @@
+# @package _global_
+
+# Deployment configuration
+deployment:
+  resolution: 512
+  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/swin/swin_small_patch4_window7_224_512_v1.pt"
+  destination_directory: "D:/OneDrive/Master Thesis/ml/models/swin"
+
+# Model configuration
+model:
+  model_name: "SwinMattingModel"
+  encoder:
+    model_name: "microsoft/swin-small-patch4-window7-224"
+  decoder:
+    use_attn: true
+    refine_channels: 16
