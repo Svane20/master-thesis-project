@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformers import DPTImageProcessor, DPTForDepthEstimation
+from transformers import DPTForDepthEstimation
 from torchsummary import summary
 from typing import Tuple, List
 import numpy as np
