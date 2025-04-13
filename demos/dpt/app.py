@@ -1,16 +1,29 @@
 import gradio as gr
 import torch
 from torchvision.transforms import Compose, Resize, ToTensor, Normalize
+import onnxruntime as ort
+
+import pymatting
 import numpy as np
 import os
 from PIL import Image
-import onnxruntime as ort
-
-from replacements.foreground_estimation import get_foreground_estimation
-from replacements.replacements import sky_replacement
+from typing import Tuple
+import random
+from pathlib import Path
 
 
 def _load_model(checkpoint):
+    """
+    Load the ONNX model for inference.
+
+    Args:
+        checkpoint (str): Path to the ONNX model file.
+
+    Returns:
+        session (onnxruntime.InferenceSession): The ONNX runtime session.
+        input_name (str): The name of the input tensor.
+        output_name (str): The name of the output tensor.
+    """
     session_options = ort.SessionOptions()
     session_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
     session_options.intra_op_num_threads = min(1, os.cpu_count() - 1)
@@ -36,88 +49,223 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 session, input_name, output_name = _load_model(checkpoint_path)
 
 
-def inference(image):
-    output = session.run([output_name], {input_name: image.cpu().numpy()})[0]
+def _get_foreground_estimation(image, alpha):
+    """
+    Estimate the foreground using the image and the predicted alpha mask.
+
+    Args:
+        image (np.ndarray): The input image.
+        alpha (np.ndarray): The predicted alpha mask.
+
+    Returns:
+        np.ndarray: The estimated foreground.
+    """
+    # Normalize the image to [0, 1] range
+    normalized_image = np.array(image) / 255.0
+
+    # Invert the alpha mask since the pymatting library expects the sky to be the background
+    inverted_alpha = 1 - alpha
+
+    return pymatting.estimate_foreground_ml(image=normalized_image, alpha=inverted_alpha)
+
+
+def _sky_replacement(foreground, alpha_mask):
+    """
+    Perform sky replacement using the estimated foreground and predicted alpha mask.
+
+    Args:
+        foreground (np.ndarray): The estimated foreground.
+        alpha_mask (np.ndarray): The predicted alpha mask.
+
+    Returns:
+        np.ndarray: The sky-replaced image.
+    """
+    new_sky_path = Path(__file__).parent / "assets/skies/francesco-ungaro-i75WTJn-RBY-unsplash.jpg"
+    new_sky_img = Image.open(new_sky_path).convert("RGB")
+
+    # Get the target size from the foreground image
+    h, w = foreground.shape[:2]
+
+    # Check the size of the sky image
+    sky_width, sky_height = new_sky_img.size
+
+    # If the sky image is smaller than the target size
+    if sky_width < w or sky_height < h:
+        scale = max(w / sky_width, h / sky_height)
+        new_size = (int(sky_width * scale), int(sky_height * scale))
+        new_sky_img = new_sky_img.resize(new_size, resample=Image.Resampling.LANCZOS)
+        sky_width, sky_height = new_sky_img.size
+
+    # Determine the maximum possible top-left coordinates for the crop
+    max_left = sky_width - w
+    max_top = sky_height - h
+
+    # Choose random offsets for left and top within the valid range
+    left = random.randint(a=0, b=max_left) if max_left > 0 else 0
+    top = random.randint(a=0, b=max_top) if max_top > 0 else 0
+
+    # Crop the sky image to the target size using the random offsets
+    new_sky_img = new_sky_img.crop((left, top, left + w, top + h))
+
+    new_sky = np.asarray(new_sky_img).astype(np.float32) / 255.0
+    if foreground.dtype != np.float32:
+        foreground = foreground.astype(np.float32) / 255.0
+    if foreground.shape[2] == 4:
+        foreground = foreground[:, :, :3]
+
+    # Ensure that the alpha mask values are within the range [0, 1]
+    alpha_mask = np.clip(alpha_mask, a_min=0, a_max=1)
+
+    # Blend the foreground with the new sky using the alpha mask
+    return (1 - alpha_mask[:, :, None]) * foreground + alpha_mask[:, :, None] * new_sky
+
+
+def _inference(image):
+    """
+    Perform inference on the input image using the ONNX model.
+
+    Args:
+        image (Image): The input image.
+
+    Returns:
+        np.ndarray: The predicted alpha mask.
+    """
+    output = session.run(output_names=[output_name], input_feed={input_name: image.cpu().numpy()})[0]
 
     # Ensure the output is in valid range [0, 1]
-    output = np.clip(output, 0, 1)
+    output = np.clip(output, a_min=0, a_max=1)
 
     return np.squeeze(output, axis=0).squeeze()
 
 
 def predict(image):
+    """
+    Perform sky replacement on the input image.
+
+    Args:
+        image (Image): The input image.
+
+    Returns:
+        Tuple[Image, Image]: The predicted alpha mask and the sky-replaced image.
+    """
     image_tensor = transforms(image).unsqueeze(0).to(device)
+    predicted_alpha = _inference(image_tensor)
 
-    # Perform inference
-    predicted_alpha = inference(image_tensor)
-
-    # Perform sky replacement
+    # Downscale the input image to match predicted_alpha
     h, w = predicted_alpha.shape
-    downscaled_image = image.resize(size=(w, h), resample=Image.Resampling.LANCZOS)
-    foreground = get_foreground_estimation(downscaled_image, predicted_alpha)
-    replaced_sky = sky_replacement(foreground, predicted_alpha)
+    downscaled_image = image.resize((w, h), Image.Resampling.LANCZOS)
 
-    return predicted_alpha, replaced_sky
+    # Estimate foreground and run sky_replacement
+    foreground = _get_foreground_estimation(downscaled_image, predicted_alpha)
+    replaced_sky = _sky_replacement(foreground, predicted_alpha)
+
+    # Resize the predicted alpha and replaced sky to original dimensions
+    predicted_alpha_pil = Image.fromarray((predicted_alpha * 255).astype(np.uint8), mode='L')
+    predicted_alpha_pil = predicted_alpha_pil.resize((h, w), Image.Resampling.LANCZOS)
+    replaced_sky_pil = Image.fromarray((replaced_sky * 255).astype(np.uint8))  # mode='RGB' typically
+    replaced_sky_pil = replaced_sky_pil.resize((h, w), Image.Resampling.LANCZOS)
+
+    return predicted_alpha_pil, replaced_sky_pil
+
+
+real_example_list = [
+    ["examples/real/2022.jpg", "Real", "Good"],
+    ["examples/real/2041.jpg", "Real", "Good"],
+    ["examples/real/2196.jpg", "Real", "Good"],
+    ["examples/real/2043.jpg", "Real", "Good"],
+    ["examples/real/0054.jpg", "Real", "Acceptable, missing sky details between the houses"],
+    ["examples/real/2079.jpg", "Real", "Acceptable, couldn't get the complete details of the tree"],
+    ["examples/real/2188.jpg", "Real", "Okay, missing details in between the sky and the house"],
+    ["examples/real/0001.jpg", "Real", "Okay, missing minor detail around the lamppost and the tree"],
+    ["examples/real/0211.jpg", "Real", "Okay, misclassified small part of the building as sky"],
+    ["examples/real/0894.jpg", "Real", "Okay, missing details in the trees"],
+    ["examples/real/2184.jpg", "Real", "Okay, lacks tree details in the background"],
+    ["examples/real/2026.jpg", "Real", "Okay, lacks tree details in the left background"],
+    ["examples/real/1975.jpg", "Real", "Okay, lacks tree branch details"],
+    ["examples/real/0069.jpg", "Real", "Bad, didn't replace the sky between the houses"],
+    ["examples/real/1901.jpg", "Real", "Bad, misclassified the sky in top middle"],
+    ["examples/real/2038.jpg", "Real", "Bad, lacks overall details in both trees and tree branches"],
+]
+
+synthetic_example_list = [
+    ["examples/synthetic/0059.jpg", "Synthetic", "Good"],
+    ["examples/synthetic/10515.jpg", "Synthetic", "Good"],
+    ["examples/synthetic/10416.jpg", "Synthetic", "Acceptable, missing minor detail in the tree leaves"],
+    ["examples/synthetic/10467.jpg", "Synthetic", "Acceptable, misclassified part of the sky as the house"],
+    ["examples/synthetic/0097.jpg", "Synthetic", "Okay, missing minor detail in the trees"],
+    ["examples/synthetic/0124.jpg", "Synthetic", "Okay, missing minor detail in the trees"],
+    ["examples/synthetic/0055.jpg", "Synthetic", "Okay, misclassified some of the building as sky"],
+    ["examples/synthetic/0150.jpg", "Synthetic",
+     "Bad, missing detail in the tree and misclassified part of the house as sky"],
+    ["examples/synthetic/0086.jpg", "Synthetic", "Bad, misclassified the sky as part of the house"],
+    ["examples/synthetic/10406.jpg", "Synthetic", "Bad, misclassified the sky as part of the house"],
+    ["examples/synthetic/0127.jpg", "Synthetic", "Bad, missing many details in the trees"],
+]
 
 with gr.Blocks(theme=gr.themes.Default()) as demo:
     gr.Markdown(
         """
         # Demo: Sky Replacement with Alpha Matting
-        This demo performs alpha matting and sky replacements for houses using a DPT architecture with a dpt-swinv2-tiny-256 backbone. \t
+        This demo performs alpha matting and sky replacements for houses using a DPT architecture with a DPT backbone. \t
         This model is trained solely on synthetic data generated using Blender. \n
         Upload an image to perform sky replacement.
         """
     )
 
+    data_type = gr.Radio(choices=["Real", "Synthetic"], value="Real", label="Select Data Type for Examples")
+
     with gr.Row():
         # Left Column: Input Image and Run/Clear Buttons
         with gr.Column(scale=1):
             input_image = gr.Image(type="pil", label="Input Image")
-
             with gr.Row():
                 clear_button = gr.Button("Clear")
                 run_button = gr.Button("Submit", variant="primary")
 
         # Right Column: Output Images
         with gr.Column(scale=1):
-            output_mask = gr.Image(type="numpy", label="Predicted Mask")
-            output_sky = gr.Image(type="numpy", label="Sky Replacement")
+            output_mask = gr.Image(type="pil", label="Predicted Mask")
+            output_sky = gr.Image(type="pil", label="Sky Replacement")
 
     metadata_display = gr.Markdown(None)
 
+    with gr.Column(visible=True) as real_examples_container:
+        real_examples_component = gr.Examples(
+            examples=real_example_list,
+            inputs=[input_image,
+                    gr.Textbox(label="Data Type", value="", interactive=False, visible=False),
+                    gr.Textbox(label="Result", value="", interactive=False, visible=False)],
+            outputs=[input_image, metadata_display],
+            fn=lambda example, dtype, desc: (example, f"**Type:** {dtype}\n\n**Result:** {desc}"),
+            cache_examples=False,
+            label="Real Data Examples"
+        )
 
-    def load_example(example_image, example_type, example_desc):
-        info = f"**Type:** {example_type}\n\n**Description:** {example_desc}"
-        return example_image, info
+    with gr.Column(visible=False) as synthetic_examples_container:
+        synthetic_examples_component = gr.Examples(
+            examples=synthetic_example_list,
+            inputs=[input_image,
+                    gr.Textbox(label="Data Type", value="", interactive=False, visible=False),
+                    gr.Textbox(label="Result", value="", interactive=False, visible=False)],
+            outputs=[input_image, metadata_display],
+            fn=lambda example, dtype, desc: (example, f"**Type:** {dtype}\n\n**Result:** {desc}"),
+            cache_examples=False,
+            label="Synthetic Data Examples"
+        )
 
 
-    example_list = [
-        ["examples/real_0054.jpg", "Real", "Bad"],
-        ["examples/real_0116.jpg", "Real", "Bad"],
-        ["examples/real_0585.jpg", "Real", "Bad"],
-        ["examples/synthetic_10635.jpg", "Synthetic", "Bad"],
-        ["examples/synthetic_10512.jpg", "Synthetic", "Bad"],
-        ["examples/real_0765.jpg", "Real", "Bad"],
-        ["examples/real_0822.jpg", "Real", "Bad"],
-        ["examples/synthetic_10795.jpg", "Synthetic", "Bad"],
-        ["examples/synthetic_10560.jpg", "Synthetic", "Bad"],
-        ["examples/synthetic_10679.jpg", "Synthetic", "Bad"],
-        ["examples/real_0823.jpg", "Real", "Bad"],
-        ["examples/real_bad_0007.jpg", "Real", "Bad"],
-        ["examples/real_bad_0934.jpg", "Real", "Bad"],
-    ]
+    # Callback to toggle the container visibility based on selection.
+    def switch_examples(selected):
+        if selected == "Real":
+            return gr.update(visible=True), gr.update(visible=False)
+        else:
+            return gr.update(visible=False), gr.update(visible=True)
 
-    examples_component = gr.Examples(
-        examples=example_list,
-        inputs=[
-            input_image,
-            gr.Textbox(label="Real or Synthetic", value="", interactive=False, visible=False),
-            gr.Textbox(label="Description", value="", interactive=False, visible=False),
-        ],
-        outputs=[input_image, metadata_display],
-        fn=load_example,
-        cache_examples=True,
-        label="Examples (click an image to load it and see details)"
+
+    data_type.change(
+        fn=switch_examples,
+        inputs=data_type,
+        outputs=[real_examples_container, synthetic_examples_container]
     )
 
 
