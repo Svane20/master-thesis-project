@@ -2,7 +2,7 @@
 
 # Deployment configuration
 deployment:
-  resolution: 256
+  resolution: 512
   checkpoint_path: "/mnt/shared/ml/checkpoints/dpt/dpt-swinv2-tiny-256_v1.pt"
   destination_directory: "/mnt/shared/ml/models/dpt"
 
