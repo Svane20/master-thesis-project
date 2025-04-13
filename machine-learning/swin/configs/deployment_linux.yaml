@@ -3,7 +3,7 @@
 # Deployment configuration
 deployment:
   resolution: 512
-  checkpoint_path: "/mnt/shared/ml/checkpoints/swin/swin_small_patch4_window7_224_512_v1.pt"
+  checkpoint_path: "/mnt/shared/ml/checkpoints/swin/swin_small_patch4_window7_224_512_v1_latest.pt"
   destination_directory: "/mnt/shared/ml/models/swin"
 
 # Model configuration

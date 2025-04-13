@@ -26,7 +26,7 @@ dataset:
 
 # Evaluation configuration
 evaluation:
-  checkpoint_path: "/mnt/shared/ml/checkpoints/swin/swin_small_patch4_window7_224_512_v1.pt"
+  checkpoint_path: "/mnt/shared/ml/checkpoints/swin/swin_small_patch4_window7_224_512_v1_latest.pt"
   compile_model: true
 
 # Model configuration
