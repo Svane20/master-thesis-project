@@ -1,0 +1,8 @@
+gradio
+torch
+torchvision
+numpy
+pillow
+pymatting
+opencv-python
+onnxruntime-gpu

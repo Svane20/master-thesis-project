@@ -1,7 +1,7 @@
 services:
-  unet-onnx:
+  resnet-onnx:
     build:
-      context: ./unet/onnx
+      context: ./resnet/onnx
       dockerfile: Dockerfile
     environment:
       - PROMETHEUS_METRICS_ENABLED=true
@@ -22,7 +22,7 @@ services:
     volumes:
       - ./configs/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - unet-onnx
+      - resnet-onnx
 
 
   prometheus:
