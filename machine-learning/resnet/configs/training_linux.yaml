@@ -118,10 +118,10 @@ training:
 
   # Checkpoint configuration
   checkpoint:
-    save_directory: "/mnt/shared/ml/checkpoints/unet"
+    save_directory: "/mnt/shared/ml/checkpoints/resnet"
     save_freq: 5
     checkpoint_path: "resnet_50_512_v6.pt"
-    resume_from: null # "/mnt/shared/ml/checkpoints/unet/<CHECKPOINT>" or null
+    resume_from: null # "/mnt/shared/ml/checkpoints/resnet/<CHECKPOINT>" or null
 
 # Model configuration
 

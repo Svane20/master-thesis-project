@@ -26,7 +26,7 @@ dataset:
 
 # Evaluation configuration
 evaluation:
-  checkpoint_path: "/mnt/shared/ml/checkpoints/unet/resnet_50_512_v1.pt"
+  checkpoint_path: "/mnt/shared/ml/checkpoints/resnet/resnet_50_512_v1.pt"
   compile_model: true
 
 # Model configuration

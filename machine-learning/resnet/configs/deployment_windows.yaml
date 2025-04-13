@@ -3,8 +3,8 @@
 # Deployment configuration
 deployment:
   resolution: 512
-  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/unet/resnet_50_512_v1.pt"
-  destination_directory: "D:/OneDrive/Master Thesis/ml/models/unet"
+  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/resnet/resnet_50_512_v1.pt"
+  destination_directory: "D:/OneDrive/Master Thesis/ml/models/resnet"
 
 # Model configuration
 
