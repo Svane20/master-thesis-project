@@ -36,6 +36,20 @@ nohup python -m dpt.train &
 ps -ef | grep dpt.train
 ````
 
+### Resnet
+
+1. Run this command from the root directory to run training
+
+````bash
+nohup python -m resnet.train &
+````
+
+2. Find the running process
+
+````bash
+ps -ef | grep resnet.train
+````
+
 ### SWIN
 
 1. Run this command from the root directory to run training
@@ -48,20 +62,6 @@ nohup python -m swin.train &
 
 ````bash
 ps -ef | grep swin.train
-````
-
-### U-Net
-
-1. Run this command from the root directory to run training
-
-````bash
-nohup python -m unet.train &
-````
-
-2. Find the running process
-
-````bash
-ps -ef | grep unet.train
 ````
 
 ### Common

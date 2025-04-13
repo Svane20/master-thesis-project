@@ -8,8 +8,8 @@ from typing import Dict, Any
 from libs.training.utils.checkpoint_utils import load_checkpoint
 from libs.utils.device import compile_model
 
-from unet.modeling.meta_arch.resnet34_matte import ResNet34Matte
-from unet.modeling.meta_arch.resnet50_matte import ResNet50Matte
+from resnet.modeling.meta_arch.resnet34_matte import ResNet34Matte
+from resnet.modeling.meta_arch.resnet50_matte import ResNet50Matte
 
 
 def build_model_for_train(configuration: Dict[str, Any]) -> nn.Module:
@@ -76,7 +76,7 @@ def _build_model(
     assert device in ["cuda", "cpu"], f"Invalid device: {device}"
     assert mode in ["train", "eval"], f"Invalid mode: {mode}"
 
-    logging.info(f"Building UNet model in {mode} mode on {device}")
+    logging.info(f"Building Resnet model in {mode} mode on {device}")
 
     model = _build(configuration)
     model = model.to(device)

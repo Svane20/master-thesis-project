@@ -17,7 +17,7 @@ transforms:
 dataset:
   name: "synthetic-data"
   root: "C:/Users/svane/Desktop/Thesis/datasets"
-  batch_size: 2
+  batch_size: 8
   pin_memory: true
   test:
     num_workers: 4
@@ -26,7 +26,7 @@ dataset:
 
 # Evaluation configuration
 evaluation:
-  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/swin/swin_small_patch4_window7_224_512_v1.pt"
+  checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/swin/swin_small_patch4_window7_224_512_v1_latest.pt"
   compile_model: false
 
 # Model configuration

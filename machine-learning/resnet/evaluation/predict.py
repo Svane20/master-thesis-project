@@ -4,8 +4,8 @@ from libs.configuration.configuration import ConfigurationMode
 from libs.evaluation.predict import run_prediction
 from libs.utils.device import get_device
 
-from unet.build_model import build_model_for_evaluation
-from unet.utils.config import load_config_and_checkpoint_path
+from resnet.build_model import build_model_for_evaluation
+from resnet.utils.config import load_config_and_checkpoint_path
 
 
 def main() -> None:

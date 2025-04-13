@@ -45,22 +45,11 @@ def main() -> None:
         raise FileNotFoundError(f"File not found: {summary_csv}")
     df = pd.read_csv(summary_csv)
 
-    # Split dataframe into sliding window and non-sliding window
-    df_sw = df[df["used_sliding_window"] == True]
-    df_non_sw = df[df["used_sliding_window"] == False]
-
     # Plot for non-sliding window inference
     plot_metrics(
-        df_non_sw,
-        title="Evaluation Metrics without Sliding Window Inference",
-        save_path=summary_csv.parent / "comparison_non_sw.png"
-    )
-
-    # Plot for sliding window inference
-    plot_metrics(
-        df_sw,
-        title="Evaluation Metrics with Sliding Window Inference",
-        save_path=summary_csv.parent / "comparison_sw.png"
+        df,
+        title="Evaluation Metrics",
+        save_path=summary_csv.parent / "comparison.png"
     )
 
 if __name__ == "__main__":

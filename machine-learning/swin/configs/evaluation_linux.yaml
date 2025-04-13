@@ -17,7 +17,7 @@ transforms:
 dataset:
   name: "synthetic-data"
   root: "/mnt/shared/datasets/processed"
-  batch_size: 2
+  batch_size: 8
   pin_memory: true
   test:
     num_workers: 4

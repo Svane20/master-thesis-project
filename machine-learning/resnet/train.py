@@ -6,8 +6,8 @@ from libs.configuration.training.root import TrainConfig
 from libs.training.train import start_training
 from libs.training.utils.train_utils import set_seeds
 
-from unet.build_model import build_model_for_train
-from unet.utils.config import load_config
+from resnet.build_model import build_model_for_train
+from resnet.utils.config import load_config
 
 
 def main() -> None:

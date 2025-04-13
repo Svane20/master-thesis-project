@@ -194,7 +194,7 @@ def debug_sample(sample: Dict[str, torch.Tensor]):
 
 
 if __name__ == "__main__":
-    config = get_configuration(ConfigurationMode.Training, suffix=ConfigurationSuffix.UNET)
+    config = get_configuration(ConfigurationMode.Training, suffix=ConfigurationSuffix.RESNET)
     root_directory = os.path.join(config.dataset.root, config.dataset.name)
 
     # Create transforms for the training phase

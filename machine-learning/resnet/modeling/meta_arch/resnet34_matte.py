@@ -4,8 +4,8 @@ from torchsummary import summary
 from typing import Any, Dict
 
 from libs.utils.mem_utils import estimate_max_batch_size
-from unet.modeling.backbone.resnet34 import ResNet34
-from unet.modeling.decoder.unet_decoder import UNetDecoder
+from resnet.modeling.backbone.resnet34 import ResNet34
+from resnet.modeling.decoder.unet_decoder import UNetDecoder
 
 
 class ResNet34Matte(nn.Module):

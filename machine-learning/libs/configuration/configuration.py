@@ -38,7 +38,7 @@ class ConfigurationMode(str, Enum):
 
 
 class ConfigurationSuffix(str, Enum):
-    UNET = "unet"
+    RESNET = "resnet"
     DPT = "dpt"
     SWIN = "swin"
 

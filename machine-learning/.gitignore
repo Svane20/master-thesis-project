@@ -5,5 +5,4 @@ pipeline
 */evaluation/evaluation
 nohup.out
 matting_criterion.pth
-comparison_non_sw.png
-comparison_sw.png
+comparison.png
