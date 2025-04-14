@@ -8,7 +8,7 @@ deployment:
   destination_directory: "/mnt/shared/ml/models/dpt"
   optimizations:
     apply_quantization: true
-    apply_pruning: false
+    apply_pruning: true
 
 # Model configuration
 model:
