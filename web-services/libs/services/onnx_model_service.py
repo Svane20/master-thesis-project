@@ -60,8 +60,6 @@ class OnnxModelService(BaseModelService):
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid image")
 
-        orig_size = (img_array.shape[1], img_array.shape[0])
-
         # Preprocess the image
         input_tensor = preprocess_image(img_array, IMG_MEAN, IMG_STD)
 
