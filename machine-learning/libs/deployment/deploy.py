@@ -56,8 +56,8 @@ def deploy_model(
     )
 
     # Load exported TorchScript and ONNX model for comparison.
-    ts_model = torch.jit.load(str(destination_directory / f"{model_name}_torch_script.pt"))
-    onnx_model_path = destination_directory / f"{model_name}.onnx"
+    ts_model = torch.jit.load(str(destination_directory / f"{model_name}_{str(device)}_torch_script.pt"))
+    onnx_model_path = destination_directory / f"{model_name}_{str(device)}.onnx"
     compare_model_outputs(model, ts_model, onnx_model_path, dummy_input)
 
     logging.info("Production build completed successfully.")

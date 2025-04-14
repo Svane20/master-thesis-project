@@ -52,8 +52,9 @@ def export_to_onnx(
     validate_onnx_model(onnx_model)
 
     # Measure latency of the exported model
-    measure_onnx_latency(save_path, dummy_input)
-    measure_memory_usage(dummy_input)
+    if device.type == "cuda":
+        measure_onnx_latency(save_path, dummy_input)
+        measure_memory_usage(dummy_input)
 
     logging.info(f"Model exported to ONNX at {save_path}")
 

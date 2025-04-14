@@ -29,7 +29,8 @@ def export_to_torch_script(
         torch.jit.save(m=traced_model, f=f)
 
     # Measure latency of the exported model
-    measure_latency(traced_model, dummy_input)
-    measure_memory_usage(dummy_input)
+    if device.type == "cuda":
+        measure_latency(model, dummy_input)
+        measure_memory_usage(dummy_input)
 
     logging.info(f"Torch scripted model checkpoint saved at {save_path}")

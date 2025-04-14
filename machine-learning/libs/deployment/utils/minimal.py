@@ -36,7 +36,8 @@ def export_minimal_model(
         torch.save(obj=model.state_dict(), f=f)
 
     # Measure latency of the exported model
-    measure_latency(model, dummy_input)
-    measure_memory_usage(dummy_input)
+    if device.type == "cuda":
+        measure_latency(model, dummy_input)
+        measure_memory_usage(dummy_input)
 
     logging.info(f"Minimal model checkpoint saved at {checkpoint_path}")
