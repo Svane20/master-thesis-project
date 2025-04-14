@@ -11,7 +11,6 @@ def main() -> None:
 
     # Load the model
     device = get_device_for_deployment(configuration.deployment)
-    print(f"Device for deployment: {device}")
     model = build_model_for_deployment(
         configuration=configuration.model,
         checkpoint_path=checkpoint_path,
