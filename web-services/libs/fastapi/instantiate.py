@@ -4,33 +4,33 @@ from pathlib import Path
 from typing import AsyncGenerator, Tuple, Dict
 from prometheus_fastapi_instrumentator import Instrumentator
 
-from libs.fastapi.config import get_configuration, Settings
+from libs.configuration.base import get_configuration
 from libs.fastapi.consts import VERSION, LICENSE_INFO
 from libs.fastapi.middlewares import register_middlewares
+from libs.fastapi.settings import get_settings, Settings
 from libs.services.base import BaseModelService
 from libs.services.factory import get_model_service
 from libs.logging import logger
 
 
-def instantiate(project_path: Path) -> Tuple[FastAPI, BaseModelService, Dict[str, str]]:
+def instantiate() -> Tuple[FastAPI, BaseModelService, Dict[str, str]]:
     """
     Instantiates a FastAPI application and a model service.
-
-    Args:
-        project_path (Path): The path to the project directory.
 
     Returns:
         Tuple[FastAPI, BaseModelService]: A tuple containing the FastAPI app, the model service and the project info.
     """
-    # Get the defined configuration
-    config = get_configuration()
+    # Get configuration
+    configuration = get_configuration()
+    project_name = configuration.project_info.project_name
+    model_type = configuration.project_info.model_type
 
-    # Get the project name, model type, and deployment type
-    project_name, model_type = _get_project_info(project_path)
-    deployment_type = _get_deployment_type(config)
+    # Get the defined configuration
+    settings = get_settings()
+    deployment_type = "cuda" if settings.USE_GPU else "cpu"
 
     # Instantiate the model service
-    model_service = get_model_service(config, model_type)
+    model_service = get_model_service(settings, configuration)
 
     # Instantiate the FastAPI app
     fastapi_app = _instantiate_fastapi(
@@ -134,37 +134,3 @@ def _get_description(project_name: str, deployment_type: str) -> str:
     The underlying model is a U-Net architecture with a {project_name.upper()} backbone.
     This model was trained purely on synthetic data.
     """
-
-
-def _get_project_info(project_path: Path) -> Tuple[str, str]:
-    """
-    Extracts project name and model type from the project path.
-
-    Args:
-        project_path (Path): The path to the project.
-
-    Returns:
-        Tuple[str, str]: A tuple containing the project name and model type.
-    """
-    parts = project_path.parts
-    if len(parts) < 2:
-        raise ValueError("Path must contain at least two parts for project and model type")
-
-    # Extract project name and model type from the path
-    project_name = parts[-2]
-    model_type = parts[-1]
-
-    return project_name, model_type
-
-
-def _get_deployment_type(config: Settings) -> str:
-    """
-    Determines the deployment type based on the configuration.
-
-    Args:
-        config (Settings): The configuration settings.
-
-    Returns:
-        str: The deployment type (CPU or GPU).
-    """
-    return "cuda" if config.USE_GPU else "cpu"

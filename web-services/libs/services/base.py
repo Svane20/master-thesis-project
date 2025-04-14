@@ -1,16 +1,19 @@
 from fastapi import UploadFile
 from abc import ABC, abstractmethod
-from typing import List
+
+from libs.configuration.base import Configuration
+from libs.fastapi.settings import Settings
 
 
 class BaseModelService(ABC):
-    def __init__(self, config):
+    def __init__(self, settings: Settings, config: Configuration):
         """
         Initializes the BaseModelService with the given configuration.
 
         Args:
-            config: The configuration settings for the service.
+            settings: The configuration settings for the service.
         """
+        self.settings = settings
         self.config = config
 
     @abstractmethod

@@ -1,4 +1,4 @@
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
 import numpy as np
 from PIL import Image
 import io
@@ -8,7 +8,7 @@ from libs.logging import logger
 IMG_SIZE = (512, 512)
 
 
-def load_image_to_array(file: UploadFile) -> np.ndarray:
+async def load_image(file: UploadFile) -> Image:
     """
     Load an image from an upload file and convert it to a NumPy array.
 
@@ -16,45 +16,14 @@ def load_image_to_array(file: UploadFile) -> np.ndarray:
         file (UploadFile): The file containing the image.
 
     Returns:
-        np.ndarray: The NumPy array representing the image.
+        Image: The loaded image as a PIL Image object.
     """
     try:
-        image = Image.open(file.file).convert("RGB")
+        image_bytes = await file.read()
+        return Image.open(io.BytesIO(image_bytes)).convert("RGB")
     except Exception as e:
         logger.error({"event": "load_image_failed", "error": str(e)})
-        raise
-
-    return np.array(image)
-
-
-def preprocess_image(image_array: np.ndarray, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
-    """
-    Preprocess the image array for model inference.
-
-    Args:
-        image_array (numpy.ndarray): The NumPy array representing the image.
-        mean (numpy.ndarray): The mean values for normalization.
-        std (numpy.ndarray): The standard deviation values for normalization.
-
-    Returns:
-        np.ndarray: The preprocessed image tensor.
-    """
-    im = Image.fromarray(image_array)
-
-    # Resize the image to 512x512
-    im = im.resize(IMG_SIZE, Image.BILINEAR)
-
-    # Convert to float32 and scale to [0, 1]
-    arr = np.array(im, dtype=np.float32) / 255.0
-
-    # Normalize the image
-    arr = (arr - mean) / std
-
-    # Transpose to (1, 3, H, W)
-    tensor = np.transpose(arr, (2, 0, 1))[np.newaxis, :]
-
-    # Convert to float32
-    return tensor.astype(np.float32)
+        raise HTTPException(status_code=400, detail=f"Error reading file: {e}")
 
 
 def postprocess_mask(mask_array: np.ndarray, original_size=None) -> bytes:
