@@ -1,4 +1,5 @@
 from fastapi import UploadFile, HTTPException
+import torch
 import onnxruntime
 import time
 import os
@@ -34,6 +35,7 @@ class OnnxModelService(BaseModelService):
             mean=self.config.model.transforms.mean,
             std=self.config.model.transforms.std,
         )
+        self.use_gpu = torch.cuda.is_available() and self.settings.USE_GPU
 
     def load_model(self) -> None:
         """
@@ -45,8 +47,7 @@ class OnnxModelService(BaseModelService):
             session_options = onnxruntime.SessionOptions()
             session_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
             session_options.intra_op_num_threads = min(1, os.cpu_count() - 1)
-            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.settings.USE_GPU else \
-                ["CPUExecutionProvider"]
+            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.use_gpu else ["CPUExecutionProvider"]
             self.session = onnxruntime.InferenceSession(
                 self.config.model.model_path,
                 session_options,
@@ -66,7 +67,7 @@ class OnnxModelService(BaseModelService):
             "event": "model_loaded",
             "format": "ONNX",
             "providers": providers,
-            "hardware": "GPU" if self.settings.USE_GPU else "CPU",
+            "hardware": "GPU" if self.use_gpu else "CPU",
             "model_load_time": model_load_time,
         })
 
