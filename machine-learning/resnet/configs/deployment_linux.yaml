@@ -3,8 +3,12 @@
 # Deployment configuration
 deployment:
   resolution: 512
+  hardware_acceleration: "cuda"  # Options: "cpu", "cuda"
   checkpoint_path: "/mnt/shared/ml/checkpoints/resnet/resnet_50_512_v1.pt"
   destination_directory: "/mnt/shared/ml/models/resnet"
+  optimizations:
+    apply_quantization: true
+    apply_pruning: false
 
 # Model configuration
 

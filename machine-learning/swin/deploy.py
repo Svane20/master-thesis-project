@@ -1,6 +1,6 @@
 from libs.configuration.configuration import ConfigurationMode
 from libs.deployment.deploy import deploy_model
-from libs.utils.device import get_device
+from libs.utils.device import get_device_for_deployment
 
 from swin.build_model import build_model_for_deployment
 from swin.utils.config import load_config_and_checkpoint_path
@@ -10,7 +10,8 @@ def main() -> None:
     configuration, checkpoint_path = load_config_and_checkpoint_path(ConfigurationMode.Deployment)
 
     # Load the model
-    device = get_device()
+    device = get_device_for_deployment(configuration.deployment)
+    print(f"Device for deployment: {device}")
     model = build_model_for_deployment(
         configuration=configuration.model,
         checkpoint_path=checkpoint_path,

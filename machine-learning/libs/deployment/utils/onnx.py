@@ -4,12 +4,15 @@ from pathlib import Path
 import onnx
 import logging
 
+from libs.deployment.profiling import measure_onnx_latency, measure_memory_usage
+
 
 def export_to_onnx(
         model: torch.nn.Module,
         model_name: str,
         directory: Path,
         dummy_input: torch.Tensor,
+        device: torch.device,
 ) -> None:
     """
     Export the model to ONNX format.
@@ -22,7 +25,7 @@ def export_to_onnx(
     """
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
-    save_path = directory / f"{model_name}.onnx"
+    save_path = directory / f"{model_name}_{str(device)}.onnx"
 
     # Set model to evaluation mode
     model.eval()
@@ -34,7 +37,7 @@ def export_to_onnx(
             dummy_input,
             save_path,
             export_params=True,
-            opset_version=11,
+            opset_version=13,
             do_constant_folding=True,
             input_names=["input"],
             output_names=["output"],
@@ -44,11 +47,15 @@ def export_to_onnx(
         logging.error(f"ONNX export failed: {e}")
         raise
 
-    logging.info(f"Model exported to ONNX at {save_path}")
-
     # Validate the exported model
     onnx_model = load_onnx_model(save_path)
     validate_onnx_model(onnx_model)
+
+    # Measure latency of the exported model
+    measure_onnx_latency(save_path, dummy_input)
+    measure_memory_usage(dummy_input)
+
+    logging.info(f"Model exported to ONNX at {save_path}")
 
 
 def load_onnx_model(onnx_model_path: Path) -> onnx.ModelProto:

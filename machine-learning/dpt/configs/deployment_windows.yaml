@@ -3,8 +3,12 @@
 # Deployment configuration
 deployment:
   resolution: 512
+  hardware_acceleration: "cuda"  # Options: "cpu", "cuda"
   checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/dpt/dpt-swinv2-tiny-256_v1.pt"
   destination_directory: "D:/OneDrive/Master Thesis/ml/models/dpt"
+  optimizations:
+    apply_quantization: true
+    apply_pruning: true
 
 # Model configuration
 model:
