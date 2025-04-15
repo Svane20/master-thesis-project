@@ -32,6 +32,8 @@ docker compose -f .\docker-compose.dev.yml up --build --scale unet-onnx=2 -d
 ### Resnet
 
 [Resnet ONNX](http://localhost:80/resnet/onnx/docs)
+[Resnet TorchScript](http://localhost:80/resnet/torchscript/docs)
+[Resnet Pytorch](http://localhost:80/resnet/pytorch/docs)
 
 ## Add tracking to Grafana
 

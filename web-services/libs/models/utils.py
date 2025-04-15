@@ -35,10 +35,11 @@ def build_model(
 
 
 def _load_checkpoint(model: nn.Module, checkpoint_path: str):
+    # Load the checkpoint
     checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
-    model_state_dict = checkpoint["model"]
 
-    missing_keys, unexpected_keys = model.load_state_dict(model_state_dict)
+    # Check if there are any errors when loading the state dictionary
+    missing_keys, unexpected_keys = model.load_state_dict(checkpoint)
     if missing_keys:
         logger.error(missing_keys)
         raise RuntimeError("Missing keys in checkpoint.")

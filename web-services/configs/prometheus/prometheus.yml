@@ -6,6 +6,14 @@ scrape_configs:
     static_configs:
       - targets: ["resnet-onnx:8001"]
 
+  - job_name: "resnet-torchscript"
+    static_configs:
+      - targets: [ "resnet-torchscript:8002" ]
+
+  - job_name: "resnet-pytorch"
+    static_configs:
+      - targets: [ "resnet-pytorch:8003" ]
+
   - job_name: "prometheus"
     static_configs:
       - targets: ["prometheus:9090"]

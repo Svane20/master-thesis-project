@@ -1,0 +1,15 @@
+# Bytecode and cache
+*.pyc
+*.pyo
+__pycache__
+
+# IDE or editor directories
+.idea/
+
+# Git files and metadata
+.git/
+.gitignore
+.gitkeep
+
+# Environment and secret files (remove if you need these in the image)
+.env
