@@ -13,6 +13,7 @@ services:
       - PROMETHEUS_METRICS_ENABLED=true
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
       - USE_GPU=true
     #      - USE_GPU=false # Set to false if using CPU
     gpus: all
