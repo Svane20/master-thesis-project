@@ -27,6 +27,12 @@ docker compose -f .\docker-compose.dev.yml down
 docker compose -f .\docker-compose.dev.yml up --build --scale unet-onnx=2 -d
 ````
 
+## Swagger UI
+
+### Resnet
+
+[Resnet ONNX](http://localhost:80/resnet/onnx/docs)
+
 ## Add tracking to Grafana
 
 1. Go to Grafana

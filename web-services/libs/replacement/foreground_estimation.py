@@ -2,7 +2,7 @@ import pymatting
 import numpy as np
 
 
-def get_foreground_estimation(image: np.ndarray, alpha_mask: np.ndarray) -> np.ndarray:
+def do_foreground_estimation(image: np.ndarray, alpha_mask: np.ndarray) -> np.ndarray:
     """
     Estimate the foreground and background of an image.
 
@@ -13,7 +13,6 @@ def get_foreground_estimation(image: np.ndarray, alpha_mask: np.ndarray) -> np.n
     Returns:
         numpy.ndarray: Foreground image.
         numpy.ndarray: Background image.
-
     """
     # IMPORTANT: In our training data, the alpha matte is generated so that the sky/HDRI (our target subject)
     # is marked as 1 and the foreground/geometry is 0. However, the pymatting.estimate_foreground_ml function

@@ -2,9 +2,40 @@ from pathlib import Path
 import numpy as np
 import cv2
 import random
+from PIL import Image
+from typing import Tuple
+
+from libs.replacement.foreground_estimation import do_foreground_estimation
 
 
-def replace_background(foreground: np.ndarray, alpha_mask: np.ndarray) -> np.ndarray:
+def do_sky_replacement(image: Image.Image, alpha_mask: np.ndarray, target_size: int = 512) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Perform sky replacement on the input image using the provided alpha mask.
+
+    Args:
+        image (Image): The original image (PIL Image).
+        alpha_mask (np.ndarray): Continuous alpha mask with values in [0, 1] (sky = 1).
+        target_size (int): Target size of the output image.
+
+    Returns:
+        Tuple[np.ndarray, np.ndarray]: A tuple containing:
+            - The composited image where the new sky replaces the original sky.
+            - The foreground image (refined extraction of the sky and any retained non-sky areas).
+    """
+    # Resize the image to the target size
+    image = image.resize((target_size, target_size), Image.LANCZOS)
+
+    # Convert the image to a NumPy array (H x W x 3) and normalize to [0, 1]
+    image_np = np.array(image) / 255.0
+
+    # Perform foreground estimation
+    foreground = do_foreground_estimation(image_np, alpha_mask)
+
+    # Replace the background using the alpha mask
+    return _replace_background(foreground, alpha_mask), foreground
+
+
+def _replace_background(foreground: np.ndarray, alpha_mask: np.ndarray) -> np.ndarray:
     """
     Replace the sky in the original image with a new sky using alpha compositing.
 
