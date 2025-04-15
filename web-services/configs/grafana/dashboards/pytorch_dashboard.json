@@ -1,0 +1,84 @@
+{
+  "title": "PyTorch Model Performance Dashboard",
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "graph",
+      "title": "Model Startup Time (95th Percentile)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(model_startup_latency_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
+          "format": "time_series",
+          "legendFormat": "{{model}} - {{type}} ({{hardware}})"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 2,
+      "type": "graph",
+      "title": "Single Inference Latency (95th Percentile)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(single_inference_latency_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
+          "format": "time_series",
+          "legendFormat": "{{model}} - {{type}} ({{hardware}})"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 3,
+      "type": "graph",
+      "title": "Batch Inference Latency (95th Percentile)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(batch_inference_latency_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
+          "format": "time_series",
+          "legendFormat": "{{model}} - {{type}} ({{hardware}})"
+        }
+      ],
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "id": 4,
+      "type": "graph",
+      "title": "Sky Replacement Total Time (95th Percentile)",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(sky_replacement_total_time_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
+          "format": "time_series",
+          "legendFormat": "{{model}} - {{type}} ({{hardware}})"
+        }
+      ],
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 12,
+        "h": 8
+      }
+    }
+  ],
+  "schemaVersion": 27,
+  "version": 0,
+  "refresh": "15s"
+}
