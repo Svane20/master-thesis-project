@@ -1,44 +1,30 @@
 from fastapi import UploadFile, HTTPException
-import onnxruntime
-import time
-import os
+import torch
 import asyncio
 from typing import List
-import numpy as np
+import time
 
 from libs.configuration.base import Configuration
 from libs.fastapi.settings import Settings
+from libs.metrics import MODEL_LOAD_TIME, SINGLE_INFERENCE_TIME, SINGLE_INFERENCE_TOTAL_TIME, BATCH_INFERENCE_TIME, \
+    BATCH_INFERENCE_TOTAL_TIME, SKY_REPLACEMENT_INFERENCE_TIME, SKY_REPLACEMENT_TIME, SKY_REPLACEMENT_TOTAL_TIME
+from libs.models.utils import build_model
 from libs.replacement.replacement import do_sky_replacement
 from libs.services.base import BaseModelService
 from libs.logging import logger
-from libs.metrics import MODEL_LOAD_TIME, SINGLE_INFERENCE_TIME, SINGLE_INFERENCE_TOTAL_TIME, BATCH_INFERENCE_TIME, \
-    BATCH_INFERENCE_TOTAL_TIME, SKY_REPLACEMENT_INFERENCE_TIME, SKY_REPLACEMENT_TIME, SKY_REPLACEMENT_TOTAL_TIME
-from libs.utils.processing import get_alpha_png_bytes, preprocess_image, preprocess_images, get_alphas_as_zip, \
-    get_replacement_as_zip, get_image_png_bytes
+from libs.utils.processing import preprocess_image, get_alpha_png_bytes, preprocess_images, get_alphas_as_zip, \
+    get_image_png_bytes, get_replacement_as_zip
 
 
-def _postprocess_alphas(outputs: List[np.ndarray]) -> List[np.ndarray]:
-    """
-    Post-process the alpha outputs from the model.
-
-    Args:
-        outputs (List[np.ndarray]): The model outputs.
-
-    Returns:
-        List[np.ndarray]: The post-processed alphas.
-    """
-    result = outputs[0]
-    alphas = []
-    for i in range(result.shape[0]):
-        alpha = np.squeeze(result[i], axis=0)
-        alphas.append(alpha)
-    return alphas
+def _run_inference(model: torch.nn.Module, image_tensor: torch.Tensor) -> torch.Tensor:
+    with torch.no_grad():
+        return model(image_tensor)
 
 
-class OnnxModelService(BaseModelService):
+class PytorchModelService(BaseModelService):
     def __init__(self, settings: Settings, config: Configuration):
         """
-        Initializes the OnnxModelService with the given configuration.
+        Initializes the TorchScriptModelService with the given configuration.
 
         Args:
             settings (Settings): The configuration settings for the service.
@@ -46,35 +32,33 @@ class OnnxModelService(BaseModelService):
         """
         super().__init__(settings=settings, config=config)
 
-        self.session = None
-        self.input_name = None
-        self.output_name = None
+        self.model = None
+
+        model_configuration = config.model.model_configuration
+        if model_configuration is None:
+            raise ValueError("Model configuration is missing.")
+
+        self.model_configuration = model_configuration
+        self.device = torch.device('cuda' if self.use_gpu else 'cpu')
+        self.is_torch_script = config.project_info.model_type == "torchscript"
 
     def load_model(self) -> None:
         """
-        Load the ONNX model from disk and initialize runtime resources.
+        Load the pytorch model from disk and initialize runtime resources.
         """
         # Log the start time of model loading
         start = time.perf_counter()
 
-        # Load the ONNX model
         try:
-            session_options = onnxruntime.SessionOptions()
-            session_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
-            session_options.intra_op_num_threads = min(1, os.cpu_count() - 1)
-            providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.use_gpu else ["CPUExecutionProvider"]
-            self.session = onnxruntime.InferenceSession(
-                self.config.model.model_path,
-                session_options,
-                providers=providers
+            self.model = build_model(
+                configuration=self.model_configuration,
+                model_path=self.config.model.model_path,
+                device=self.device,
+                is_torch_script=self.is_torch_script,
             )
         except Exception as e:
             logger.error({"event": "model_load_failed", "error": str(e)})
             raise e
-
-        # Set the input and output names
-        self.input_name = self.session.get_inputs()[0].name
-        self.output_name = self.session.get_outputs()[0].name
 
         # Log the model load time
         model_load_time = time.perf_counter() - start
@@ -83,10 +67,11 @@ class OnnxModelService(BaseModelService):
             type=self.model_type,
             hardware=self.hardware
         ).observe(model_load_time)
+
+        current_format = "TorchScript" if self.is_torch_script else "PyTorch"
         logger.info({
             "event": "model_loaded",
-            "format": "ONNX",
-            "providers": providers,
+            "format": current_format,
             "hardware": self.hardware,
             "model_load_time": model_load_time,
         })
@@ -101,7 +86,7 @@ class OnnxModelService(BaseModelService):
         Returns:
             bytes: The predicted alpha matte as a PNG image.
         """
-        if self.session is None:
+        if self.model is None:
             raise HTTPException(status_code=500, detail="Model not loaded")
 
         # Log the start time of the request
@@ -109,16 +94,14 @@ class OnnxModelService(BaseModelService):
 
         # Load and preprocess the image
         image_tensor, _ = await preprocess_image(file, self.transforms)
+        image_tensor = image_tensor.unsqueeze(0).to(self.device)
 
         # Run inference
         loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            outputs = await loop.run_in_executor(
-                None,
-                self.session.run,
-                [self.output_name],
-                {self.input_name: image_tensor.unsqueeze(0).numpy()},
+            output = await loop.run_in_executor(
+                None, _run_inference, self.model, image_tensor
             )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
@@ -134,7 +117,7 @@ class OnnxModelService(BaseModelService):
         logger.info({"event": "inference_completed", "time": inference_time})
 
         # Post-process the alpha
-        alpha = _postprocess_alphas(outputs)[0]
+        alpha = output.detach().cpu().numpy()
 
         # Log the total time taken for the request
         total_time = time.perf_counter() - request_start
@@ -158,7 +141,7 @@ class OnnxModelService(BaseModelService):
         Returns:
             bytes: The ZIP archive containing the predicted alpha mattes.
         """
-        if self.session is None:
+        if self.model is None:
             raise HTTPException(status_code=500, detail="Model not loaded")
 
         if len(files) > self.settings.MAX_BATCH_SIZE:
@@ -168,17 +151,15 @@ class OnnxModelService(BaseModelService):
         request_start = time.perf_counter()
 
         # Preprocess the images
-        batch = await preprocess_images(files, self.transforms)
+        image_batch = await preprocess_images(files, self.transforms)
+        image_batch = image_batch.to(self.device)
 
         # Run inference
         loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            outputs = await loop.run_in_executor(
-                None,
-                self.session.run,
-                [self.output_name],
-                {self.input_name: batch.numpy()},
+            output = await loop.run_in_executor(
+                None, _run_inference, self.model, image_batch
             )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
@@ -194,7 +175,7 @@ class OnnxModelService(BaseModelService):
         logger.info({"event": "inference_completed", "time": inference_time})
 
         # Post-process the alphas
-        alphas = _postprocess_alphas(outputs)
+        alphas = output.detach().cpu().numpy()
 
         # Log the total time taken for the request
         total_time = time.perf_counter() - request_start
@@ -219,7 +200,7 @@ class OnnxModelService(BaseModelService):
         Returns:
             bytes: The result of the sky replacement.
         """
-        if self.session is None:
+        if self.model is None:
             raise HTTPException(status_code=500, detail="Model not loaded")
 
         # Log the start time of the request
@@ -227,16 +208,14 @@ class OnnxModelService(BaseModelService):
 
         # Load and preprocess the image
         image_tensor, image = await preprocess_image(file, self.transforms)
+        image_tensor = image_tensor.unsqueeze(0).to(self.device)
 
         # Run inference
         loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            outputs = await loop.run_in_executor(
-                None,
-                self.session.run,
-                [self.output_name],
-                {self.input_name: image_tensor.unsqueeze(0).numpy()},
+            output = await loop.run_in_executor(
+                None, _run_inference, self.model, image_tensor
             )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
@@ -252,7 +231,7 @@ class OnnxModelService(BaseModelService):
         logger.info({"event": "inference_completed", "time": inference_time})
 
         # Post-process the alpha
-        alpha = _postprocess_alphas(outputs)[0]
+        alpha = output.detach().cpu().numpy().squeeze()
 
         # Perform sky replacement
         replacement_start = time.perf_counter()

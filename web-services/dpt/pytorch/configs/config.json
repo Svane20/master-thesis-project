@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_name": "dpt",
+    "model_type": "pytorch"
+  },
+  "model": {
+    "model_path": "./models/dpt-swinv2-tiny-256_v1_minimal.pt",
+    "transforms": {
+      "image_size": [
+        512,
+        512
+      ],
+      "mean": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "std": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "model_configuration": {
+      "model_name": "DPTSwinV2Tiny256Matte",
+      "encoder": {
+        "model_name": "Intel/dpt-swinv2-tiny-256"
+      },
+      "decoder": {
+        "in_channels": 768,
+        "convstream_out": [
+          48,
+          96,
+          192,
+          384,
+          512
+        ],
+        "decoder_channels": [
+          48,
+          96,
+          192,
+          384,
+          512
+        ]
+      }
+    }
+  }
+}

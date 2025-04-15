@@ -1,4 +1,4 @@
-from typing import Tuple, List
+from typing import Tuple, List, Optional, Dict, Any
 
 from pydantic import BaseModel, Field
 import json
@@ -18,6 +18,7 @@ class ModelTransformsConfiguration(BaseModel):
 class ModelConfiguration(BaseModel):
     model_path: str = Field(...)
     transforms: ModelTransformsConfiguration
+    model_configuration: Optional[Dict[str, Any]] = None
 
 
 class Configuration(BaseModel):
