@@ -135,6 +135,13 @@ def test_single_inference(client):
 def test_batch_inference(client):
     image_paths = [
         images_directory / "0001.jpg",
+        images_directory / "0055.jpg",
+        images_directory / "0086.jpg",
+        images_directory / "0211.jpg",
+        images_directory / "1901.jpg",
+        images_directory / "2022.jpg",
+        images_directory / "2041.jpg",
+        images_directory / "10406.jpg",
     ]
     for img_path in image_paths:
         assert img_path.exists(), f"Test image not found: {img_path}"
