@@ -6,8 +6,8 @@ services:
       args:
         USE_GPU: "true"
         BASE_IMAGE: "nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04"
-    #        USE_GPU: "false"
-    #        BASE_IMAGE: "python:3.10-slim"
+#        USE_GPU: "false"
+#        BASE_IMAGE: "python:3.10-slim"
     container_name: resnet-onnx
     environment:
       - PROMETHEUS_METRICS_ENABLED=true
@@ -15,8 +15,8 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - MAX_BATCH_SIZE=8
       - USE_GPU=true
-    #      - USE_GPU=false # Set to false if using CPU
-    gpus: all
+#      - USE_GPU=false # Set to false if using CPU
+    gpus: all # Disable this line if using CPU
     restart: always
     depends_on:
       - prometheus
