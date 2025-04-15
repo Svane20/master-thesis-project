@@ -8,8 +8,8 @@ ARG USE_GPU
 WORKDIR /app
 
 # Copy requirements files
-COPY resnet/onnx/requirements.cpu.txt /app/requirements.cpu.txt
-COPY resnet/onnx/requirements.gpu.txt /app/requirements.gpu.txt
+COPY requirements.cpu.txt /app/requirements.cpu.txt
+COPY requirements.gpu.txt /app/requirements.gpu.txt
 
 # Install dependencies based on the USE_GPU flag
 RUN if [ "$USE_GPU" = "true" ]; then \

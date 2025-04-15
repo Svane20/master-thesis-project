@@ -29,11 +29,23 @@ docker compose -f .\docker-compose.dev.yml up --build --scale unet-onnx=2 -d
 
 ## Swagger UI
 
+### SWIN
+
+[Swin ONNX](http://localhost:80/swin/onnx/docs)
+[Swin TorchScript](http://localhost:80/swin/torchscript/docs)
+[Swin Pytorch](http://localhost:80/swin/pytorch/docs)
+
 ### Resnet
 
 [Resnet ONNX](http://localhost:80/resnet/onnx/docs)
 [Resnet TorchScript](http://localhost:80/resnet/torchscript/docs)
 [Resnet Pytorch](http://localhost:80/resnet/pytorch/docs)
+
+### DPT
+
+[DPT ONNX](http://localhost:80/dpt/onnx/docs)
+[DPT TorchScript](http://localhost:80/dpt/torchscript/docs)
+[DPT Pytorch](http://localhost:80/dpt/pytorch/docs)
 
 ## Add tracking to Grafana
 

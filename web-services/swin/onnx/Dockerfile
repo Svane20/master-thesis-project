@@ -25,13 +25,13 @@ RUN if [ "$USE_GPU" = "true" ]; then \
     fi
 
 # Copy project related files
-COPY resnet/torchscript/configs /app/configs
-COPY resnet/torchscript/models /app/models
-COPY resnet/torchscript/main.py /app/main.py
+COPY swin/onnx/configs /app/configs
+COPY swin/onnx/models /app/models
+COPY swin/onnx/main.py /app/main.py
 
 # Copy the libs directory
 COPY libs /app/libs
 
-EXPOSE 8002
+EXPOSE 8004
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8002"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8004"]

@@ -43,16 +43,104 @@ services:
 #    depends_on:
 #      - prometheus
 
-  resnet-pytorch:
+#  resnet-pytorch:
+#    build:
+#      context: .
+#      dockerfile: resnet/pytorch/Dockerfile
+#      args:
+#        USE_GPU: "true"
+#        BASE_IMAGE: "nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04"
+#    #        USE_GPU: "false"
+#    #        BASE_IMAGE: "python:3.10-slim"
+#    container_name: resnet-pytorch
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - NVIDIA_VISIBLE_DEVICES=all
+#      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=true
+#    #      - USE_GPU=false # Set to false if using CPU
+#    gpus: all # Disable this line if using CPU
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+#  swin-onnx:
+#    build:
+#      context: .
+#      dockerfile: swin/onnx/Dockerfile
+#      args:
+#        USE_GPU: "true"
+#        BASE_IMAGE: "nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04"
+#    #        USE_GPU: "false"
+#    #        BASE_IMAGE: "python:3.10-slim"
+#    container_name: swin-onnx
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - NVIDIA_VISIBLE_DEVICES=all
+#      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=true
+#    #      - USE_GPU=false # Set to false if using CPU
+#    gpus: all # Disable this line if using CPU
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+#  swin-torchscript:
+#    build:
+#      context: .
+#      dockerfile: swin/torchscript/Dockerfile
+#      args:
+#        USE_GPU: "true"
+#        BASE_IMAGE: "nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04"
+#    #        USE_GPU: "false"
+#    #        BASE_IMAGE: "python:3.10-slim"
+#    container_name: swin-torchscript
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - NVIDIA_VISIBLE_DEVICES=all
+#      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=true
+#    #      - USE_GPU=false # Set to false if using CPU
+#    gpus: all # Disable this line if using CPU
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+#  swin-pytorch:
+#    build:
+#      context: .
+#      dockerfile: swin/pytorch/Dockerfile
+#      args:
+#        USE_GPU: "true"
+#        BASE_IMAGE: "nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04"
+#    #        USE_GPU: "false"
+#    #        BASE_IMAGE: "python:3.10-slim"
+#    container_name: swin-pytorch
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - NVIDIA_VISIBLE_DEVICES=all
+#      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=true
+#    #      - USE_GPU=false # Set to false if using CPU
+#    gpus: all # Disable this line if using CPU
+#    restart: always
+#    depends_on:
+#      - prometheus
+#
+  dpt-onnx:
     build:
       context: .
-      dockerfile: resnet/pytorch/Dockerfile
+      dockerfile: dpt/onnx/Dockerfile
       args:
         USE_GPU: "true"
         BASE_IMAGE: "nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04"
     #        USE_GPU: "false"
     #        BASE_IMAGE: "python:3.10-slim"
-    container_name: resnet-pytorch
+    container_name: dpt-onnx
     environment:
       - PROMETHEUS_METRICS_ENABLED=true
       - NVIDIA_VISIBLE_DEVICES=all
@@ -64,6 +152,50 @@ services:
     restart: always
     depends_on:
       - prometheus
+#
+#  dpt-torchscript:
+#    build:
+#      context: .
+#      dockerfile: dpt/torchscript/Dockerfile
+#      args:
+#        USE_GPU: "true"
+#        BASE_IMAGE: "nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04"
+#    #        USE_GPU: "false"
+#    #        BASE_IMAGE: "python:3.10-slim"
+#    container_name: dpt-torchscript
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - NVIDIA_VISIBLE_DEVICES=all
+#      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=true
+#    #      - USE_GPU=false # Set to false if using CPU
+#    gpus: all # Disable this line if using CPU
+#    restart: always
+#    depends_on:
+#      - prometheus
+#
+#  dpt-pytorch:
+#    build:
+#      context: .
+#      dockerfile: dpt/pytorch/Dockerfile
+#      args:
+#        USE_GPU: "true"
+#        BASE_IMAGE: "nvidia/cuda:12.4.1-cudnn-runtime-ubuntu22.04"
+#    #        USE_GPU: "false"
+#    #        BASE_IMAGE: "python:3.10-slim"
+#    container_name: dpt-pytorch
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - NVIDIA_VISIBLE_DEVICES=all
+#      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=true
+#    #      - USE_GPU=false # Set to false if using CPU
+#    gpus: all # Disable this line if using CPU
+#    restart: always
+#    depends_on:
+#      - prometheus
 
   nginx:
     image: nginx:latest
@@ -73,7 +205,7 @@ services:
     volumes:
       - ./configs/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:
-      - resnet-pytorch
+      - dpt-onnx
 
 
   prometheus:

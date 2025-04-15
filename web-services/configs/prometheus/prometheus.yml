@@ -14,6 +14,30 @@ scrape_configs:
     static_configs:
       - targets: [ "resnet-pytorch:8003" ]
 
+  - job_name: "swin-onnx"
+    static_configs:
+      - targets: [ "swin-onnx:8004" ]
+
+  - job_name: "swin-torchscript"
+    static_configs:
+      - targets: [ "swin-torchscript:8005" ]
+
+  - job_name: "swin-pytorch"
+    static_configs:
+      - targets: [ "swin-pytorch:8006" ]
+
+  - job_name: "dpt-onnx"
+    static_configs:
+      - targets: [ "dpt-onnx:8007" ]
+
+  - job_name: "dpt-torchscript"
+    static_configs:
+      - targets: [ "dpt-torchscript:8008" ]
+
+  - job_name: "dpt-pytorch"
+    static_configs:
+      - targets: [ "dpt-pytorch:8009" ]
+
   - job_name: "prometheus"
     static_configs:
       - targets: ["prometheus:9090"]
