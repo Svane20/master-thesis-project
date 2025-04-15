@@ -1,13 +1,15 @@
+from fastapi import FastAPI
 import uvicorn
 
 from libs.fastapi.instantiate import instantiate
 from libs.fastapi.routes import register_routes
 
-# Instantiate the FastAPI app and model service
-app, model_service, project_info = instantiate()
 
-# Register the routes
-register_routes(app, model_service, project_info)
+def create_app() -> FastAPI:
+    app, model_service, project_info = instantiate()
+    register_routes(app, model_service, project_info)
+    return app
+
 
 if __name__ == "__main__":
-    uvicorn.run(app="main:app", host="0.0.0.0", port=8002, reload=True)
+    uvicorn.run(app="main:create_app", factory=True, host="0.0.0.0", port=8002, reload=True)

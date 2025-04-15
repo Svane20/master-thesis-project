@@ -34,4 +34,4 @@ COPY libs /app/libs
 
 EXPOSE 8004
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8004"]
+CMD ["uvicorn", "main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8004"]

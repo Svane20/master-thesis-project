@@ -13,3 +13,7 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     return Settings()
+
+
+def reset_settings_cache():
+    get_settings.cache_clear()
