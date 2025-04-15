@@ -1,0 +1,35 @@
+{
+  "project_info": {
+    "project_name": "swin",
+    "model_type": "pytorch"
+  },
+  "model": {
+    "model_path": "./models/swin_small_patch4_window7_224_512_v1_latest_minimal.pt",
+    "transforms": {
+      "image_size": [
+        512,
+        512
+      ],
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ]
+    },
+    "model_configuration": {
+      "model_name": "SwinMattingModel",
+      "encoder": {
+        "model_name": "microsoft/swin-small-patch4-window7-224"
+      },
+      "decoder": {
+        "use_attn": true,
+        "refine_channels": 16
+      }
+    }
+  }
+}

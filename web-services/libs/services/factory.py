@@ -19,5 +19,8 @@ def get_model_service(settings: Settings, configuration: Configuration) -> BaseM
     if model_type == "onnx":
         from libs.services.onnx_model_service import OnnxModelService
         return OnnxModelService(settings, configuration)
+    elif model_type == "torchscript" or model_type == "pytorch":
+        from libs.services.pytorch_model_service import PytorchModelService
+        return PytorchModelService(settings, configuration)
     else:
         raise ValueError(f"Unknown model type: {model_type}")

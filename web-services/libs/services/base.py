@@ -1,9 +1,11 @@
 from fastapi import UploadFile
+import torch
 from abc import ABC, abstractmethod
 from typing import List
 
 from libs.configuration.base import Configuration
 from libs.fastapi.settings import Settings
+from libs.utils.transforms import get_transforms
 
 
 class BaseModelService(ABC):
@@ -16,6 +18,17 @@ class BaseModelService(ABC):
         """
         self.settings = settings
         self.config = config
+
+        self.transforms = get_transforms(
+            size=self.config.model.transforms.image_size,
+            mean=self.config.model.transforms.mean,
+            std=self.config.model.transforms.std,
+        )
+
+        self.use_gpu = torch.cuda.is_available() and self.settings.USE_GPU
+        self.project_name = self.config.project_info.project_name
+        self.model_type = self.config.project_info.model_type
+        self.hardware = "GPU" if self.use_gpu else "CPU"
 
     @abstractmethod
     def load_model(self) -> None:
