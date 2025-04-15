@@ -25,8 +25,18 @@ BATCH_INFERENCE_TOTAL_TIME = Histogram(
     documentation="Batch inference total time (seconds)",
     labelnames=["model", "type", "hardware"],
 )
+SKY_REPLACEMENT_INFERENCE_TIME = Histogram(
+    name="sky_replacement_inference_latency_seconds",
+    documentation="Sky replacement inference latency (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
 SKY_REPLACEMENT_TIME = Histogram(
     name="sky_replacement_latency_seconds",
     documentation="Sky replacement latency (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
+SKY_REPLACEMENT_TOTAL_TIME = Histogram(
+    name="sky_replacement_total_time_seconds",
+    documentation="Sky replacement total time (seconds)",
     labelnames=["model", "type", "hardware"],
 )

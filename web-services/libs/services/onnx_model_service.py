@@ -9,11 +9,13 @@ import numpy as np
 
 from libs.configuration.base import Configuration
 from libs.fastapi.settings import Settings
+from libs.replacement.replacement import do_sky_replacement
 from libs.services.base import BaseModelService
 from libs.logging import logger
 from libs.metrics import MODEL_LOAD_TIME, SINGLE_INFERENCE_TIME, SINGLE_INFERENCE_TOTAL_TIME, BATCH_INFERENCE_TIME, \
-    BATCH_INFERENCE_TOTAL_TIME
-from libs.utils.processing import get_alpha_png_bytes, preprocess_image, preprocess_images, get_alphas_as_zip
+    BATCH_INFERENCE_TOTAL_TIME, SKY_REPLACEMENT_INFERENCE_TIME, SKY_REPLACEMENT_TIME, SKY_REPLACEMENT_TOTAL_TIME
+from libs.utils.processing import get_alpha_png_bytes, preprocess_image, preprocess_images, get_alphas_as_zip, \
+    get_replacement_as_zip, get_image_png_bytes
 from libs.utils.transforms import get_transforms
 
 
@@ -114,7 +116,7 @@ class OnnxModelService(BaseModelService):
         request_start = time.perf_counter()
 
         # Load and preprocess the image
-        image_tensor = await preprocess_image(file, self.transforms)
+        image_tensor, _ = await preprocess_image(file, self.transforms)
 
         # Run inference
         loop = asyncio.get_running_loop()
@@ -142,9 +144,6 @@ class OnnxModelService(BaseModelService):
         # Post-process the alpha
         alpha = _postprocess_alphas(outputs)[0]
 
-        # Convert the alpha to PNG bytes
-        png_bytes = get_alpha_png_bytes(alpha)
-
         # Log the total time taken for the request
         total_time = time.perf_counter() - request_start
         SINGLE_INFERENCE_TOTAL_TIME.labels(
@@ -154,7 +153,8 @@ class OnnxModelService(BaseModelService):
         ).observe(total_time)
         logger.info({"event": "request_completed", "time": total_time})
 
-        return png_bytes
+        # Convert the alpha to PNG bytes
+        return get_alpha_png_bytes(alpha)
 
     async def batch_predict(self, files: list[UploadFile]) -> bytes:
         """
@@ -204,9 +204,6 @@ class OnnxModelService(BaseModelService):
         # Post-process the alphas
         alphas = _postprocess_alphas(outputs)
 
-        # Convert the alphas to a ZIP archive
-        zip_bytes = b"".join([chunk async for chunk in get_alphas_as_zip(alphas, files)])
-
         # Log the total time taken for the request
         total_time = time.perf_counter() - request_start
         BATCH_INFERENCE_TOTAL_TIME.labels(
@@ -216,4 +213,83 @@ class OnnxModelService(BaseModelService):
         ).observe(total_time)
         logger.info({"event": "request_completed", "time": total_time})
 
-        return zip_bytes
+        # Convert the alphas to a ZIP archive
+        return b"".join([chunk async for chunk in get_alphas_as_zip(alphas, files)])
+
+    async def sky_replacement(self, file: UploadFile, extra: bool = False) -> bytes:
+        """
+        Perform sky replacement on the input image and return the result.
+
+        Args:
+            file (UploadFile): The file containing the image.
+            extra (bool): Whether to include extra information.
+
+        Returns:
+            bytes: The result of the sky replacement.
+        """
+        if self.session is None:
+            raise HTTPException(status_code=500, detail="Model not loaded")
+
+        # Log the start time of the request
+        request_start = time.perf_counter()
+
+        # Load and preprocess the image
+        image_tensor, image = await preprocess_image(file, self.transforms)
+
+        # Run inference
+        loop = asyncio.get_running_loop()
+        inf_start = time.perf_counter()
+        try:
+            outputs = await loop.run_in_executor(
+                None,
+                self.session.run,
+                [self.output_name],
+                {self.input_name: image_tensor.unsqueeze(0).numpy()},
+            )
+        except Exception as e:
+            logger.error({"event": "inference_failed", "error": str(e)})
+            raise HTTPException(status_code=500, detail="Inference failed")
+
+        # Log the inference time
+        inference_time = time.perf_counter() - inf_start
+        SKY_REPLACEMENT_INFERENCE_TIME.labels(
+            model=self.project_name,
+            type=self.model_type,
+            hardware=self.hardware
+        ).observe(inference_time)
+        logger.info({"event": "inference_completed", "time": inference_time})
+
+        # Post-process the alpha
+        alpha = _postprocess_alphas(outputs)[0]
+
+        # Perform sky replacement
+        replacement_start = time.perf_counter()
+        replaced_image, foreground = do_sky_replacement(image, alpha)
+
+        # Log the sky replacement time
+        replacement_time = time.perf_counter() - replacement_start
+        SKY_REPLACEMENT_TIME.labels(
+            model=self.project_name,
+            type=self.model_type,
+            hardware=self.hardware
+        ).observe(replacement_time)
+        logger.info({"event": "replaced_image", "time": replacement_time})
+
+        # Convert the replaced image to PNG bytes
+        png_bytes = get_image_png_bytes(replaced_image)
+
+        # Log the total time taken for the request
+        total_time = time.perf_counter() - request_start
+        SKY_REPLACEMENT_TOTAL_TIME.labels(
+            model=self.project_name,
+            type=self.model_type,
+            hardware=self.hardware
+        ).observe(total_time)
+        logger.info({"event": "request_completed", "time": total_time})
+
+        # If no extra information is requested, return the replaced image
+        if not extra:
+            return png_bytes
+
+        # Convert the alphas to a ZIP archive
+        return b"".join([chunk async for chunk in get_replacement_as_zip(png_bytes, alpha, foreground)])

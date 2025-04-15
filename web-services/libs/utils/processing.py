@@ -4,7 +4,7 @@ import torchvision.transforms as T
 import numpy as np
 from PIL import Image
 import io
-from typing import List, Any, Generator, AsyncGenerator
+from typing import List, Tuple, Generator, AsyncGenerator
 import asyncio
 import zipfile
 import os
@@ -36,7 +36,7 @@ async def preprocess_images(files: List[UploadFile], transforms: T.Compose) -> t
     return torch.stack(batch_tensors)
 
 
-async def preprocess_image(file: UploadFile, transforms: T.Compose) -> torch.Tensor:
+async def preprocess_image(file: UploadFile, transforms: T.Compose) -> Tuple[torch.Tensor, Image]:
     """
     Preprocess a single image file into a tensor.
 
@@ -45,11 +45,11 @@ async def preprocess_image(file: UploadFile, transforms: T.Compose) -> torch.Ten
         transforms (T.Compose): The transformations to apply.
 
     Returns:
-        torch.Tensor: The preprocessed image tensor.
+        Tuple[torch.Tensor, Image]: A tuple containing the preprocessed image tensor and the original image.
     """
     try:
         image = await load_image(file)
-        return transforms(image)
+        return transforms(image), image
     except Exception as e:
         logger.error("Error processing image", exc_info=e)
         raise HTTPException(status_code=400, detail=f"Error processing image: {e}")
@@ -103,6 +103,39 @@ async def get_alphas_as_zip(alphas: List[np.ndarray], files: List[UploadFile]) -
         yield chunk
 
 
+async def get_replacement_as_zip(
+        replaced_image: bytes,
+        alpha: np.ndarray,
+        foreground: np.ndarray
+) -> AsyncGenerator[bytes, None]:
+    """
+    Convert the replaced image and alpha array to a zip file containing PNG images.
+
+    Args:
+        replaced_image (bytes): The replaced image in bytes.
+        alpha (np.ndarray): The alpha array.
+        foreground (np.ndarray): The foreground image.
+
+    Returns:
+        AsyncGenerator[bytes, None]: A generator that yields chunks of the zip file.
+    """
+    buffer = io.BytesIO()
+
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        zip_file.writestr("alpha.png", get_alpha_png_bytes(alpha))
+        zip_file.writestr("foreground.png", get_image_png_bytes(foreground))
+        zip_file.writestr("replaced.png", replaced_image)
+
+    buffer.seek(0)
+
+    while True:
+        chunk = buffer.read(4096)
+        if not chunk:
+            break
+
+        yield chunk
+
+
 def get_alpha_png_bytes(alpha_array: np.ndarray) -> bytes:
     """
     Postprocess the alpha array to create a PNG image.
@@ -131,6 +164,30 @@ def get_alpha_png_bytes(alpha_array: np.ndarray) -> bytes:
     pil_img = Image.fromarray(rgb, mode="RGB")
 
     # Save the mask as a PNG image in memory
+    buffer = io.BytesIO()
+    pil_img.save(buffer, format="PNG")
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def get_image_png_bytes(image: np.ndarray) -> bytes:
+    """
+    Convert a NumPy array to a PNG image.
+
+    Args:
+        image (numpy.ndarray): The NumPy array representing the image.
+
+    Returns:
+        bytes: The PNG image data.
+    """
+    # Ensure the image is in uint8 format
+    if image.dtype != 'uint8':
+        image = (image * 255).astype(np.uint8)
+
+    # Convert to PIL Image
+    pil_img = Image.fromarray(image)
+
+    # Save the image as a PNG in memory
     buffer = io.BytesIO()
     pil_img.save(buffer, format="PNG")
     buffer.seek(0)

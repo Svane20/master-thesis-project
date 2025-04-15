@@ -32,7 +32,7 @@ class BaseModelService(ABC):
         """Perform inference on multiple images and return the results, for example, as a ZIP archive."""
         pass
 
-    # @abstractmethod
-    # async def sky_replacement(self, file: UploadFile, extra: bool = False) -> bytes:
-    #     """Perform sky replacement on the input image and return the result."""
-    #     pass
+    @abstractmethod
+    async def sky_replacement(self, file: UploadFile, extra: bool = False) -> bytes:
+        """Perform sky replacement on the input image and return the result."""
+        pass
