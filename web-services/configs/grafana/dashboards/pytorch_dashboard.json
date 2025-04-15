@@ -13,7 +13,7 @@
         {
           "expr": "histogram_quantile(0.95, sum(rate(model_startup_latency_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
           "format": "time_series",
-          "legendFormat": "{{model}} - {{type}} ({{hardware}})"
+          "legendFormat": "{{model}} ({{hardware}})"
         }
       ],
       "gridPos": {
@@ -31,7 +31,7 @@
         {
           "expr": "histogram_quantile(0.95, sum(rate(single_inference_latency_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
           "format": "time_series",
-          "legendFormat": "{{model}} - {{type}} ({{hardware}})"
+          "legendFormat": "{{model}} ({{hardware}})"
         }
       ],
       "gridPos": {
@@ -49,7 +49,7 @@
         {
           "expr": "histogram_quantile(0.95, sum(rate(batch_inference_latency_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
           "format": "time_series",
-          "legendFormat": "{{model}} - {{type}} ({{hardware}})"
+          "legendFormat": "{{model}} ({{hardware}})"
         }
       ],
       "gridPos": {
@@ -67,7 +67,7 @@
         {
           "expr": "histogram_quantile(0.95, sum(rate(sky_replacement_total_time_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
           "format": "time_series",
-          "legendFormat": "{{model}} - {{type}} ({{hardware}})"
+          "legendFormat": "{{model}} ({{hardware}})"
         }
       ],
       "gridPos": {
