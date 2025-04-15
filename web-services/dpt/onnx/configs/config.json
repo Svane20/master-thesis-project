@@ -1,0 +1,25 @@
+{
+  "project_info": {
+    "project_name": "dpt",
+    "model_type": "onnx"
+  },
+  "model": {
+    "model_path": "./models/dpt-swinv2-tiny-256_v1.onnx",
+    "transforms": {
+      "image_size": [
+        512,
+        512
+      ],
+      "mean": [
+        0.5,
+        0.5,
+        0.5
+      ],
+      "std": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    }
+  }
+}
