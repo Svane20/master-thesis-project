@@ -1,6 +1,6 @@
 {
   "project_info": {
-    "project_name": "ResNet",
+    "project_name": "resnet",
     "model_type": "onnx"
   },
   "model": {

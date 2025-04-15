@@ -8,7 +8,7 @@ from typing import Tuple
 from libs.replacement.foreground_estimation import do_foreground_estimation
 
 
-def do_sky_replacement(image: Image, alpha_mask: np.ndarray, target_size: int = 512) -> Tuple[np.ndarray, np.ndarray]:
+def do_sky_replacement(image: Image.Image, alpha_mask: np.ndarray, target_size: int = 512) -> Tuple[np.ndarray, np.ndarray]:
     """
     Perform sky replacement on the input image using the provided alpha mask.
 

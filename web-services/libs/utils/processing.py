@@ -36,7 +36,7 @@ async def preprocess_images(files: List[UploadFile], transforms: T.Compose) -> t
     return torch.stack(batch_tensors)
 
 
-async def preprocess_image(file: UploadFile, transforms: T.Compose) -> Tuple[torch.Tensor, Image]:
+async def preprocess_image(file: UploadFile, transforms: T.Compose) -> Tuple[torch.Tensor, Image.Image]:
     """
     Preprocess a single image file into a tensor.
 
@@ -55,7 +55,7 @@ async def preprocess_image(file: UploadFile, transforms: T.Compose) -> Tuple[tor
         raise HTTPException(status_code=400, detail=f"Error processing image: {e}")
 
 
-async def load_image(file: UploadFile) -> Image:
+async def load_image(file: UploadFile) -> Image.Image:
     """
     Load an image from an upload file and convert it to a NumPy array.
 

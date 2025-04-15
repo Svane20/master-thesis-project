@@ -1,6 +1,5 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from pathlib import Path
 from typing import AsyncGenerator, Tuple, Dict
 from prometheus_fastapi_instrumentator import Instrumentator
 
@@ -98,6 +97,7 @@ def _instantiate_fastapi(
         version=VERSION,
         license_info=LICENSE_INFO,
         lifespan=lifespan,
+        root_path=f"/{project_name}/{model_type}"
     )
 
 
