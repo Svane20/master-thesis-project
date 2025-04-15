@@ -1,6 +1,32 @@
-from prometheus_client import Gauge, Histogram
+from prometheus_client import Histogram
 
-MODEL_LOAD_TIME = Gauge("model_load_time_seconds", "Time to load the model (seconds)")
-INFERENCE_TIME = Histogram("inference_duration_seconds", "Time for model inference (seconds)")
-SKY_REPLACE_TIME = Histogram("sky_replacement_duration_seconds", "Time for sky replacement compositing (seconds)")
-TOTAL_TIME = Histogram("request_total_duration_seconds", "Total request processing time (seconds)")
+MODEL_LOAD_TIME = Histogram(
+    name="model_startup_latency_seconds",
+    documentation="Model startup latency (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
+SINGLE_INFERENCE_TIME = Histogram(
+    name="single_inference_latency_seconds",
+    documentation="Single inference latency (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
+SINGLE_INFERENCE_TOTAL_TIME = Histogram(
+    name="single_inference_total_time_seconds",
+    documentation="Single inference total time (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
+BATCH_INFERENCE_TIME = Histogram(
+    name="batch_inference_latency_seconds",
+    documentation="Batch inference latency (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
+BATCH_INFERENCE_TOTAL_TIME = Histogram(
+    name="batch_inference_total_time_seconds",
+    documentation="Batch inference total time (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
+SKY_REPLACEMENT_TIME = Histogram(
+    name="sky_replacement_latency_seconds",
+    documentation="Sky replacement latency (seconds)",
+    labelnames=["model", "type", "hardware"],
+)

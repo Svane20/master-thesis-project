@@ -1,11 +1,58 @@
 from fastapi import UploadFile, HTTPException
+import torch
+import torchvision.transforms as T
 import numpy as np
 from PIL import Image
 import io
+from typing import List, Any, Generator, AsyncGenerator
+import asyncio
+import zipfile
+import os
 
 from libs.logging import logger
 
-IMG_SIZE = (512, 512)
+
+async def preprocess_images(files: List[UploadFile], transforms: T.Compose) -> torch.Tensor:
+    """
+    Preprocess a list of image files into a batch tensor.
+
+    Args:
+        files (List[UploadFile]): List of image files to preprocess.
+        transforms (T.Compose): The transformations to apply.
+
+    Returns:
+        torch.Tensor: A batch tensor of preprocessed images.
+    """
+    images = await asyncio.gather(*[load_image(file) for file in files])
+    batch_tensors = []
+    for image in images:
+        try:
+            tensor = transforms(image)
+            batch_tensors.append(tensor)
+        except Exception as e:
+            logger.error("Error processing image", exc_info=e)
+            raise HTTPException(status_code=400, detail=f"Error processing image: {e}")
+
+    return torch.stack(batch_tensors)
+
+
+async def preprocess_image(file: UploadFile, transforms: T.Compose) -> torch.Tensor:
+    """
+    Preprocess a single image file into a tensor.
+
+    Args:
+        file (UploadFile): The file containing the image.
+        transforms (T.Compose): The transformations to apply.
+
+    Returns:
+        torch.Tensor: The preprocessed image tensor.
+    """
+    try:
+        image = await load_image(file)
+        return transforms(image)
+    except Exception as e:
+        logger.error("Error processing image", exc_info=e)
+        raise HTTPException(status_code=400, detail=f"Error processing image: {e}")
 
 
 async def load_image(file: UploadFile) -> Image:
@@ -26,35 +73,65 @@ async def load_image(file: UploadFile) -> Image:
         raise HTTPException(status_code=400, detail=f"Error reading file: {e}")
 
 
-def postprocess_mask(mask_array: np.ndarray, original_size=None) -> bytes:
+async def get_alphas_as_zip(alphas: List[np.ndarray], files: List[UploadFile]) -> AsyncGenerator[bytes, None]:
     """
-    Postprocess the mask array to create a PNG image.
+    Convert a list of alpha arrays to a zip file containing PNG images.
 
     Args:
-        mask_array (numpy.ndarray): The NumPy array representing the mask.
-        original_size: The original size of the image (optional).
+        alphas (List[np.ndarray]): List of alpha arrays to convert.
+        files (List[UploadFile]): List of corresponding image files.
+
+    Returns:
+        Generator[bytes, Any, None]: A generator that yields chunks of the zip file.
+    """
+    buffer = io.BytesIO()
+
+    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+        for file, alpha in zip(files, alphas):
+            base, _ = os.path.splitext(file.filename)
+            filename = f"{base}.png"
+            png_bytes = get_alpha_png_bytes(alpha)
+            zip_file.writestr(filename, png_bytes)
+
+    buffer.seek(0)
+
+    while True:
+        chunk = buffer.read(4096)
+        if not chunk:
+            break
+
+        yield chunk
+
+
+def get_alpha_png_bytes(alpha_array: np.ndarray) -> bytes:
+    """
+    Postprocess the alpha array to create a PNG image.
+
+    Args:
+        alpha_array (numpy.ndarray): The NumPy array representing the alpha.
 
     Returns:
         bytes: The PNG image data.
     """
     # Remove batch dimension if present
-    mask = mask_array.squeeze()
+    alpha = alpha_array.squeeze()
 
     # Ensure the mask is in the range [0, 1]
-    mask_min, mask_max = mask.min(), mask.max()
-    if mask_max > mask_min:
-        mask = (mask - mask_min) / (mask_max - mask_min)
+    alpha_min, alpha_max = alpha.min(), alpha.max()
+    if alpha_max > alpha_min:
+        alpha = (alpha - alpha_min) / (alpha_max - alpha_min + 1e-8)
 
     # Convert to uint8 format
-    mask_img = (mask * 255).astype(np.uint8)
+    mask_uint8 = (alpha * 255).astype(np.uint8)
+
+    # Create a 3-channel RGB image
+    rgb = np.stack([mask_uint8] * 3, axis=-1)
 
     # Resize the mask to the original size if provided
-    if original_size is not None:
-        mask_pil = Image.fromarray(mask_img).resize(original_size, Image.BILINEAR)
-    else:
-        mask_pil = Image.fromarray(mask_img)
+    pil_img = Image.fromarray(rgb, mode="RGB")
 
     # Save the mask as a PNG image in memory
     buffer = io.BytesIO()
-    mask_pil.save(buffer, format="PNG")
+    pil_img.save(buffer, format="PNG")
+    buffer.seek(0)
     return buffer.getvalue()
