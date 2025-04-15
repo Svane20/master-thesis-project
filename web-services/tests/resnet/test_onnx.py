@@ -16,6 +16,7 @@ images_directory = Path(__file__).parent.parent / "images"
 # Paths
 model_path = root_directory / "resnet" / "onnx" / "models" / "resnet_50_512_v1.onnx"
 
+# Environment Variables
 os.environ["MAX_BATCH_SIZE"] = "8"
 os.environ["CONFIG_PATH"] = str(root_directory / "resnet" / "onnx" / "configs" / "config.json")
 
