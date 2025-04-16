@@ -2,7 +2,8 @@ import pytest
 from pathlib import Path
 
 from tests.common_tests import run_test_health_endpoint, run_test_info_endpoint, run_test_single_inference, \
-    run_test_batch_inference, run_test_sky_replacement, run_test_sky_replacement_extra
+    run_test_batch_inference, run_test_sky_replacement, run_test_sky_replacement_extra, run_test_batch_sky_replacement, \
+    run_test_batch_sky_replacement_extra
 from tests.utils.configuration import get_custom_config_path
 from tests.utils.testing import get_test_client
 
@@ -50,3 +51,13 @@ def test_sky_replacement(client):
 @pytest.mark.parametrize("client", [False, True], indirect=True)
 def test_sky_replacement_extra(client):
     run_test_sky_replacement_extra(client)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_batch_sky_replacement(client):
+    run_test_batch_sky_replacement(client)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_batch_sky_replacement_extra(client):
+    run_test_batch_sky_replacement_extra(client)

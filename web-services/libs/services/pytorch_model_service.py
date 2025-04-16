@@ -3,11 +3,16 @@ import torch
 import asyncio
 from typing import List
 import time
+from PIL import Image
+import io
+import zipfile
+import os
 
 from libs.configuration.base import Configuration
 from libs.fastapi.settings import Settings
 from libs.metrics import MODEL_LOAD_TIME, SINGLE_INFERENCE_TIME, SINGLE_INFERENCE_TOTAL_TIME, BATCH_INFERENCE_TIME, \
-    BATCH_INFERENCE_TOTAL_TIME, SKY_REPLACEMENT_INFERENCE_TIME, SKY_REPLACEMENT_TIME, SKY_REPLACEMENT_TOTAL_TIME
+    BATCH_INFERENCE_TOTAL_TIME, SKY_REPLACEMENT_INFERENCE_TIME, SKY_REPLACEMENT_TIME, SKY_REPLACEMENT_TOTAL_TIME, \
+    BATCH_SKY_REPLACEMENT_INFERENCE_TIME, BATCH_SKY_REPLACEMENT_TIME, BATCH_SKY_REPLACEMENT_TOTAL_TIME
 from libs.models.utils import build_model
 from libs.replacement.replacement import do_sky_replacement
 from libs.services.base import BaseModelService
@@ -268,3 +273,94 @@ class PytorchModelService(BaseModelService):
 
         # Convert the alphas to a ZIP archive
         return b"".join([chunk async for chunk in get_replacement_as_zip(png_bytes, alpha, foreground)])
+
+    async def batch_sky_replacement(self, files: List[UploadFile], extra: bool = False) -> bytes:
+        """
+        Perform sky replacement on multiple images and return the results as a ZIP archive.
+
+        Args:
+            files (List[UploadFile]): The list of files containing the images.
+            extra (bool): Whether to include extra information.
+
+        Returns:
+            bytes: The ZIP archive containing the results of the sky replacement.
+        """
+        if self.session is None:
+            raise HTTPException(status_code=500, detail="Model not loaded")
+        if len(files) > self.settings.MAX_BATCH_SIZE:
+            raise HTTPException(status_code=400, detail="Batch size exceeds the maximum limit")
+
+        # Log the start time of the request
+        request_start = time.perf_counter()
+
+        # Preprocess the images
+        image_batch = await preprocess_images(files, self.transforms)
+        image_batch = image_batch.to(self.device)
+
+        # Run inference
+        loop = asyncio.get_running_loop()
+        inf_start = time.perf_counter()
+        try:
+            output = await loop.run_in_executor(
+                None, _run_inference, self.model, image_batch
+            )
+        except Exception as e:
+            logger.error({"event": "inference_failed", "error": str(e)})
+            raise HTTPException(status_code=500, detail="Inference failed")
+
+        # Log the inference time
+        inference_time = time.perf_counter() - inf_start
+        BATCH_SKY_REPLACEMENT_INFERENCE_TIME.labels(
+            model=self.project_name,
+            type=self.model_type,
+            hardware=self.hardware
+        ).observe(inference_time)
+        logger.info({"event": "inference_completed", "time": inference_time})
+
+        # Post-process the alphas
+        alphas = output.detach().cpu().numpy()
+
+        # Sky replacement
+        replacement_start = time.perf_counter()
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for file_obj, alpha in zip(files, alphas):
+                # Read the image file
+                image_bytes = await file_obj.read()
+                img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+
+                # Do sky replacement
+                replaced, foreground = do_sky_replacement(img, alpha)
+
+                # Write the replaced image
+                replaced_bytes = get_image_png_bytes(replaced)
+                base, _ = os.path.splitext(file_obj.filename)
+                zipf.writestr(f"{base}_replaced.png", replaced_bytes)
+
+                if extra:
+                    # Optionally include the alpha mask and foreground
+                    alpha_png = get_alpha_png_bytes(alpha)
+                    zipf.writestr(f"{base}_alpha.png", alpha_png)
+
+                    fg_png = get_image_png_bytes(foreground)
+                    zipf.writestr(f"{base}_foreground.png", fg_png)
+
+        replacement_time = time.perf_counter() - replacement_start
+        BATCH_SKY_REPLACEMENT_TIME.labels(
+            model=self.project_name,
+            type=self.model_type,
+            hardware=self.hardware
+        ).observe(replacement_time)
+        logger.info({"event": "replaced_image", "time": replacement_time})
+
+        # Log the total time taken for the request
+        total_time = time.perf_counter() - request_start
+        BATCH_SKY_REPLACEMENT_TOTAL_TIME.labels(
+            model=self.project_name,
+            type=self.model_type,
+            hardware=self.hardware
+        ).observe(total_time)
+
+        # Return the zip archive bytes
+        zip_buffer.seek(0)
+        return zip_buffer.getvalue()

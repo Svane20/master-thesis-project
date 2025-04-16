@@ -1,4 +1,4 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.responses import StreamingResponse
 from typing import Dict, List
 import io
@@ -20,39 +20,70 @@ def register_routes(app: FastAPI, model_service: BaseModelService, project_info:
             500: {"description": "Inference failed"},
         },
     )
-    async def sky_replacement(file: UploadFile = File(...)):
+    async def sky_replacement(
+            file: UploadFile = File(...),
+            extra: bool = Query(
+                False,
+                title="Extra Output",
+                description="If true, include alpha mattes and foregrounds in the ZIP",
+            ),
+    ):
         try:
-            png_bytes = await model_service.sky_replacement(file)
+            bytes = await model_service.sky_replacement(file, extra=extra)
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to perform sky replacement: {e}")
 
+        if extra:
+            return StreamingResponse(
+                io.BytesIO(bytes),
+                media_type="application/zip",
+                headers={
+                    "Content-Disposition": "attachment; filename=replacement.zip",
+                    "Content-Length": str(len(bytes))
+                }
+            )
+
         return StreamingResponse(
-            io.BytesIO(png_bytes),
+            io.BytesIO(bytes),
             media_type="image/png",
             headers={"Content-Disposition": "attachment; filename=replaced.png"}
         )
 
     @app.post(
-        path=f"{API_PREFIX}/sky-replacement-extra",
+        path=f"{API_PREFIX}/batch-sky-replacement",
         tags=["Sky Replacement"],
         responses={
             200: {
                 "content": {"application/zip": {}},
-                "description": "A ZIP archive containing the predicted alpha matte, estimated foreground and replaced image.",
+                "description": "A ZIP archive containing the replaced images.",
             },
             500: {"description": "Inference failed"},
         },
     )
-    async def sky_replacement(file: UploadFile = File(...)):
+    async def batch_sky_replacement(
+            files: List[UploadFile] = File(...),
+            extra: bool = Query(
+                False,
+                title="Extra Output",
+                description="If true, include alpha mattes and foregrounds in the ZIP",
+            ),
+    ):
         try:
-            zip_bytes = await model_service.sky_replacement(file, extra=True)
+            zip_bytes = await model_service.batch_sky_replacement(files, extra=extra)
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to perform sky replacement: {e}")
 
         return StreamingResponse(
             io.BytesIO(zip_bytes),
             media_type="application/zip",
-            headers={"Content-Disposition": "attachment; filename=replacements.zip"}
+            headers={
+                "Content-Disposition": "attachment; filename=replacements.zip",
+                "Content-Length": str(len(zip_bytes))
+            }
         )
 
     @app.post(

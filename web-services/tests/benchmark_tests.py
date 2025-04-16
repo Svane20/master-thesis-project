@@ -24,7 +24,8 @@ metrics_directory.mkdir(exist_ok=True)  # ensure directory exists
 MODEL_LOAD_TIMES_CSV = metrics_directory / "model_load_times.csv"
 SINGLE_INFERENCE_TIMES_CSV = metrics_directory / "single_inference_times.csv"
 BATCH_INFERENCE_TIMES_CSV = metrics_directory / "batch_inference_times.csv"
-SKY_REPLACEMENT_TIMES_CSV = metrics_directory / "sky_replacement_times.csv"
+SKY_REPLACEMENT_TIMES_CSV = metrics_directory / "single_sky_replacement_times.csv"
+BATCH_SKY_REPLACEMENT_TIMES_CSV = metrics_directory / "batch_sky_replacement_times.csv"
 
 # Constants
 MODEL_WARMUP_ITERATIONS = 1
@@ -298,3 +299,74 @@ def run_test_sky_replacement_performance(client: TestClient, use_gpu, project_na
                              f"{min_time:.4f}", f"{max_time:.4f}", f"{median_time:.4f}", f"{stdev_time:.4f}"])
 
     print(f"Metrics appended to {SKY_REPLACEMENT_TIMES_CSV}")
+
+
+def run_test_batch_sky_replacement_performance(client: TestClient, use_gpu, project_name, model_type):
+    """
+    Test the performance of batch sky replacement for the model.
+
+    Args:
+        client (TestClient): The test client for the FastAPI app.
+        use_gpu (bool): Whether to test on GPU or CPU.
+        project_name (str): Name of the model project (e.g., 'swin', 'resnet', 'dpt').
+        model_type (str): Format type ('onnx', 'torchscript', 'pytorch').
+    """
+    image_paths = [
+        images_directory / "0001.jpg",
+        images_directory / "0055.jpg",
+        images_directory / "0086.jpg",
+        images_directory / "0211.jpg",
+        images_directory / "1901.jpg",
+        images_directory / "2022.jpg",
+        images_directory / "2041.jpg",
+        images_directory / "10406.jpg",
+    ]
+    for img_path in image_paths:
+        assert img_path.exists(), f"Test image not found: {img_path}"
+
+    # Build the request
+    files_data = []
+    for img_path in image_paths:
+        with open(img_path, "rb") as f:
+            content = f.read()
+        files_data.append(("files", (img_path.name, content, "image/jpeg")))
+
+    # Warmup phase
+    print(f"Starting {WARMUP_EPOCHS} warmup iterations...")
+    for _ in range(WARMUP_EPOCHS):
+        response = client.post("/api/v1/batch-sky-replacement", files=files_data)
+
+    # Performance measurement phase
+    times = []
+    print(f"Starting {EPOCHS} measured iterations...")
+    for i in range(EPOCHS):
+        start = time.perf_counter()
+        response = client.post("/api/v1/batch-sky-replacement", files=files_data)
+        elapsed = time.perf_counter() - start
+        times.append(elapsed)
+        print(f"Iteration {i + 1}/{EPOCHS}: Inference time = {elapsed:.4f}s")
+
+    # Compute statistics
+    avg_time = sum(times) / len(times)
+    min_time = min(times)
+    max_time = max(times)
+    median_time = statistics.median(times)
+    stdev_time = statistics.stdev(times) if len(times) > 1 else 0.0
+
+    print(f"Performance test completed.")
+    print(f"Average time: {avg_time:.4f}s | Min: {min_time:.4f}s | Max: {max_time:.4f}s")
+    print(f"Median: {median_time:.4f}s | Standard Deviation: {stdev_time:.4f}s")
+
+    # Append results to CSV file
+    file_exists = BATCH_SKY_REPLACEMENT_TIMES_CSV.exists()
+    with open(BATCH_SKY_REPLACEMENT_TIMES_CSV, "a", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        # Write a header row if the file did not already exist
+        if not file_exists:
+            writer.writerow(["model_name", "model_type", "hardware", "iteration", "inference_time_sec", "avg_time_sec",
+                             "min_time_sec", "max_time_sec", "median_time_sec", "stddev_time_sec"])
+        for i, t in enumerate(times, start=1):
+            writer.writerow([project_name, model_type, "GPU" if use_gpu else "CPU", i, f"{t:.4f}", f"{avg_time:.4f}",
+                             f"{min_time:.4f}", f"{max_time:.4f}", f"{median_time:.4f}", f"{stdev_time:.4f}"])
+
+    print(f"Metrics appended to {BATCH_SKY_REPLACEMENT_TIMES_CSV}")

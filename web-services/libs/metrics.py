@@ -40,3 +40,18 @@ SKY_REPLACEMENT_TOTAL_TIME = Histogram(
     documentation="Sky replacement total time (seconds)",
     labelnames=["model", "type", "hardware"],
 )
+BATCH_SKY_REPLACEMENT_INFERENCE_TIME = Histogram(
+    name="batch_sky_replacement_inference_latency_seconds",
+    documentation="Batch sky replacement inference latency (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
+BATCH_SKY_REPLACEMENT_TIME = Histogram(
+    name="batch_sky_replacement_latency_seconds",
+    documentation="Batch sky replacement latency (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
+BATCH_SKY_REPLACEMENT_TOTAL_TIME = Histogram(
+    name="batch_sky_replacement_total_time_seconds",
+    documentation="Batch sky replacement total time (seconds)",
+    labelnames=["model", "type", "hardware"],
+)
