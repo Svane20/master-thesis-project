@@ -24,4 +24,7 @@ def get_test_client(
     app = get_create_app_func(project_name, model_type)()
 
     with TestClient(app) as c:
+        # Create a variable to check which hardware is being used
+        c.use_gpu = use_gpu
+
         yield c
