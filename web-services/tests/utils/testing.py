@@ -16,6 +16,7 @@ def get_test_client(
     # Override the environment variables so the app loads the custom config
     monkeypatch.setenv("USE_GPU", "true" if use_gpu else "false")
     monkeypatch.setenv("CONFIG_PATH", custom_config_path)
+    monkeypatch.setenv("MAX_BATCH_SIZE", "8")
 
     # Reset the settings cache to ensure the new environment variable is picked up
     reset_settings_cache()

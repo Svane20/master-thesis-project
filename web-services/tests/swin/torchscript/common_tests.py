@@ -1,5 +1,4 @@
 import pytest
-import os
 from pathlib import Path
 
 from tests.common_tests import run_test_health_endpoint, run_test_info_endpoint, run_test_single_inference, \
@@ -11,9 +10,6 @@ from tests.utils.testing import get_test_client
 current_directory = Path(__file__).parent
 project_name = current_directory.parent.name
 model_type = current_directory.name
-
-# Environment Variables
-os.environ["MAX_BATCH_SIZE"] = "8"
 
 
 @pytest.fixture(scope="function")
