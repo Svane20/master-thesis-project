@@ -55,7 +55,7 @@ def run_test_single_inference(client: Generator[TestClient, Any, None]):
     # Upload the file
     with open(test_image_path, "rb") as f:
         files = {"file": (test_image_path.name, f, "image/jpeg")}
-        response = client.post("/api/v1/single-predict", files=files)
+        response = client.post("/api/v1/predict", files=files)
 
     # Check the response
     assert response.status_code == 200, f"Expected 200 OK, got {response.status_code}"

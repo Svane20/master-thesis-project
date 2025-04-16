@@ -44,6 +44,7 @@ def test_batch_inference_performance(client):
 def test_sky_replacement_performance(client):
     run_test_sky_replacement_performance(client, client.use_gpu, project_name, model_type)
 
+
 @pytest.mark.parametrize("client", [False, True], indirect=True)
 def test_batch_sky_replacement_performance(client):
     run_test_batch_sky_replacement_performance(client, client.use_gpu, project_name, model_type)

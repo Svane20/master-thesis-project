@@ -41,6 +41,20 @@ docker compose -f .\docker-compose.demo.yml down
 docker compose -f .\docker-compose.dev.yml up --build --scale unet-onnx=2 -d
 ````
 
+## Performance Testing
+
+1. Go to this path:
+
+````text
+cd tests/performance
+````
+
+2. Run the following command:
+
+````text
+locust --headless --host=http://localhost:8001 --users 10 --spawn-rate 10 --run-time 2m --csv=load_test_results
+````
+
 ## Swagger UI
 
 ### SWIN
@@ -61,7 +75,7 @@ docker compose -f .\docker-compose.dev.yml up --build --scale unet-onnx=2 -d
 [DPT TorchScript](http://localhost:80/dpt/torchscript/docs)
 [DPT Pytorch](http://localhost:80/dpt/pytorch/docs)
 
-## Add tracking to Grafana
+## Grafana
 
 1. Go to Grafana
 
@@ -75,14 +89,3 @@ http://localhost:3000
 username: admin
 password: admin
 ````
-
-3. Click on Connections -> Data sources
-4. Click on Add data source
-5. Select Prometheus
-6. Fill in the URL of the Prometheus server
-
-````text
-http://prometheus:9090
-````
-
-7. Click on Save & Test

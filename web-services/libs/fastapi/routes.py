@@ -87,7 +87,7 @@ def register_routes(app: FastAPI, model_service: BaseModelService, project_info:
         )
 
     @app.post(
-        path=f"{API_PREFIX}/single-predict",
+        path=f"{API_PREFIX}/predict",
         tags=["Inference"],
         responses={
             200: {

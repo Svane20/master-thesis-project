@@ -22,9 +22,9 @@ metrics_directory.mkdir(exist_ok=True)  # ensure directory exists
 
 # CSV file to store performance metrics
 MODEL_LOAD_TIMES_CSV = metrics_directory / "model_load_times.csv"
-SINGLE_INFERENCE_TIMES_CSV = metrics_directory / "single_inference_times.csv"
+INFERENCE_TIMES_CSV = metrics_directory / "inference_times.csv"
 BATCH_INFERENCE_TIMES_CSV = metrics_directory / "batch_inference_times.csv"
-SKY_REPLACEMENT_TIMES_CSV = metrics_directory / "single_sky_replacement_times.csv"
+SKY_REPLACEMENT_TIMES_CSV = metrics_directory / "sky_replacement_times.csv"
 BATCH_SKY_REPLACEMENT_TIMES_CSV = metrics_directory / "batch_sky_replacement_times.csv"
 
 # Constants
@@ -158,8 +158,8 @@ def run_test_single_inference_performance(client: TestClient, use_gpu, project_n
     print(f"Median: {median_time:.4f}s | Standard Deviation: {stdev_time:.4f}s")
 
     # Append results to CSV file
-    file_exists = SINGLE_INFERENCE_TIMES_CSV.exists()
-    with open(SINGLE_INFERENCE_TIMES_CSV, "a", newline="") as csvfile:
+    file_exists = INFERENCE_TIMES_CSV.exists()
+    with open(INFERENCE_TIMES_CSV, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
         # Write a header row if the file did not already exist
         if not file_exists:
@@ -169,7 +169,7 @@ def run_test_single_inference_performance(client: TestClient, use_gpu, project_n
             writer.writerow([project_name, model_type, "GPU" if use_gpu else "CPU", i, f"{t:.4f}", f"{avg_time:.4f}",
                              f"{min_time:.4f}", f"{max_time:.4f}", f"{median_time:.4f}", f"{stdev_time:.4f}"])
 
-    print(f"Metrics appended to {SINGLE_INFERENCE_TIMES_CSV}")
+    print(f"Metrics appended to {INFERENCE_TIMES_CSV}")
 
 
 def run_test_batch_inference_performance(client: TestClient, use_gpu, project_name, model_type):
