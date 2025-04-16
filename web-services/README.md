@@ -89,3 +89,32 @@ http://localhost:3000
 username: admin
 password: admin
 ````
+
+## Build and push docker images
+
+1. Open Git Bash
+
+2. Go to the root of the project
+
+````text
+cd Desktop/Thesis/master-thesis-project/web-services
+````
+
+3. Export the following variables
+
+````text
+export DOCKER_USERNAME=
+export DOCKER_PASSWORD=
+````
+
+4. Make the script executable:
+
+````text
+chmod +x build_and_push.sh
+````
+
+5. Run the script:
+
+````text
+./build_and_push.sh
+````
