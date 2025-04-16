@@ -6,7 +6,7 @@ from prometheus_fastapi_instrumentator import Instrumentator
 from libs.configuration.base import get_configuration
 from libs.fastapi.consts import VERSION, LICENSE_INFO
 from libs.fastapi.middlewares import register_middlewares
-from libs.fastapi.settings import get_settings, Settings
+from libs.fastapi.settings import get_settings
 from libs.services.base import BaseModelService
 from libs.services.factory import get_model_service
 from libs.logging import logger
@@ -19,14 +19,14 @@ def instantiate() -> Tuple[FastAPI, BaseModelService, Dict[str, str]]:
     Returns:
         Tuple[FastAPI, BaseModelService]: A tuple containing the FastAPI app, the model service and the project info.
     """
-    # Get configuration
-    configuration = get_configuration()
-    project_name = configuration.project_info.project_name
-    model_type = configuration.project_info.model_type
-
-    # Get the defined configuration
+    # Get the settings
     settings = get_settings()
     deployment_type = "cuda" if settings.USE_GPU else "cpu"
+
+    # Get the configuration
+    configuration = get_configuration(settings.CONFIG_PATH)
+    project_name = configuration.project_info.project_name
+    model_type = configuration.project_info.model_type
 
     # Instantiate the model service
     model_service = get_model_service(settings, configuration)

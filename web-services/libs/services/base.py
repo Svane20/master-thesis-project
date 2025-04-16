@@ -49,3 +49,8 @@ class BaseModelService(ABC):
     async def sky_replacement(self, file: UploadFile, extra: bool = False) -> bytes:
         """Perform sky replacement on the input image and return the result."""
         pass
+
+    @abstractmethod
+    async def batch_sky_replacement(self, files: List[UploadFile], extra: bool = False) -> bytes:
+        """Perform sky replacement on multiple images and return the results, for example, as a ZIP archive."""
+        pass

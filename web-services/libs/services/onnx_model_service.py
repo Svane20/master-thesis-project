@@ -5,6 +5,9 @@ import os
 import asyncio
 from typing import List
 import numpy as np
+import io
+import zipfile
+from PIL import Image
 
 from libs.configuration.base import Configuration
 from libs.fastapi.settings import Settings
@@ -12,7 +15,8 @@ from libs.replacement.replacement import do_sky_replacement
 from libs.services.base import BaseModelService
 from libs.logging import logger
 from libs.metrics import MODEL_LOAD_TIME, SINGLE_INFERENCE_TIME, SINGLE_INFERENCE_TOTAL_TIME, BATCH_INFERENCE_TIME, \
-    BATCH_INFERENCE_TOTAL_TIME, SKY_REPLACEMENT_INFERENCE_TIME, SKY_REPLACEMENT_TIME, SKY_REPLACEMENT_TOTAL_TIME
+    BATCH_INFERENCE_TOTAL_TIME, SKY_REPLACEMENT_INFERENCE_TIME, SKY_REPLACEMENT_TIME, SKY_REPLACEMENT_TOTAL_TIME, \
+    BATCH_SKY_REPLACEMENT_INFERENCE_TIME, BATCH_SKY_REPLACEMENT_TIME, BATCH_SKY_REPLACEMENT_TOTAL_TIME
 from libs.utils.processing import get_alpha_png_bytes, preprocess_image, preprocess_images, get_alphas_as_zip, \
     get_replacement_as_zip, get_image_png_bytes
 
@@ -289,3 +293,95 @@ class OnnxModelService(BaseModelService):
 
         # Convert the alphas to a ZIP archive
         return b"".join([chunk async for chunk in get_replacement_as_zip(png_bytes, alpha, foreground)])
+
+    async def batch_sky_replacement(self, files: List[UploadFile], extra: bool = False) -> bytes:
+        """
+        Perform sky replacement on multiple images and return the results as a ZIP archive.
+
+        Args:
+            files (List[UploadFile]): The list of files containing the images.
+            extra (bool): Whether to include extra information.
+
+        Returns:
+            bytes: The ZIP archive containing the results of the sky replacement.
+        """
+        if self.session is None:
+            raise HTTPException(status_code=500, detail="Model not loaded")
+        if len(files) > self.settings.MAX_BATCH_SIZE:
+            raise HTTPException(status_code=400, detail="Batch size exceeds the maximum limit")
+
+        # Log the start time of the request
+        request_start = time.perf_counter()
+
+        # Read the files into memory
+        cached = []
+        for f in files:
+            data = await f.read()
+            cached.append((f.filename, data))
+            f.file.seek(0)
+
+        # Preprocess the images
+        batch = await preprocess_images(files, self.transforms)
+
+        # Run inference
+        loop = asyncio.get_running_loop()
+        inf_start = time.perf_counter()
+        try:
+            outputs = await loop.run_in_executor(
+                None,
+                self.session.run,
+                [self.output_name],
+                {self.input_name: batch.numpy()},
+            )
+        except Exception as e:
+            logger.error({"event": "inference_failed", "error": str(e)})
+            raise HTTPException(status_code=500, detail="Inference failed")
+
+        # Log the inference time
+        inference_time = time.perf_counter() - inf_start
+        BATCH_SKY_REPLACEMENT_INFERENCE_TIME.labels(
+            model=self.project_name,
+            type=self.model_type,
+            hardware=self.hardware
+        ).observe(inference_time)
+        logger.info({"event": "inference_completed", "time": inference_time})
+
+        # Post-process the alphas
+        alphas = _postprocess_alphas(outputs)
+
+        # Sky replacement
+        replacement_start = time.perf_counter()
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for (filename, image_bytes), alpha in zip(cached, alphas):
+                img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+                replaced, foreground = do_sky_replacement(img, alpha)
+
+                base, _ = os.path.splitext(filename)
+                zipf.writestr(f"{base}_replaced.png",
+                              get_image_png_bytes(replaced))
+                if extra:
+                    zipf.writestr(f"{base}_alpha.png",
+                                  get_alpha_png_bytes(alpha))
+                    zipf.writestr(f"{base}_foreground.png",
+                                  get_image_png_bytes(foreground))
+
+        replacement_time = time.perf_counter() - replacement_start
+        BATCH_SKY_REPLACEMENT_TIME.labels(
+            model=self.project_name,
+            type=self.model_type,
+            hardware=self.hardware
+        ).observe(replacement_time)
+        logger.info({"event": "replaced_image", "time": replacement_time})
+
+        # Log the total time taken for the request
+        total_time = time.perf_counter() - request_start
+        BATCH_SKY_REPLACEMENT_TOTAL_TIME.labels(
+            model=self.project_name,
+            type=self.model_type,
+            hardware=self.hardware
+        ).observe(total_time)
+
+        # Return the zip archive bytes
+        zip_buffer.seek(0)
+        return zip_buffer.getvalue()
