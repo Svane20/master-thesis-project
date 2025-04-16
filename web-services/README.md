@@ -52,7 +52,7 @@ cd tests/performance
 2. Run the following command:
 
 ````text
-locust --headless --host=http://localhost:8001 --users 10 --spawn-rate 10 --run-time 2m --csv=resnet_onnx_results
+locust --headless --host=http://localhost:8001 --users 20 --spawn-rate 10 --run-time 2m --csv=resnet_onnx_results
 ````
 
 ## Swagger UI
