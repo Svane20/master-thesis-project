@@ -1,11 +1,246 @@
 services:
+  resnet-onnx:
+    image: svane222/resnet-onnx:gpu
+    container_name: resnet-onnx
+    environment:
+      - PROMETHEUS_METRICS_ENABLED=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
+      - USE_GPU=true
+    gpus: all
+    restart: always
+    depends_on:
+      - prometheus
+
+#  resnet-onnx:
+#    image: svane222/resnet-onnx:cpu
+#    container_name: resnet-onnx
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=false
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+  resnet-torchscript:
+    image: svane222/resnet-torchscript:gpu
+    container_name: resnet-torchscript
+    environment:
+      - PROMETHEUS_METRICS_ENABLED=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
+      - USE_GPU=true
+    gpus: all
+    restart: always
+    depends_on:
+      - prometheus
+
+#  resnet-torchscript:
+#    image: svane222/resnet-torchscript:cpu
+#    container_name: resnet-torchscript
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=false
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+  resnet-pytorch:
+    image: svane222/resnet-pytorch:gpu
+    container_name: resnet-pytorch
+    environment:
+      - PROMETHEUS_METRICS_ENABLED=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
+      - USE_GPU=true
+    gpus: all
+    restart: always
+    depends_on:
+      - prometheus
+
+#  resnet-pytorch:
+#    image: svane222/resnet-pytorch:cpu
+#    container_name: resnet-pytorch
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=false
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+  swin-onnx:
+    image: svane222/swin-onnx:gpu
+    container_name: swin-onnx
+    environment:
+      - PROMETHEUS_METRICS_ENABLED=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
+      - USE_GPU=true
+    gpus: all
+    restart: always
+    depends_on:
+      - prometheus
+
+#  swin-onnx:
+#    image: svane222/swin-onnx:cpu
+#    container_name: swin-onnx
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=false
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+  swin-torchscript:
+    image: svane222/swin-torchscript:gpu
+    container_name: swin-torchscript
+    environment:
+      - PROMETHEUS_METRICS_ENABLED=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
+      - USE_GPU=true
+    gpus: all
+    restart: always
+    depends_on:
+      - prometheus
+
+#  swin-torchscript:
+#    image: svane222/swin-torchscript:cpu
+#    container_name: swin-torchscript
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=false
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+  swin-pytorch:
+    image: svane222/swin-pytorch:gpu
+    container_name: swin-pytorch
+    environment:
+      - PROMETHEUS_METRICS_ENABLED=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
+      - USE_GPU=true
+    gpus: all
+    restart: always
+    depends_on:
+      - prometheus
+
+#  swin-pytorch:
+#    image: svane222/swin-pytorch:cpu
+#    container_name: swin-pytorch
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=false
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+  dpt-onnx:
+    image: svane222/dpt-onnx:gpu
+    container_name: dpt-onnx
+    environment:
+      - PROMETHEUS_METRICS_ENABLED=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
+      - USE_GPU=true
+    gpus: all
+    restart: always
+    depends_on:
+      - prometheus
+
+#  dpt-onnx:
+#    image: svane222/dpt-onnx:cpu
+#    container_name: dpt-onnx
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=false
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+  dpt-torchscript:
+    image: svane222/dpt-torchscript:gpu
+    container_name: dpt-torchscript
+    environment:
+      - PROMETHEUS_METRICS_ENABLED=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
+      - USE_GPU=true
+    gpus: all
+    restart: always
+    depends_on:
+      - prometheus
+
+#  dpt-torchscript:
+#    image: svane222/dpt-torchscript:cpu
+#    container_name: dpt-torchscript
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=false
+#    restart: always
+#    depends_on:
+#      - prometheus
+
+  dpt-pytorch:
+    image: svane222/dpt-pytorch:gpu
+    container_name: dpt-pytorch
+    environment:
+      - PROMETHEUS_METRICS_ENABLED=true
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+      - MAX_BATCH_SIZE=8
+      - USE_GPU=true
+    gpus: all
+    restart: always
+    depends_on:
+      - prometheus
+
+#  dpt-pytorch:
+#    image: svane222/dpt-pytorch:cpu
+#    container_name: dpt-pytorch
+#    environment:
+#      - PROMETHEUS_METRICS_ENABLED=true
+#      - MAX_BATCH_SIZE=8
+#      - USE_GPU=false
+#    restart: always
+#    depends_on:
+#      - prometheus
+
   nginx:
     image: nginx:latest
     container_name: nginx
     ports:
       - "80:80"
     volumes:
-      - ./configs/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./configs/nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - resnet-onnx
+      - resnet-torchscript
+      - resnet-pytorch
+      - swin-onnx
+      - swin-torchscript
+      - swin-pytorch
+      - dpt-onnx
+      - dpt-torchscript
+      - dpt-pytorch
 
   prometheus:
     image: prom/prometheus:latest

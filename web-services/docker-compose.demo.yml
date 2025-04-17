@@ -1,16 +1,9 @@
 services:
   swin-onnx:
-    build:
-      context: .
-      dockerfile: swin/onnx/Dockerfile
-      args:
-        USE_GPU: "false"
-        BASE_IMAGE: "python:3.10-slim"
+    image: svane222/swin-onnx:cpu
     container_name: swin-onnx
     environment:
       - PROMETHEUS_METRICS_ENABLED=true
-      - NVIDIA_VISIBLE_DEVICES=all
-      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
       - MAX_BATCH_SIZE=8
       - USE_GPU=false
     restart: always

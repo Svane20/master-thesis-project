@@ -124,8 +124,8 @@ cd Desktop/Thesis/master-thesis-project/web-services
 3. Export the following variables
 
 ````text
-export DOCKER_USERNAME=
-export DOCKER_PASSWORD=
+export DOCKER_HUB_USERNAME=
+export DOCKER_HUB_PASSWORD=
 ````
 
 4. Make the script executable:
