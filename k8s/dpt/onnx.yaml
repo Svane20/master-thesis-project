@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dpt-onnx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dpt-onnx
+  template:
+    metadata:
+      labels:
+        app: dpt-onnx
+    spec:
+      containers:
+        - name: swin-onnx
+          image: svane222/dpt-onnx:cpu
+          env:
+            - name: PROMETHEUS_METRICS_ENABLED
+              value: "true"
+            - name: MAX_BATCH_SIZE
+              value: "8"
+            - name: USE_GPU
+              value: "false"
+          ports:
+            - containerPort: 8007
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dpt-onnx
+spec:
+  type: ClusterIP
+  selector:
+    app: dpt-onnx
+  ports:
+    - protocol: TCP
+      port: 8007
+      targetPort: 8007
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: dpt-onnx-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  rules:
+    - host: dpt-onnx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: dpt-onnx
+                port:
+                  number: 8007

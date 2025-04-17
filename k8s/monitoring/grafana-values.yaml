@@ -1,0 +1,245 @@
+adminUser:  admin
+adminPassword: admin
+
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus-server
+        isDefault: true
+        editable: false
+
+dashboardProviders:
+  dashboard_provider.yaml:
+    apiVersion: 1
+    providers:
+      - name: default
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+
+dashboards:
+  default:
+    model-performance-overview:
+      json: |-
+        {
+          "title": "Model Performance Overview",
+          "time": { "from": "now-5m","to": "now" },
+          "templating": {
+            "list": [
+              { "name": "model","type": "query","query": "label_values(model_startup_latency_seconds, model)","label": "Model","datasource": "Prometheus" },
+              { "name": "type","type": "query","query": "label_values(model_startup_latency_seconds, type)","label": "Type","datasource": "Prometheus" },
+              { "name": "hardware","type": "query","query": "label_values(model_startup_latency_seconds, hardware)","label": "Hardware","datasource": "Prometheus" }
+            ]
+          },
+          "panels": [
+            {
+              "id": 1, "type": "graph","title": "Inference Latency (95th Percentile)",
+              "targets":[ { "expr":"histogram_quantile(0.95, sum(rate(single_inference_latency_seconds_bucket[5m])) by (le, model, type, hardware))","format":"time_series","legendFormat":"{{model}} - {{type}} ({{hardware}})" } ],
+              "gridPos":{"x":0,"y":0,"w":12,"h":8}
+            },
+            {
+              "id": 2, "type": "graph","title": "Batch Inference Latency (95th Percentile)",
+              "targets":[ { "expr":"histogram_quantile(0.95, sum(rate(batch_inference_latency_seconds_bucket[5m])) by (le, model, type, hardware))","format":"time_series","legendFormat":"{{model}} - {{type}} ({{hardware}})" } ],
+              "gridPos":{"x":12,"y":0,"w":12,"h":8}
+            },
+            {
+              "id": 3, "type": "graph","title": "Sky Replacement Total Time (95th Percentile)",
+              "targets":[ { "expr":"histogram_quantile(0.95, sum(rate(sky_replacement_total_time_seconds_bucket[5m])) by (le, model, type, hardware))","format":"time_series","legendFormat":"{{model}} - {{type}} ({{hardware}})" } ],
+              "gridPos":{"x":0,"y":8,"w":12,"h":8}
+            },
+            {
+              "id": 4, "type": "graph","title": "Batch Sky Replacement Total Time (95th Percentile)",
+              "targets":[ { "expr":"histogram_quantile(0.95, sum(rate(batch_sky_replacement_total_time_seconds_bucket[5m])) by (le, model, type, hardware))","format":"time_series","legendFormat":"{{model}} - {{type}} ({{hardware}})" } ],
+              "gridPos":{"x":12,"y":8,"w":12,"h":8}
+            }
+          ],
+          "schemaVersion":27,"version":0,"refresh":"15s"
+        }
+
+    onnx-model-performance:
+      json: |-
+        {
+          "title": "ONNX Model Performance Dashboard",
+          "time": { "from": "now-5m", "to": "now" },
+          "panels": [
+            {
+              "id": 1, "type": "graph",
+              "title": "Inference Latency (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(single_inference_latency_seconds_bucket{type=\"onnx\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+            },
+            {
+              "id": 2, "type": "graph",
+              "title": "Batch Inference Latency (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(batch_inference_latency_seconds_bucket{type=\"onnx\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+            },
+            {
+              "id": 3, "type": "graph",
+              "title": "Sky Replacement Total Time (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(sky_replacement_total_time_seconds_bucket{type=\"onnx\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 }
+            },
+            {
+              "id": 4, "type": "graph",
+              "title": "Batch Sky Replacement Total Time (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(batch_sky_replacement_total_time_seconds_bucket{type=\"onnx\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 }
+            }
+          ],
+          "schemaVersion": 27,
+          "version": 0,
+          "refresh": "15s"
+        }
+
+    pytorch-model-performance:
+      json: |-
+        {
+          "title": "PyTorch Model Performance Dashboard",
+          "time": { "from": "now-5m", "to": "now" },
+          "panels": [
+            {
+              "id": 1, "type": "graph",
+              "title": "Inference Latency (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(single_inference_latency_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+            },
+            {
+              "id": 2, "type": "graph",
+              "title": "Batch Inference Latency (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(batch_inference_latency_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+            },
+            {
+              "id": 3, "type": "graph",
+              "title": "Sky Replacement Total Time (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(sky_replacement_total_time_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 }
+            },
+            {
+              "id": 4, "type": "graph",
+              "title": "Batch Sky Replacement Total Time (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(batch_sky_replacement_total_time_seconds_bucket{type=\"pytorch\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 }
+            }
+          ],
+          "schemaVersion": 27,
+          "version": 0,
+          "refresh": "15s"
+        }
+
+    torchscript-model-performance:
+      json: |-
+        {
+          "title": "TorchScript Model Performance Dashboard",
+          "time": { "from": "now-5m", "to": "now" },
+          "panels": [
+            {
+              "id": 1, "type": "graph",
+              "title": "Inference Latency (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(single_inference_latency_seconds_bucket{type=\"torchscript\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+            },
+            {
+              "id": 2, "type": "graph",
+              "title": "Batch Inference Latency (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(batch_inference_latency_seconds_bucket{type=\"torchscript\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+            },
+            {
+              "id": 3, "type": "graph",
+              "title": "Sky Replacement Total Time (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(sky_replacement_total_time_seconds_bucket{type=\"torchscript\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 0, "y": 8, "w": 12, "h": 8 }
+            },
+            {
+              "id": 4, "type": "graph",
+              "title": "Batch Sky Replacement Total Time (95th Percentile)",
+              "targets": [
+                {
+                  "expr": "histogram_quantile(0.95, sum(rate(batch_sky_replacement_total_time_seconds_bucket{type=\"torchscript\"}[5m])) by (le, model, type, hardware))",
+                  "format": "time_series",
+                  "legendFormat": "{{model}} ({{hardware}})"
+                }
+              ],
+              "gridPos": { "x": 12, "y": 8, "w": 12, "h": 8 }
+            }
+          ],
+          "schemaVersion": 27,
+          "version": 0,
+          "refresh": "15s"
+        }

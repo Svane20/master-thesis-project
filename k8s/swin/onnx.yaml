@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: swin-onnx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: swin-onnx
+  template:
+    metadata:
+      labels:
+        app: swin-onnx
+    spec:
+      containers:
+        - name: swin-onnx
+          image: svane222/swin-onnx:cpu
+          env:
+            - name: PROMETHEUS_METRICS_ENABLED
+              value: "true"
+            - name: MAX_BATCH_SIZE
+              value: "8"
+            - name: USE_GPU
+              value: "false"
+          ports:
+            - containerPort: 8004
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: swin-onnx
+spec:
+  type: ClusterIP
+  selector:
+    app: swin-onnx
+  ports:
+    - protocol: TCP
+      port: 8004
+      targetPort: 8004
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: swin-onnx-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+spec:
+  rules:
+    - host: swin-onnx
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: swin-onnx
+                port:
+                  number: 8004

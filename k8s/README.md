@@ -1,3 +1,11 @@
+# Install Minikube
+
+1. Run the following command to install Minikube:
+
+```text
+choco install minikube
+````
+
 # Running Kubernetes
 
 1. Start Docker Desktop
@@ -27,19 +35,19 @@ helm repo update
 3. Deploy Prometheus
 
 ```bash
-helm install prometheus prometheus-community/prometheus --namespace monitoring --create-namespace
+helm upgrade --install prometheus prometheus-community/prometheus -f monitoring/prometheus-values.yaml
 ```
 
 4. Deploy Grafana
 
 ```bash
-helm install grafana grafana/grafana --namespace monitoring --create-namespace
+helm upgrade --install grafana grafana/grafana -f monitoring/grafana-values.yaml
 ```
 
 ### Setup Grafana Ingress
 
 ```bash
-kubectl apply -f monitoring-ingress.yaml
+kubectl apply -f monitoring/monitoring-ingress.yaml
 ```
 
 ## Minikube Tunnel (Ingress)
@@ -54,8 +62,17 @@ minikube addons enable ingress-dns
 2. Add the following line to the `C:\Windows\System32\drivers\etc\hosts` file:
 
 ````text
-127.0.0.1 grafana.local
-127.0.0.1 prometheus.local
+127.0.0.1 grafana
+127.0.0.1 prometheus
+127.0.0.1 resnet-onnx
+127.0.0.1 resnet-torchscript
+127.0.0.1 resnet-pytorch
+127.0.0.1 swin-onnx
+127.0.0.1 swin-torchscript
+127.0.0.1 swin-pytorch
+127.0.0.1 dpt-onnx
+127.0.0.1 dpt-torchscript
+127.0.0.1 dpt-pytorch
 ````
 
 3. Run this command to enable the MiniKube tunnel:
@@ -66,5 +83,22 @@ minikube tunnel
 
 4. Visit the following URLs:
 
-- [Grafana](https://grafana.local)
-- [Prometheus](https://prometheus.local)
+## Monitoring
+
+- [Grafana](https://grafana)
+- [Prometheus](https://prometheus)
+
+## ResNet
+- [ResNet ONNX](http://resnet-onnx/docs)
+- [ResNet TorchScript](http://resnet-torchscript/docs)
+- [ResNet Pytorch](http://resnet-pytorch/docs)
+
+## Swin
+- [Swin ONNX](http://swin-onnx/docs)
+- [Swin TorchScript](http://swin-torchscript/docs)
+- [Swin Pytorch](http://swin-pytorch/docs)
+
+## DPT
+- [DPT ONNX](http://dpt-onnx/docs)
+- [DPT TorchScript](http://dpt-torchscript/docs)
+- [DPT Pytorch](http://dpt-pytorch/docs)

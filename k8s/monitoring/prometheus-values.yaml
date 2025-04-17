@@ -1,0 +1,45 @@
+extraScrapeConfigs: |
+  - job_name: "resnet-onnx"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["resnet-onnx:8001"]
+
+  - job_name: "resnet-torchscript"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["resnet-torchscript:8002"]
+
+  - job_name: "resnet-pytorch"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["resnet-pytorch:8003"]
+
+  - job_name: "swin-onnx"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["swin-onnx:8004"]
+
+  - job_name: "swin-torchscript"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["swin-torchscript:8005"]
+
+  - job_name: "swin-pytorch"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["swin-pytorch:8006"]
+
+  - job_name: "dpt-onnx"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["dpt-onnx:8007"]
+
+  - job_name: "dpt-torchscript"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["dpt-torchscript:8008"]
+
+  - job_name: "dpt-pytorch"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["dpt-pytorch:8009"]
