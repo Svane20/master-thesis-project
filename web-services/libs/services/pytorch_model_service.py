@@ -285,13 +285,20 @@ class PytorchModelService(BaseModelService):
         Returns:
             bytes: The ZIP archive containing the results of the sky replacement.
         """
-        if self.session is None:
+        if self.model is None:
             raise HTTPException(status_code=500, detail="Model not loaded")
         if len(files) > self.settings.MAX_BATCH_SIZE:
             raise HTTPException(status_code=400, detail="Batch size exceeds the maximum limit")
 
         # Log the start time of the request
         request_start = time.perf_counter()
+
+        # Read the files into memory
+        cached = []
+        for f in files:
+            data = await f.read()
+            cached.append((f.filename, data))
+            f.file.seek(0)
 
         # Preprocess the images
         image_batch = await preprocess_images(files, self.transforms)
@@ -317,33 +324,34 @@ class PytorchModelService(BaseModelService):
         ).observe(inference_time)
         logger.info({"event": "inference_completed", "time": inference_time})
 
-        # Post-process the alphas
-        alphas = output.detach().cpu().numpy()
+        # Post-process the alpha
+        raw = output.detach().cpu().numpy()
+        if raw.ndim == 4 and raw.shape[1] == 1:
+            alphas_3d = raw[:, 0, :, :]
+        elif raw.ndim == 4 and raw.shape[-1] == 1:
+            alphas_3d = raw[:, :, :, 0]
+        elif raw.ndim == 3:
+            alphas_3d = raw
+        else:
+            raise RuntimeError(f"Unexpected alpha array shape: {raw.shape}")
+        alphas = [alphas_3d[i] for i in range(alphas_3d.shape[0])]
 
         # Sky replacement
         replacement_start = time.perf_counter()
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zipf:
-            for file_obj, alpha in zip(files, alphas):
-                # Read the image file
-                image_bytes = await file_obj.read()
+            for (filename, image_bytes), alpha in zip(cached, alphas):
                 img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-
-                # Do sky replacement
                 replaced, foreground = do_sky_replacement(img, alpha)
 
-                # Write the replaced image
-                replaced_bytes = get_image_png_bytes(replaced)
-                base, _ = os.path.splitext(file_obj.filename)
-                zipf.writestr(f"{base}_replaced.png", replaced_bytes)
-
+                base, _ = os.path.splitext(filename)
+                zipf.writestr(f"{base}_replaced.png",
+                              get_image_png_bytes(replaced))
                 if extra:
-                    # Optionally include the alpha mask and foreground
-                    alpha_png = get_alpha_png_bytes(alpha)
-                    zipf.writestr(f"{base}_alpha.png", alpha_png)
-
-                    fg_png = get_image_png_bytes(foreground)
-                    zipf.writestr(f"{base}_foreground.png", fg_png)
+                    zipf.writestr(f"{base}_alpha.png",
+                                  get_alpha_png_bytes(alpha))
+                    zipf.writestr(f"{base}_foreground.png",
+                                  get_image_png_bytes(foreground))
 
         replacement_time = time.perf_counter() - replacement_start
         BATCH_SKY_REPLACEMENT_TIME.labels(

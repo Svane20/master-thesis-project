@@ -1,13 +1,20 @@
 ## Docker Compose
 
-1. Go to the root of the project
-2. Run the following command
+### Local development
 
-````bash
-docker compose up --build -d
+1. Run the following command:
+
+````text
+docker compose -f .\docker-compose.local.yml up --build -d
 ````
 
-### Local development
+2. Stop the containers
+
+````text
+docker compose -f .\docker-compose.local.yml down
+````
+
+### Dev development
 
 1. Run the following command:
 

@@ -1,0 +1,43 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: "resnet-onnx"
+    static_configs:
+      - targets: ["host.docker.internal:8001"]
+
+  - job_name: "resnet-torchscript"
+    static_configs:
+      - targets: [ "host.docker.internal:8002" ]
+
+  - job_name: "resnet-pytorch"
+    static_configs:
+      - targets: [ "host.docker.internal:8003" ]
+
+  - job_name: "swin-onnx"
+    static_configs:
+      - targets: [ "host.docker.internal:8004" ]
+
+  - job_name: "swin-torchscript"
+    static_configs:
+      - targets: [ "host.docker.internal:8005" ]
+
+  - job_name: "swin-pytorch"
+    static_configs:
+      - targets: [ "host.docker.internal:8006" ]
+
+  - job_name: "dpt-onnx"
+    static_configs:
+      - targets: [ "host.docker.internal:8007" ]
+
+  - job_name: "dpt-torchscript"
+    static_configs:
+      - targets: [ "host.docker.internal:8008" ]
+
+  - job_name: "dpt-pytorch"
+    static_configs:
+      - targets: [ "host.docker.internal:8009" ]
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["prometheus:9090"]

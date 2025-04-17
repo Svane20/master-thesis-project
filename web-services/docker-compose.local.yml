@@ -1,0 +1,29 @@
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus/prometheus.dev.yml:/etc/prometheus/prometheus.yml
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    depends_on:
+      - prometheus
+    restart: always
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./configs/grafana/provisioning/:/etc/grafana/provisioning/
+      - ./configs/grafana/dashboards/:/var/lib/grafana/dashboards/
+
+volumes:
+  prometheus_data:
+  grafana_data:
