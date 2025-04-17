@@ -28,6 +28,20 @@ docker compose -f .\docker-compose.dev.yml up --build -d
 docker compose -f .\docker-compose.dev.yml down
 ````
 
+### Production
+
+1. Run the following command:
+
+````text
+docker compose -f .\docker-compose.prod.yml up --build -d
+````
+
+2. Stop the containers
+
+````text
+docker compose -f .\docker-compose.prod.yml down
+````
+
 ### Demo
 
 1. Run the following command:
