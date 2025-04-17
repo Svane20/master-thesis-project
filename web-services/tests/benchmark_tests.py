@@ -132,7 +132,7 @@ def run_test_single_inference_performance(client: TestClient, use_gpu, project_n
     for _ in range(WARMUP_EPOCHS):
         with open(test_image_path, "rb") as f:
             files = {"file": (test_image_path.name, f, "image/jpeg")}
-            response = client.post("/api/v1/single-predict", files=files)
+            response = client.post("/api/v1/predict", files=files)
 
     # Performance measurement phase
     times = []
@@ -141,7 +141,7 @@ def run_test_single_inference_performance(client: TestClient, use_gpu, project_n
         start = time.perf_counter()
         with open(test_image_path, "rb") as f:
             files = {"file": (test_image_path.name, f, "image/jpeg")}
-            response = client.post("/api/v1/single-predict", files=files)
+            response = client.post("/api/v1/predict", files=files)
         elapsed = time.perf_counter() - start
         times.append(elapsed)
         print(f"Iteration {i + 1}/{EPOCHS}: Inference time = {elapsed:.4f}s")
