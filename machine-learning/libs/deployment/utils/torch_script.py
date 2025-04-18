@@ -15,7 +15,7 @@ def export_to_torch_script(
 ) -> None:
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
-    save_path = directory / f"{model_name}_{str(device)}_torch_script.pt"
+    save_path = directory / f"{model_name}_torch_script_{str(device)}.pt"
 
     # Set model to evaluation mode
     model.eval()

@@ -84,9 +84,6 @@ def get_mock_configuration(project_name: str, model_type: str) -> Dict[str, Any]
             / model_filename
     )
 
-    if not absolute_model_path.is_file():
-        raise FileNotFoundError(f"Model file not found: {absolute_model_path}")
-
     # 5) Update the config to point to the correct absolute model path
     config_json["model"]["model_path"] = str(absolute_model_path)
 

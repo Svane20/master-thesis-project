@@ -15,13 +15,20 @@ def build_model(
     if device.type not in ["cuda", "cpu"]:
         raise ValueError(f"Invalid device: {device}")
 
-    if not os.path.exists(model_path):
-        raise ValueError(f"Checkpoint path {model_path} does not exist")
-
     # Load the model from the configuration
     if is_torch_script:
+        # TorchScript models are saved with a different naming convention
+        root_path = os.path.dirname(model_path)
+        model_name = os.path.basename(model_path).split(".")[0]
+        model_path = os.path.join(root_path, f"{model_name}_{str(device)}.pt")
+        if not os.path.exists(model_path):
+            raise ValueError(f"Checkpoint path {model_path} does not exist")
+
         model = torch.jit.load(model_path, map_location=device)
     else:
+        if not os.path.exists(model_path):
+            raise ValueError(f"Checkpoint path {model_path} does not exist")
+
         model = _get_model(configuration)
         _load_checkpoint(model, model_path)
 

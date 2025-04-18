@@ -55,8 +55,9 @@ def compare_model_outputs(model, ts_model, onnx_path, dummy_input, rtol=1e-3, at
             logging.warning(msg)
 
     # Compare ONNX outputs
-    ort_session = ort.InferenceSession(str(onnx_path),
-                                       providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+    providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if torch.cuda.is_available() else \
+        ["CPUExecutionProvider"]
+    ort_session = ort.InferenceSession(str(onnx_path), providers=providers)
     ort_inputs = {ort_session.get_inputs()[0].name: dummy_input.cpu().numpy()}
     ort_output = ort_session.run(None, ort_inputs)[0]
 
