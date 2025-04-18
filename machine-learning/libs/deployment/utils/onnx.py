@@ -25,7 +25,7 @@ def export_to_onnx(
     """
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
-    save_path = directory / f"{model_name}_{str(device)}.onnx"
+    save_path = directory / f"{model_name}.onnx"
 
     # Set model to evaluation mode
     model.eval()
