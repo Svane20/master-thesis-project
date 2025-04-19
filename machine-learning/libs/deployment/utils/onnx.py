@@ -36,30 +36,22 @@ def export_to_onnx(
     onnx_path = directory / f"{model_name}_{str(device)}.onnx"
 
     try:
-        # Export with the Dynamo exporter
-        onnx_prog = torch.onnx.export(
+        # Export to ONNX
+        torch.onnx.export(
             model,
             dummy_input,
-            str(onnx_path),
+            onnx_path,
             export_params=True,
             opset_version=18,
             do_constant_folding=True,
             input_names=["input"],
             output_names=["output"],
             dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
-            dynamo=True,
         )
 
-        # In‑place graph cleanup: constant‑folding, dead‑node & initializer removal
-        onnx_prog.optimize()
-
-        # Persist the _optimized_ graph to disk
-        onnx_prog.save(str(onnx_path))
-
-        # Run shape inference on the optimized model
-        m = onnx.load(onnx_path)
-        m = onnx.shape_inference.infer_shapes(m)
-        onnx.save_model(m, onnx_path)
+        # Infer the model's input and output shapes
+        model = onnx.shape_inference.infer_shapes(onnx.load(onnx_path))
+        onnx.save_model(model, onnx_path)
 
     except Exception as e:
         logging.error(f"ONNX export failed: {e}")

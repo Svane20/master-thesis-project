@@ -21,7 +21,13 @@ def deploy_model(
         measure_model: bool = False,
 ) -> None:
     destination_directory = Path(configuration.deployment.destination_directory)
-    dummy_input = torch.randn(1, 3, configuration.deployment.resolution, configuration.deployment.resolution).to(device)
+    dummy_input = torch.randn(
+        1,
+        3,
+        configuration.deployment.resolution,
+        configuration.deployment.resolution,
+        device=device
+    )
 
     # Apply structured pruning if specified in the configuration
     if configuration.deployment.optimizations.get("apply_pruning", False):
