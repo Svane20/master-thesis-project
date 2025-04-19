@@ -1,5 +1,5 @@
 from fastapi import UploadFile, HTTPException
-import onnxruntime
+import onnxruntime as ort
 import time
 import os
 import asyncio
@@ -11,6 +11,7 @@ from PIL import Image
 
 from libs.configuration.base import Configuration
 from libs.fastapi.settings import Settings
+from libs.models.utils import get_model_checkpoint_path_based_on_device
 from libs.replacement.replacement import do_sky_replacement
 from libs.services.base import BaseModelService
 from libs.logging import logger
@@ -32,11 +33,7 @@ def _postprocess_alphas(outputs: List[np.ndarray]) -> List[np.ndarray]:
         List[np.ndarray]: The post-processed alphas.
     """
     result = outputs[0]
-    alphas = []
-    for i in range(result.shape[0]):
-        alpha = np.squeeze(result[i], axis=0)
-        alphas.append(alpha)
-    return alphas
+    return [np.squeeze(result[i], axis=0) for i in range(result.shape[0])]
 
 
 class OnnxModelService(BaseModelService):
@@ -50,7 +47,7 @@ class OnnxModelService(BaseModelService):
         """
         super().__init__(settings=settings, config=config)
 
-        self.session = None
+        self.session: ort.InferenceSession | None = None
         self.input_name = None
         self.output_name = None
 
@@ -61,17 +58,36 @@ class OnnxModelService(BaseModelService):
         # Log the start time of model loading
         start = time.perf_counter()
 
+        # Get the model path based on the device
+        model_path = get_model_checkpoint_path_based_on_device(
+            model_path=self.config.model.model_path,
+            device=self.device,
+        )
+
         # Load the ONNX model
         try:
-            session_options = onnxruntime.SessionOptions()
-            session_options.graph_optimization_level = onnxruntime.GraphOptimizationLevel.ORT_ENABLE_ALL
-            session_options.intra_op_num_threads = min(1, os.cpu_count() - 1)
+            opts = ort.SessionOptions()
+            # FULL OPTIMIZATION
+            opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+
+            # PARALLEL EXECUTION
+            opts.execution_mode = ort.ExecutionMode.ORT_PARALLEL
+
+            # MEMORY PATTERN & REUSE
+            opts.enable_mem_pattern = True
+            opts.enable_mem_reuse = True
+
+            if self.use_gpu:
+                opts.intra_op_num_threads = 1
+                opts.inter_op_num_threads = 1
+            else:
+                # leave one core free for other processes
+                cpu_threads = max(1, os.cpu_count() - 1)
+                opts.intra_op_num_threads = cpu_threads
+                opts.inter_op_num_threads = cpu_threads
+
             providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.use_gpu else ["CPUExecutionProvider"]
-            self.session = onnxruntime.InferenceSession(
-                self.config.model.model_path,
-                session_options,
-                providers=providers
-            )
+            self.session = ort.InferenceSession(model_path, opts, providers=providers)
         except Exception as e:
             logger.error({"event": "model_load_failed", "error": str(e)})
             raise e
@@ -90,7 +106,7 @@ class OnnxModelService(BaseModelService):
         logger.info({
             "event": "model_loaded",
             "format": "ONNX",
-            "providers": providers,
+            "providers": self.session.get_providers(),
             "hardware": self.hardware,
             "model_load_time": model_load_time,
         })
@@ -113,17 +129,21 @@ class OnnxModelService(BaseModelService):
 
         # Load and preprocess the image
         image_tensor, _ = await preprocess_image(file, self.transforms)
+        arr = image_tensor.unsqueeze(0).numpy()
 
         # Run inference
-        loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            outputs = await loop.run_in_executor(
-                None,
-                self.session.run,
-                [self.output_name],
-                {self.input_name: image_tensor.unsqueeze(0).numpy()},
-            )
+            if self.use_gpu:
+                outputs = self._gpu_run(arr)
+            else:
+                loop = asyncio.get_running_loop()
+                outputs = await loop.run_in_executor(
+                    None,
+                    self.session.run,
+                    [self.output_name],
+                    {self.input_name: arr}
+                )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
             raise HTTPException(status_code=500, detail="Inference failed")
@@ -172,18 +192,22 @@ class OnnxModelService(BaseModelService):
         request_start = time.perf_counter()
 
         # Preprocess the images
-        batch = await preprocess_images(files, self.transforms)
+        batch_tensor = await preprocess_images(files, self.transforms)
+        arr = batch_tensor.numpy()
 
         # Run inference
-        loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            outputs = await loop.run_in_executor(
-                None,
-                self.session.run,
-                [self.output_name],
-                {self.input_name: batch.numpy()},
-            )
+            if self.use_gpu:
+                outputs = self._gpu_run(arr)
+            else:
+                loop = asyncio.get_running_loop()
+                outputs = await loop.run_in_executor(
+                    None,
+                    self.session.run,
+                    [self.output_name],
+                    {self.input_name: arr}
+                )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
             raise HTTPException(status_code=500, detail="Inference failed")
@@ -231,17 +255,21 @@ class OnnxModelService(BaseModelService):
 
         # Load and preprocess the image
         image_tensor, image = await preprocess_image(file, self.transforms)
+        arr = image_tensor.numpy()
 
         # Run inference
-        loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            outputs = await loop.run_in_executor(
-                None,
-                self.session.run,
-                [self.output_name],
-                {self.input_name: image_tensor.unsqueeze(0).numpy()},
-            )
+            if self.use_gpu:
+                outputs = self._gpu_run(arr)
+            else:
+                loop = asyncio.get_running_loop()
+                outputs = await loop.run_in_executor(
+                    None,
+                    self.session.run,
+                    [self.output_name],
+                    {self.input_name: arr}
+                )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
             raise HTTPException(status_code=500, detail="Inference failed")
@@ -322,17 +350,21 @@ class OnnxModelService(BaseModelService):
 
         # Preprocess the images
         batch = await preprocess_images(files, self.transforms)
+        arr = batch.numpy()
 
         # Run inference
-        loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            outputs = await loop.run_in_executor(
-                None,
-                self.session.run,
-                [self.output_name],
-                {self.input_name: batch.numpy()},
-            )
+            if self.use_gpu:
+                outputs = self._gpu_run(arr)
+            else:
+                loop = asyncio.get_running_loop()
+                outputs = await loop.run_in_executor(
+                    None,
+                    self.session.run,
+                    [self.output_name],
+                    {self.input_name: arr}
+                )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
             raise HTTPException(status_code=500, detail="Inference failed")
@@ -385,3 +417,44 @@ class OnnxModelService(BaseModelService):
         # Return the zip archive bytes
         zip_buffer.seek(0)
         return zip_buffer.getvalue()
+
+    def _gpu_run(self, arr: np.ndarray) -> List[np.ndarray]:
+        """
+        A small helper that does zero‑copy on GPU via IO binding.
+        Falls back to session.run on *any* error during I/O binding.
+        """
+        try:
+            io = self.session.io_binding()
+            inp_name = self.input_name
+            out_name = self.output_name
+
+            # Bind input
+            ort_in = ort.OrtValue.ortvalue_from_numpy(arr)
+            io.bind_input(
+                name=inp_name,
+                device_type="cuda", device_id=0,
+                element_type=ort_in.element_type,
+                shape=arr.shape, buffer_ptr=ort_in.data_ptr()
+            )
+
+            # Bind output
+            out_shape = [arr.shape[0]] + [
+                int(x) for x in self.session.get_outputs()[0].shape[1:]
+            ]
+            ort_out = ort.OrtValue.ortvalue_from_numpy(
+                np.empty(out_shape, dtype=np.float32),
+                "cuda", 0
+            )
+            io.bind_output(
+                name=out_name,
+                device_type="cuda", device_id=0,
+                element_type=ort_out.element_type,
+                shape=tuple(out_shape), buffer_ptr=ort_out.data_ptr()
+            )
+
+            # Perform inference
+            self.session.run_with_iobinding(io)
+            return [ort_out.numpy()]
+        except Exception as e:
+            logger.error(f"ORT I/O binding failed ({e!r}); falling back to session.run")
+            return self.session.run([self.output_name], {self.input_name: arr})

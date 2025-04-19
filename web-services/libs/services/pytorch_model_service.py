@@ -13,7 +13,7 @@ from libs.fastapi.settings import Settings
 from libs.metrics import MODEL_LOAD_TIME, SINGLE_INFERENCE_TIME, SINGLE_INFERENCE_TOTAL_TIME, BATCH_INFERENCE_TIME, \
     BATCH_INFERENCE_TOTAL_TIME, SKY_REPLACEMENT_INFERENCE_TIME, SKY_REPLACEMENT_TIME, SKY_REPLACEMENT_TOTAL_TIME, \
     BATCH_SKY_REPLACEMENT_INFERENCE_TIME, BATCH_SKY_REPLACEMENT_TIME, BATCH_SKY_REPLACEMENT_TOTAL_TIME
-from libs.models.utils import build_model
+from libs.models.utils import build_model, get_model_checkpoint_path_based_on_device
 from libs.replacement.replacement import do_sky_replacement
 from libs.services.base import BaseModelService
 from libs.logging import logger
@@ -44,7 +44,6 @@ class PytorchModelService(BaseModelService):
             raise ValueError("Model configuration is missing.")
 
         self.model_configuration = model_configuration
-        self.device = torch.device('cuda' if self.use_gpu else 'cpu')
         self.is_torch_script = config.project_info.model_type == "torchscript"
 
     def load_model(self) -> None:
@@ -54,10 +53,16 @@ class PytorchModelService(BaseModelService):
         # Log the start time of model loading
         start = time.perf_counter()
 
+        # Get the model path based on the device
+        model_path = get_model_checkpoint_path_based_on_device(
+            model_path=self.config.model.model_path,
+            device=self.device,
+        )
+
         try:
             self.model = build_model(
                 configuration=self.model_configuration,
-                model_path=self.config.model.model_path,
+                model_path=model_path,
                 device=self.device,
                 is_torch_script=self.is_torch_script,
             )
@@ -102,12 +107,16 @@ class PytorchModelService(BaseModelService):
         image_tensor = image_tensor.unsqueeze(0).to(self.device)
 
         # Run inference
-        loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            output = await loop.run_in_executor(
-                None, _run_inference, self.model, image_tensor
-            )
+            if self.device.type == "cuda":
+                with torch.no_grad():
+                    output = self.model(image_tensor)
+            else:
+                loop = asyncio.get_running_loop()
+                output = await loop.run_in_executor(
+                    None, _run_inference, self.model, image_tensor
+                )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
             raise HTTPException(status_code=500, detail="Inference failed")
@@ -160,12 +169,16 @@ class PytorchModelService(BaseModelService):
         image_batch = image_batch.to(self.device)
 
         # Run inference
-        loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            output = await loop.run_in_executor(
-                None, _run_inference, self.model, image_batch
-            )
+            if self.device.type == "cuda":
+                with torch.no_grad():
+                    output = self.model(image_batch)
+            else:
+                loop = asyncio.get_running_loop()
+                output = await loop.run_in_executor(
+                    None, _run_inference, self.model, image_batch
+                )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
             raise HTTPException(status_code=500, detail="Inference failed")
@@ -216,12 +229,16 @@ class PytorchModelService(BaseModelService):
         image_tensor = image_tensor.unsqueeze(0).to(self.device)
 
         # Run inference
-        loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            output = await loop.run_in_executor(
-                None, _run_inference, self.model, image_tensor
-            )
+            if self.device.type == "cuda":
+                with torch.no_grad():
+                    output = self.model(image_tensor)
+            else:
+                loop = asyncio.get_running_loop()
+                output = await loop.run_in_executor(
+                    None, _run_inference, self.model, image_tensor
+                )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
             raise HTTPException(status_code=500, detail="Inference failed")
@@ -305,12 +322,16 @@ class PytorchModelService(BaseModelService):
         image_batch = image_batch.to(self.device)
 
         # Run inference
-        loop = asyncio.get_running_loop()
         inf_start = time.perf_counter()
         try:
-            output = await loop.run_in_executor(
-                None, _run_inference, self.model, image_batch
-            )
+            if self.device.type == "cuda":
+                with torch.no_grad():
+                    output = self.model(image_batch)
+            else:
+                loop = asyncio.get_running_loop()
+                output = await loop.run_in_executor(
+                    None, _run_inference, self.model, image_batch
+                )
         except Exception as e:
             logger.error({"event": "inference_failed", "error": str(e)})
             raise HTTPException(status_code=500, detail="Inference failed")

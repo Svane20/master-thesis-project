@@ -29,6 +29,7 @@ class BaseModelService(ABC):
         self.project_name = self.config.project_info.project_name
         self.model_type = self.config.project_info.model_type
         self.hardware = "GPU" if self.use_gpu else "CPU"
+        self.device = torch.device('cuda' if self.use_gpu else 'cpu')
 
     @abstractmethod
     def load_model(self) -> None:
