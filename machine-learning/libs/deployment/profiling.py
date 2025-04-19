@@ -46,7 +46,12 @@ def measure_onnx_latency(onnx_model_path, dummy_input, num_runs=100):
     opts.intra_op_num_threads = os.cpu_count() - 1
     opts.inter_op_num_threads = os.cpu_count() - 1
     if torch.cuda.is_available():
-        providers: ["TensorrtExecutionProvider""CUDAExecutionProvider", "DnnlExecutionProvider", "CPUExecutionProvider"]
+        providers = [
+            "TensorrtExecutionProvider",
+            "CUDAExecutionProvider",
+            "DnnlExecutionProvider",
+            "CPUExecutionProvider"
+        ]
     else:
         providers = ["DnnlExecutionProvider", "CPUExecutionProvider"]
 
