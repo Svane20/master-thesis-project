@@ -18,6 +18,7 @@ def deploy_model(
         model_name: str,
         device: torch.device,
         configuration: Config,
+        measure_model: bool = False,
 ) -> None:
     destination_directory = Path(configuration.deployment.destination_directory)
     dummy_input = torch.randn(1, 3, configuration.deployment.resolution, configuration.deployment.resolution).to(device)
@@ -53,9 +54,10 @@ def deploy_model(
         device=device,
     )
 
-    # Load exported TorchScript and ONNX model for comparison.
-    ts_model = torch.jit.load(str(destination_directory / f"{model_name}_torch_script_{str(device)}.pt"))
-    onnx_model_path = destination_directory / f"{model_name}_{str(device)}.onnx"
-    compare_model_outputs(model, ts_model, onnx_model_path, dummy_input)
+    if measure_model:
+        # Load exported TorchScript and ONNX model for comparison.
+        ts_model = torch.jit.load(str(destination_directory / f"{model_name}_torch_script_{str(device)}.pt"))
+        onnx_model_path = destination_directory / f"{model_name}_{str(device)}.onnx"
+        compare_model_outputs(model, ts_model, onnx_model_path, dummy_input, device)
 
     logging.info("Production build completed successfully.")

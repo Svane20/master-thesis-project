@@ -12,6 +12,7 @@ def export_to_torch_script(
         directory: Path,
         dummy_input: torch.Tensor,
         device: torch.device,
+        measure_model: bool = False,
 ) -> None:
     """
     Export the model to TorchScript format.
@@ -22,7 +23,10 @@ def export_to_torch_script(
         directory (Path): Directory to save the TorchScript model to.
         dummy_input (torch.Tensor): Dummy input tensor.
         device (torch.device): Device to run the model on.
+        measure_model (bool): Whether to measure the model's latency and memory usage.
     """
+    logging.info(f"Exporting torch scripted model...")
+
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
     save_path = directory / f"{model_name}_torch_script_{str(device)}.pt"
@@ -38,9 +42,11 @@ def export_to_torch_script(
     with open(save_path, "wb") as f:
         torch.jit.save(m=traced_model, f=f)
 
+    logging.info(f"Torch scripted model checkpoint saved at {save_path}")
+
     # Measure latency of the exported model
-    if device.type == "cuda":
+    if measure_model and device.type == "cuda":
         measure_latency(model, dummy_input)
         measure_memory_usage(dummy_input)
 
-    logging.info(f"Torch scripted model checkpoint saved at {save_path}")
+    logging.info(f"Finished exporting torch scripted model.")

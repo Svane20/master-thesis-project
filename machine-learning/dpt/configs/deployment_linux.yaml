@@ -7,7 +7,6 @@ deployment:
   checkpoint_path: "/mnt/shared/ml/checkpoints/dpt/dpt-swinv2-tiny-256_v1.pt"
   destination_directory: "/mnt/shared/ml/models/dpt"
   optimizations:
-    apply_quantization: true
     apply_pruning: true
 
 # Model configuration

@@ -1,7 +1,6 @@
 import torch
-
-from pathlib import Path
 import onnx
+from pathlib import Path
 import logging
 
 from ..profiling import measure_onnx_latency, measure_memory_usage
@@ -13,6 +12,7 @@ def export_to_onnx(
         directory: Path,
         dummy_input: torch.Tensor,
         device: torch.device,
+        measure_model: bool = False,
 ) -> None:
     """
     Export the model to ONNX format.
@@ -21,11 +21,14 @@ def export_to_onnx(
         model (torch.nn.Module): Model to export.
         model_name (str): Name of the model.
         directory (Path): Directory to save the ONNX model to.
-        dummy_input (torch.Tensor): Dummy input tensor.
+
+        device (torch.device): Device to run the model on.
     """
+    logging.info(f"Exporting ONNX model...")
+
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
-    save_path = directory / f"{model_name}_{str(device)}.onnx"
+    onnx_path = directory / f"{model_name}_{str(device)}.onnx"
 
     # Set model to evaluation mode
     model.eval()
@@ -35,9 +38,9 @@ def export_to_onnx(
         torch.onnx.export(
             model,
             dummy_input,
-            save_path,
+            onnx_path,
             export_params=True,
-            opset_version=13,
+            opset_version=18,
             do_constant_folding=True,
             input_names=["input"],
             output_names=["output"],
@@ -47,16 +50,22 @@ def export_to_onnx(
         logging.error(f"ONNX export failed: {e}")
         raise
 
+    # Infer the model's input and output shapes
+    model = onnx.shape_inference.infer_shapes(onnx.load(onnx_path))
+    onnx.save_model(model, onnx_path)
+
+    logging.info(f"Model exported to ONNX at {onnx_path}")
+
     # Validate the exported model
-    onnx_model = load_onnx_model(save_path)
+    onnx_model = load_onnx_model(onnx_path)
     validate_onnx_model(onnx_model)
 
     # Measure latency of the exported model
-    if device.type == "cuda":
-        measure_onnx_latency(save_path, dummy_input)
+    if measure_model and device.type == "cuda":
+        measure_onnx_latency(onnx_path, dummy_input)
         measure_memory_usage(dummy_input)
 
-    logging.info(f"Model exported to ONNX at {save_path}")
+    logging.info(f"Finished exporting ONNX model.")
 
 
 def load_onnx_model(onnx_model_path: Path) -> onnx.ModelProto:

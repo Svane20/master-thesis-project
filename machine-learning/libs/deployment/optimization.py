@@ -1,10 +1,11 @@
+import torch
 import torch.nn as nn
 import torch.nn.utils.prune as prune
 
 import logging
 
 
-def apply_structured_pruning(model: nn.Module, amount: float = 0.2):
+def apply_structured_pruning(model: nn.Module, amount: float = 0.2) -> nn.Module:
     """
     Apply structured pruning to the model.
 
@@ -17,6 +18,8 @@ def apply_structured_pruning(model: nn.Module, amount: float = 0.2):
     """
     # Set the model to evaluation mode
     model.eval()
+
+    logging.info("Applying structured pruning...")
 
     # Prune X % of channels in each Conv2d layer based on L1 norm
     for name, module in model.named_modules():
