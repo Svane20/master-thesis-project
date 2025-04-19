@@ -53,6 +53,8 @@ def measure_onnx_latency(onnx_model_path, dummy_input, num_runs=100):
     # Create an ONNX Runtime session using both CUDA and CPU providers.
     session = ort.InferenceSession(str(onnx_model_path), opts, providers=providers)
 
+    logging.info(f"ONNX model providers: {session.get_providers()}")
+
     # Warm-up runs to stabilize performance
     input_name = session.get_inputs()[0].name
     dummy_np = dummy_input.cpu().numpy()
