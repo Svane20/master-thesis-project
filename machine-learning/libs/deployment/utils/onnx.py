@@ -43,8 +43,8 @@ def export_to_onnx(
         onnx_path = directory / f"{model_name}_bs{bs}_{str(device)}.onnx"
 
         try:
-            # Export with the Dynamo exporter
-            onnx_prog = torch.onnx.export(
+            # Export model to onnx
+            torch.onnx.export(
                 model,
                 (dummy,),
                 onnx_path,
@@ -54,18 +54,6 @@ def export_to_onnx(
                 input_names=["input"],
                 output_names=["output"],
                 dynamic_axes=None,
-                dynamo=True,
-            )
-
-            # In‑place graph cleanup: constant‑folding, dead‑node & initializer removal
-            onnx_prog.optimize()
-
-            # Persist the _optimized_ graph to disk
-            onnx_prog.save(
-                onnx_path,
-                include_initializers=True,
-                keep_initializers_as_inputs=False,
-                external_data=False,
             )
 
             # Run shape inference on the optimized model
