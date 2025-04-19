@@ -2,6 +2,7 @@ import torch
 import onnx
 from pathlib import Path
 import logging
+from typing import Tuple
 
 from ..profiling import measure_onnx_latency, measure_memory_usage
 
@@ -10,7 +11,7 @@ def export_to_onnx(
         model: torch.nn.Module,
         model_name: str,
         directory: Path,
-        dummy_input: torch.Tensor,
+        input_shape: Tuple[int, ...],
         device: torch.device,
         measure_model: bool = False,
 ) -> None:
@@ -21,50 +22,71 @@ def export_to_onnx(
         model (torch.nn.Module): Model to export.
         model_name (str): Name of the model.
         directory (Path): Directory to save the ONNX model to.
-
+        input_shape (Tuple[int, ...]): Input shape of the data.
         device (torch.device): Device to run the model on.
+        measure_model (bool): Whether to measure memory usage.
     """
     logging.info(f"Exporting ONNX model...")
-
-    # Create export directory if it does not exist
-    directory.mkdir(parents=True, exist_ok=True)
-    onnx_path = directory / f"{model_name}_{str(device)}.onnx"
 
     # Set model to evaluation mode
     model.eval()
 
-    # Export model to ONNX
-    try:
-        torch.onnx.export(
-            model,
-            dummy_input,
-            onnx_path,
-            export_params=True,
-            opset_version=18,
-            do_constant_folding=True,
-            input_names=["input"],
-            output_names=["output"],
-            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
-            dynamo=True
-        )
-    except Exception as e:
-        logging.error(f"ONNX export failed: {e}")
-        raise
+    # Create export directory if it does not exist
+    directory.mkdir(parents=True, exist_ok=True)
 
-    # Infer the model's input and output shapes
-    model = onnx.shape_inference.infer_shapes(onnx.load(onnx_path))
-    onnx.save_model(model, onnx_path)
+    # Create a ONNX model for each of the batch sizes
+    for bs in (1, 8):
+        # Create dummy input
+        dummy = torch.randn((bs, *input_shape), device=device)
 
-    logging.info(f"Model exported to ONNX at {onnx_path}")
+        # Output path
+        onnx_path = directory / f"{model_name}_bs{bs}_{str(device)}.onnx"
 
-    # Validate the exported model
-    onnx_model = load_onnx_model(onnx_path)
-    validate_onnx_model(onnx_model)
+        try:
+            # Export with the Dynamo exporter
+            onnx_prog = torch.onnx.export(
+                model,
+                (dummy,),
+                onnx_path,
+                export_params=True,
+                opset_version=18,
+                do_constant_folding=True,
+                input_names=["input"],
+                output_names=["output"],
+                dynamic_axes=None,
+                dynamo=True,
+            )
 
-    # Measure latency of the exported model
-    if measure_model and device.type == "cuda":
-        measure_onnx_latency(onnx_path, dummy_input)
-        measure_memory_usage(dummy_input)
+            # In‑place graph cleanup: constant‑folding, dead‑node & initializer removal
+            onnx_prog.optimize()
+
+            # Persist the _optimized_ graph to disk
+            onnx_prog.save(
+                onnx_path,
+                include_initializers=True,
+                keep_initializers_as_inputs=False,
+                external_data=False,
+            )
+
+            # Run shape inference on the optimized model
+            m = onnx.load(onnx_path)
+            m = onnx.shape_inference.infer_shapes(m)
+            onnx.save_model(m, onnx_path)
+
+        except Exception as e:
+            logging.error(f"ONNX export failed: {e}")
+            raise
+
+        logging.info(f"Model exported to ONNX at {onnx_path} for batch size {bs}")
+
+        # Validate the exported model
+        onnx_model = load_onnx_model(onnx_path)
+        validate_onnx_model(onnx_model)
+
+        # Measure latency of the exported model
+        if measure_model and device.type == "cuda":
+            measure_onnx_latency(onnx_path, dummy)
+            measure_memory_usage(dummy)
 
     logging.info(f"Finished exporting ONNX model.")
 

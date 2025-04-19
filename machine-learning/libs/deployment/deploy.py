@@ -48,9 +48,9 @@ def deploy_model(
     # Export the model to ONNX
     export_to_onnx(
         model=model,
-        directory=destination_directory,
         model_name=model_name,
-        dummy_input=dummy_input,
+        directory=destination_directory,
+        input_shape=tuple(dummy_input.shape[1:]),
         device=device,
     )
 
