@@ -11,7 +11,7 @@ def export_to_onnx(
         model: torch.nn.Module,
         model_name: str,
         directory: Path,
-        input_shape: Tuple[int, ...],
+        dummy_input: Tuple[torch.Tensor],
         device: torch.device,
         measure_model: bool = False,
 ) -> None:
@@ -22,7 +22,7 @@ def export_to_onnx(
         model (torch.nn.Module): Model to export.
         model_name (str): Name of the model.
         directory (Path): Directory to save the ONNX model to.
-        input_shape (Tuple[int, ...]): Input shape of the data.
+        dummy_input (Tuple[torch.Tensor]): Dummy input tensors.
         device (torch.device): Device to run the model on.
         measure_model (bool): Whether to measure memory usage.
     """
@@ -33,48 +33,48 @@ def export_to_onnx(
 
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
+    onnx_path = directory / f"{model_name}_{str(device)}.onnx"
 
-    # Create a ONNX model for each of the batch sizes
-    for bs in (1, 8):
-        # Create dummy input
-        dummy = torch.randn((bs, *input_shape), device=device)
+    try:
+        # Export with the Dynamo exporter
+        onnx_prog = torch.onnx.export(
+            model,
+            dummy_input,
+            str(onnx_path),
+            export_params=True,
+            opset_version=18,
+            do_constant_folding=True,
+            input_names=["input"],
+            output_names=["output"],
+            dynamic_axes={"input": {0: "batch_size"}, "output": {0: "batch_size"}},
+            dynamo=True,
+        )
 
-        # Output path
-        onnx_path = directory / f"{model_name}_bs{bs}_{str(device)}.onnx"
+        # In‑place graph cleanup: constant‑folding, dead‑node & initializer removal
+        onnx_prog.optimize()
 
-        try:
-            # Export model to onnx
-            torch.onnx.export(
-                model,
-                (dummy,),
-                onnx_path,
-                export_params=True,
-                opset_version=18,
-                do_constant_folding=True,
-                input_names=["input"],
-                output_names=["output"],
-                dynamic_axes=None,
-            )
+        # Persist the _optimized_ graph to disk
+        onnx_prog.save(str(onnx_path))
 
-            # Run shape inference on the optimized model
-            m = onnx.load(onnx_path)
-            m = onnx.shape_inference.infer_shapes(m)
-            onnx.save_model(m, onnx_path)
+        # Run shape inference on the optimized model
+        m = onnx.load(onnx_path)
+        m = onnx.shape_inference.infer_shapes(m)
+        onnx.save_model(m, onnx_path)
 
-        except Exception as e:
-            logging.error(f"ONNX export failed: {e}")
-            raise
+    except Exception as e:
+        logging.error(f"ONNX export failed: {e}")
+        raise
 
-        logging.info(f"Model exported to ONNX at {onnx_path} for batch size {bs}")
+    logging.info(f"Model exported to ONNX at {onnx_path}")
 
-        # Validate the exported model
-        onnx_model = load_onnx_model(onnx_path)
-        validate_onnx_model(onnx_model)
+    # Validate the exported model
+    onnx_model = load_onnx_model(onnx_path)
+    validate_onnx_model(onnx_model)
 
-        # Measure latency of the exported model
-        if measure_model and device.type == "cuda":
-            measure_onnx_latency(onnx_path, dummy)
-            measure_memory_usage(dummy)
+    # Measure latency of the exported model
+    if measure_model and device.type == "cuda":
+        measure_onnx_latency(onnx_path, dummy_input)
+        measure_memory_usage(dummy_input)
 
     logging.info(f"Finished exporting ONNX model.")
 

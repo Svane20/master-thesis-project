@@ -50,7 +50,7 @@ def deploy_model(
         model=model,
         model_name=model_name,
         directory=destination_directory,
-        input_shape=tuple(dummy_input.shape[1:]),
+        dummy_input=(dummy_input,),
         device=device,
     )
 
