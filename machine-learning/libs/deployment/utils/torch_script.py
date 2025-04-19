@@ -37,7 +37,9 @@ def export_to_torch_script(
     # Trace the model and freeze it to optimize for inference
     traced_model = torch.jit.trace(model, dummy_input)
     traced_model = torch.jit.freeze(traced_model)
-    traced_model = torch.jit.optimize_for_inference(traced_model)
+
+    if device.type == "cuda":
+        traced_model = torch.jit.optimize_for_inference(traced_model)
 
     # Save the model checkpoint
     with open(save_path, "wb") as f:
