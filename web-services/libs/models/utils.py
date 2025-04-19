@@ -6,29 +6,52 @@ import os
 from libs.logging import logger
 
 
+def get_model_checkpoint_path_based_on_device(
+        model_path: str,
+        device: torch.device,
+) -> str:
+    """
+    Get the model checkpoint path based on the device.
+
+    Args:
+        model_path (str): The original model path.
+        device (torch.device): The device to load the model on.
+
+    Returns:
+        str: The model checkpoint path based on the device.
+    """
+    # Get the root path of the model
+    root_path = os.path.dirname(model_path)
+
+    # Extract the model name and extension from the model path
+    model_name = os.path.basename(model_path).split(".")[0]
+    model_extension = os.path.basename(model_path).split(".")[1]
+
+    # Construct the new model path based on the device
+    model_path = os.path.join(root_path, f"{model_name}_{str(device)}.{model_extension}")
+
+    # Check if the new model path exists
+    if not os.path.exists(model_path):
+        raise ValueError(f"Checkpoint path {model_path} does not exist")
+
+    return model_path
+
+
 def build_model(
         configuration: Dict[str, Any],
         model_path: str,
         device: torch.device,
         is_torch_script: bool = False,
 ) -> nn.Module:
+    if not os.path.exists(model_path):
+        raise ValueError(f"Checkpoint path {model_path} does not exist")
     if device.type not in ["cuda", "cpu"]:
         raise ValueError(f"Invalid device: {device}")
 
     # Load the model from the configuration
     if is_torch_script:
-        # TorchScript models are saved with a different naming convention
-        root_path = os.path.dirname(model_path)
-        model_name = os.path.basename(model_path).split(".")[0]
-        model_path = os.path.join(root_path, f"{model_name}_{str(device)}.pt")
-        if not os.path.exists(model_path):
-            raise ValueError(f"Checkpoint path {model_path} does not exist")
-
         model = torch.jit.load(model_path, map_location=device)
     else:
-        if not os.path.exists(model_path):
-            raise ValueError(f"Checkpoint path {model_path} does not exist")
-
         model = _get_model(configuration)
         _load_checkpoint(model, model_path)
 

@@ -7,8 +7,7 @@ deployment:
   checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/resnet/resnet_50_512_v1.pt"
   destination_directory: "D:/OneDrive/Master Thesis/ml/models/resnet"
   optimizations:
-    apply_quantization: true
-    apply_pruning: false
+    apply_pruning: true
 
 # Model configuration
 

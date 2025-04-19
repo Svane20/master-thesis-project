@@ -7,7 +7,6 @@ deployment:
   checkpoint_path: "D:/OneDrive/Master Thesis/ml/checkpoints/swin/swin_small_patch4_window7_224_512_v1_latest.pt"
   destination_directory: "D:/OneDrive/Master Thesis/ml/models/swin"
   optimizations:
-    apply_quantization: true
     apply_pruning: true
 
 
