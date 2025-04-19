@@ -26,7 +26,7 @@ def export_minimal_model(
     """
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = directory / f"{model_name}_minimal.pt"
+    checkpoint_path = directory / f"{model_name}_minimal_{str(device)}.pt"
 
     # Set the model to evaluation mode
     model.eval()

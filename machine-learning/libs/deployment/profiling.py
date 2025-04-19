@@ -1,8 +1,8 @@
-import time
 import torch
-import logging
-
 import onnxruntime as ort
+import time
+import logging
+import os
 
 
 def measure_latency(model, dummy_input, num_runs=100):
@@ -41,9 +41,17 @@ def measure_onnx_latency(onnx_model_path, dummy_input, num_runs=100):
         float: Average latency in seconds.
     """
     timings = []
+    opts = ort.SessionOptions()
+    opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    opts.intra_op_num_threads = os.cpu_count() - 1
+    opts.inter_op_num_threads = os.cpu_count() - 1
+    if torch.cuda.is_available():
+        providers: ["TensorrtExecutionProvider""CUDAExecutionProvider", "DnnlExecutionProvider", "CPUExecutionProvider"]
+    else:
+        providers = ["DnnlExecutionProvider", "CPUExecutionProvider"]
+
     # Create an ONNX Runtime session using both CUDA and CPU providers.
-    session = ort.InferenceSession(str(onnx_model_path),
-                                   providers=["CUDAExecutionProvider", "CPUExecutionProvider"])
+    session = ort.InferenceSession(str(onnx_model_path), opts, providers=providers)
 
     # Warm-up runs to stabilize performance
     input_name = session.get_inputs()[0].name

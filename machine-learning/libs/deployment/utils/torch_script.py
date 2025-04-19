@@ -3,7 +3,7 @@ import torch
 from pathlib import Path
 import logging
 
-from libs.deployment.profiling import measure_latency, measure_memory_usage
+from ..profiling import measure_latency, measure_memory_usage
 
 
 def export_to_torch_script(
@@ -13,6 +13,16 @@ def export_to_torch_script(
         dummy_input: torch.Tensor,
         device: torch.device,
 ) -> None:
+    """
+    Export the model to TorchScript format.
+
+    Args:
+        model (torch.nn.Module): Model to export.
+        model_name (str): Name of the model.
+        directory (Path): Directory to save the TorchScript model to.
+        dummy_input (torch.Tensor): Dummy input tensor.
+        device (torch.device): Device to run the model on.
+    """
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
     save_path = directory / f"{model_name}_torch_script_{str(device)}.pt"

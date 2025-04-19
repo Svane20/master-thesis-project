@@ -1,5 +1,5 @@
 import torch
-
+from typing import List
 import platform
 import logging
 
@@ -10,9 +10,13 @@ def get_device() -> torch.device:
     return torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def get_device_for_deployment(configuration: DeploymentConfig) -> torch.device:
-    target_device = 'cuda' if torch.cuda.is_available() and configuration.hardware_acceleration == "cuda" else 'cpu'
-    return torch.device(target_device)
+def get_devices_for_deployment(configuration: DeploymentConfig) -> List[torch.device]:
+    devices: List[torch.device] = [torch.device("cpu")]
+
+    if configuration.hardware_acceleration.lower() == "cuda" and torch.cuda.is_available():
+        devices.append(torch.device(f"cuda"))
+
+    return devices
 
 
 def compile_model(model: torch.nn.Module) -> torch.nn.Module:

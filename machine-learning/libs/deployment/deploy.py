@@ -22,9 +22,7 @@ def deploy_model(
     destination_directory = Path(configuration.deployment.destination_directory)
     dummy_input = torch.randn(1, 3, configuration.deployment.resolution, configuration.deployment.resolution).to(device)
 
-    if configuration.deployment.optimizations.get("apply_quantization", False):
-        from .optimization import apply_dynamic_quantization
-        model = apply_dynamic_quantization(model, str(device))
+    # Apply structured pruning if specified in the configuration
     if configuration.deployment.optimizations.get("apply_pruning", False):
         from .optimization import apply_structured_pruning
         model = apply_structured_pruning(model)
@@ -57,7 +55,7 @@ def deploy_model(
 
     # Load exported TorchScript and ONNX model for comparison.
     ts_model = torch.jit.load(str(destination_directory / f"{model_name}_torch_script_{str(device)}.pt"))
-    onnx_model_path = destination_directory / f"{model_name}.onnx"
+    onnx_model_path = destination_directory / f"{model_name}_{str(device)}.onnx"
     compare_model_outputs(model, ts_model, onnx_model_path, dummy_input)
 
     logging.info("Production build completed successfully.")

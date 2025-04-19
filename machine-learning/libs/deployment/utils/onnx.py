@@ -4,7 +4,7 @@ from pathlib import Path
 import onnx
 import logging
 
-from libs.deployment.profiling import measure_onnx_latency, measure_memory_usage
+from ..profiling import measure_onnx_latency, measure_memory_usage
 
 
 def export_to_onnx(
@@ -25,7 +25,7 @@ def export_to_onnx(
     """
     # Create export directory if it does not exist
     directory.mkdir(parents=True, exist_ok=True)
-    save_path = directory / f"{model_name}.onnx"
+    save_path = directory / f"{model_name}_{str(device)}.onnx"
 
     # Set model to evaluation mode
     model.eval()
