@@ -1,3 +1,4 @@
+import pytest
 from fastapi.testclient import TestClient
 import torch
 import os
@@ -133,6 +134,7 @@ def run_test_single_inference_performance(client: TestClient, use_gpu, project_n
         with open(test_image_path, "rb") as f:
             files = {"file": (test_image_path.name, f, "image/jpeg")}
             response = client.post("/api/v1/predict", files=files)
+            assert response.status_code == 200, pytest.fail(f"Expected 200 OK, got {response.status_code}")
 
     # Performance measurement phase
     times = []
@@ -142,6 +144,7 @@ def run_test_single_inference_performance(client: TestClient, use_gpu, project_n
         with open(test_image_path, "rb") as f:
             files = {"file": (test_image_path.name, f, "image/jpeg")}
             response = client.post("/api/v1/predict", files=files)
+            assert response.status_code == 200, pytest.fail(f"Expected 200 OK, got {response.status_code}")
         elapsed = time.perf_counter() - start
         times.append(elapsed)
         print(f"Iteration {i + 1}/{EPOCHS}: Inference time = {elapsed:.4f}s")
@@ -206,6 +209,7 @@ def run_test_batch_inference_performance(client: TestClient, use_gpu, project_na
     print(f"Starting {WARMUP_EPOCHS} warmup iterations...")
     for _ in range(WARMUP_EPOCHS):
         response = client.post("/api/v1/batch-predict", files=files_data)
+        assert response.status_code == 200, pytest.fail(f"Expected 200 OK, got {response.status_code}")
 
     # Performance measurement phase
     times = []
@@ -213,6 +217,7 @@ def run_test_batch_inference_performance(client: TestClient, use_gpu, project_na
     for i in range(EPOCHS):
         start = time.perf_counter()
         response = client.post("/api/v1/batch-predict", files=files_data)
+        assert response.status_code == 200, pytest.fail(f"Expected 200 OK, got {response.status_code}")
         elapsed = time.perf_counter() - start
         times.append(elapsed)
         print(f"Iteration {i + 1}/{EPOCHS}: Inference time = {elapsed:.4f}s")
@@ -262,6 +267,7 @@ def run_test_sky_replacement_performance(client: TestClient, use_gpu, project_na
         with open(test_image_path, "rb") as f:
             files = {"file": (test_image_path.name, f, "image/jpeg")}
             response = client.post("/api/v1/sky-replacement", files=files)
+            assert response.status_code == 200, pytest.fail(f"Expected 200 OK, got {response.status_code}")
 
     # Performance measurement phase
     times = []
@@ -271,6 +277,7 @@ def run_test_sky_replacement_performance(client: TestClient, use_gpu, project_na
         with open(test_image_path, "rb") as f:
             files = {"file": (test_image_path.name, f, "image/jpeg")}
             response = client.post("/api/v1/sky-replacement", files=files)
+            assert response.status_code == 200, pytest.fail(f"Expected 200 OK, got {response.status_code}")
         elapsed = time.perf_counter() - start
         times.append(elapsed)
         print(f"Iteration {i + 1}/{EPOCHS}: Inference time = {elapsed:.4f}s")
@@ -335,6 +342,7 @@ def run_test_batch_sky_replacement_performance(client: TestClient, use_gpu, proj
     print(f"Starting {WARMUP_EPOCHS} warmup iterations...")
     for _ in range(WARMUP_EPOCHS):
         response = client.post("/api/v1/batch-sky-replacement", files=files_data)
+        assert response.status_code == 200, pytest.fail(f"Expected 200 OK, got {response.status_code}")
 
     # Performance measurement phase
     times = []
@@ -342,6 +350,7 @@ def run_test_batch_sky_replacement_performance(client: TestClient, use_gpu, proj
     for i in range(EPOCHS):
         start = time.perf_counter()
         response = client.post("/api/v1/batch-sky-replacement", files=files_data)
+        assert response.status_code == 200, pytest.fail(f"Expected 200 OK, got {response.status_code}")
         elapsed = time.perf_counter() - start
         times.append(elapsed)
         print(f"Iteration {i + 1}/{EPOCHS}: Inference time = {elapsed:.4f}s")
