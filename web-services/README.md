@@ -56,24 +56,24 @@ docker compose -f .\docker-compose.demo.yml up --build -d
 docker compose -f .\docker-compose.demo.yml down
 ````
 
-#### Test scaling
+#### Performance testing
+
+1. Run the following command to start the performance testing environment:
 
 ````text
-docker compose -f .\docker-compose.dev.yml up --build --scale unet-onnx=2 -d
+docker compose -f .\docker-compose.performance.yml up -d --scale swin-onnx=3
 ````
 
-## Performance Testing
-
-1. Go to this path:
+2. Run the following command to run the performance tests:
 
 ````text
-cd tests/performance
+locust -f tests/performance/locustfile.py --headless -u 50 -r 5 --run-time 2m --host=http://localhost --csv=./reports/locust_report
 ````
 
-2. Run the following command:
+3. Run the following command to stop the performance testing environment:
 
 ````text
-locust --headless --host=http://localhost:8001 --users 20 --spawn-rate 10 --run-time 2m --csv=resnet_onnx_results
+docker compose -f .\docker-compose.performance.yml down
 ````
 
 ## Swagger UI
