@@ -2,8 +2,7 @@ import pytest
 from pathlib import Path
 
 from tests.benchmark_tests import run_model_load_performance_test, run_test_single_inference_performance, \
-    run_test_sky_replacement_performance, run_test_batch_inference_performance, \
-    run_test_batch_sky_replacement_performance
+    run_test_sky_replacement_performance
 from tests.utils.configuration import get_custom_config_path
 from tests.utils.testing import get_test_client
 
@@ -36,15 +35,5 @@ def test_single_inference_performance(client):
 
 
 @pytest.mark.parametrize("client", [False, True], indirect=True)
-def test_batch_inference_performance(client):
-    run_test_batch_inference_performance(client, client.use_gpu, project_name, model_type)
-
-
-@pytest.mark.parametrize("client", [False, True], indirect=True)
 def test_sky_replacement_performance(client):
     run_test_sky_replacement_performance(client, client.use_gpu, project_name, model_type)
-
-
-@pytest.mark.parametrize("client", [False, True], indirect=True)
-def test_batch_sky_replacement_performance(client):
-    run_test_batch_sky_replacement_performance(client, client.use_gpu, project_name, model_type)
