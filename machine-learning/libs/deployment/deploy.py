@@ -21,7 +21,13 @@ def deploy_model(
         measure_model: bool = False,
 ) -> None:
     destination_directory = Path(configuration.deployment.destination_directory)
-    dummy_input = torch.randn(1, 3, configuration.deployment.resolution, configuration.deployment.resolution).to(device)
+    dummy_input = torch.randn(
+        1,
+        3,
+        configuration.deployment.resolution,
+        configuration.deployment.resolution,
+        device=device
+    )
 
     # Apply structured pruning if specified in the configuration
     if configuration.deployment.optimizations.get("apply_pruning", False):
@@ -48,9 +54,9 @@ def deploy_model(
     # Export the model to ONNX
     export_to_onnx(
         model=model,
-        directory=destination_directory,
         model_name=model_name,
-        dummy_input=dummy_input,
+        directory=destination_directory,
+        dummy_input=(dummy_input,),
         device=device,
     )
 
