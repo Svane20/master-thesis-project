@@ -67,26 +67,12 @@ class OnnxModelService(BaseModelService):
         # Load the ONNX model
         try:
             opts = ort.SessionOptions()
-            # FULL OPTIMIZATION
             opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-
-            # PARALLEL EXECUTION
-            opts.execution_mode = ort.ExecutionMode.ORT_PARALLEL
-
-            # MEMORY PATTERN & REUSE
-            opts.enable_mem_pattern = True
-            opts.enable_mem_reuse = True
-
-            if self.use_gpu:
-                opts.intra_op_num_threads = 1
-                opts.inter_op_num_threads = 1
-            else:
-                # leave one core free for other processes
-                cpu_threads = max(1, os.cpu_count() - 1)
-                opts.intra_op_num_threads = cpu_threads
-                opts.inter_op_num_threads = cpu_threads
-
+            cpu_threads = max(1, os.cpu_count() - 1)
+            opts.intra_op_num_threads = cpu_threads
+            opts.inter_op_num_threads = cpu_threads
             providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.use_gpu else ["CPUExecutionProvider"]
+
             self.session = ort.InferenceSession(model_path, opts, providers=providers)
         except Exception as e:
             logger.error({"event": "model_load_failed", "error": str(e)})
