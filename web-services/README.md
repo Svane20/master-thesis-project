@@ -5,7 +5,7 @@
 1. Run the following command:
 
 ````text
-docker compose -f .\docker-compose.local.yml up --build -d
+docker compose -f .\docker-compose.local.yml up -d
 ````
 
 2. Stop the containers
@@ -33,7 +33,7 @@ docker compose -f .\docker-compose.dev.yml down
 1. Run the following command:
 
 ````text
-docker compose -f .\docker-compose.prod.yml up --build -d
+docker compose -f .\docker-compose.prod.yml up -d
 ````
 
 2. Stop the containers
@@ -47,7 +47,7 @@ docker compose -f .\docker-compose.prod.yml down
 1. Run the following command:
 
 ````text
-docker compose -f .\docker-compose.demo.yml up --build -d
+docker compose -f .\docker-compose.demo.yml up -d
 ````
 
 2. Stop the containers
