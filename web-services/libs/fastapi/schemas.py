@@ -5,6 +5,10 @@ class HealthResponse(BaseModel):
     status: str = Field(...)
 
 
+class LivenessResponse(BaseModel):
+    status: str = Field(...)
+
+
 class InfoResponse(BaseModel):
     project_name: str = Field(..., alias="projectName")
     model_type: str = Field(..., alias="modelType")

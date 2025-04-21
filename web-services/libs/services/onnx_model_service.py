@@ -78,6 +78,9 @@ class OnnxModelService(BaseModelService):
             logger.error({"event": "model_load_failed", "error": str(e)})
             raise e
 
+        # The model is loaded successfully
+        self.is_model_loaded = self.session is not None
+
         # Set the input and output names
         self.input_name = self.session.get_inputs()[0].name
         self.output_name = self.session.get_outputs()[0].name

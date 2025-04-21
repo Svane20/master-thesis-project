@@ -67,7 +67,7 @@ docker compose -f .\docker-compose.performance.yml up -d --scale swin-onnx=3
 2. Run the following command to run the performance tests:
 
 ````text
-locust -f tests/performance/locustfile.py --headless -u 50 -r 5 --run-time 2m --host=http://localhost --csv=./reports/locust_report
+locust -f tests/performance/locustfile.py --headless -u 50 -r 5 --run-time 2m --host=http://localhost:8004 --csv=./reports/locust_report
 ````
 
 3. Run the following command to stop the performance testing environment:
