@@ -2,6 +2,8 @@ from enum import Enum
 from pathlib import Path
 import json
 from typing import Dict, Any
+import os
+import tempfile
 
 from _pytest.tmpdir import TempPathFactory
 
@@ -36,6 +38,18 @@ def get_custom_config_path(tmp_path_factory: TempPathFactory, project_name: str,
     mock_config = get_mock_configuration(project_name, model_type)
     config_file.write_text(json.dumps(mock_config))
     return str(config_file)
+
+
+def get_performance_custom_path(project_name: str, model_type: str):
+    tmp_dir = tempfile.mkdtemp(prefix="locust_cfg_")
+    cfg_path = os.path.join(tmp_dir, "config.json")
+
+    mock_cfg = get_mock_configuration(project_name, model_type)
+
+    with open(cfg_path, "w") as f:
+        json.dump(mock_cfg, f, indent=2)
+
+    return cfg_path
 
 
 def get_mock_configuration(project_name: str, model_type: str) -> Dict[str, Any]:

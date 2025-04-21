@@ -2,6 +2,8 @@ from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator, Tuple, Dict
 from prometheus_fastapi_instrumentator import Instrumentator
+import os
+from typing import Optional
 
 from libs.configuration.base import get_configuration
 from libs.fastapi.consts import VERSION, LICENSE_INFO
@@ -47,6 +49,25 @@ def instantiate() -> Tuple[FastAPI, BaseModelService, Dict[str, str]]:
         "model_type": model_type,
         "deployment_type": deployment_type,
     }
+
+
+def get_workers() -> Optional[int]:
+    """
+    Read WORKERS from the environment. If unset or invalid, return None
+    so Uvicorn will use its own default.
+    """
+    workers_env = os.getenv("WORKERS")
+    if not workers_env:
+        return None
+
+    try:
+        workers = int(workers_env)
+        logger.info(f"Using {workers} workers")
+
+        return workers
+    except ValueError:
+        logger.error(f"Invalid WORKERS value: {workers_env!r}")
+        return None
 
 
 def _setup_fastapi_configuration(fastapi_app: FastAPI) -> None:
