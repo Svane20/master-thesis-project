@@ -140,7 +140,7 @@ def main() -> None:
                     print(f"\n=== {tag.upper()} ===")
 
                     # Launch API instance under test
-                    server, api_thr = setup_api_instance(model, fmt, use_gpu, workers)
+                    server_proc = setup_api_instance(model, fmt, use_gpu, workers)
 
                     # Start system‑monitor thread
                     stop_evt = threading.Event()
@@ -159,27 +159,15 @@ def main() -> None:
                         mon_thr.join()
 
                         pause = 180 if model == "dpt" else 60
-                        server.should_exit = True
+                        print("Shutting down server process…")
+                        server_proc.terminate()
 
-                        for sec in range(pause, 0, -1):
-                            api_thr.join(timeout=0)
-                            if not api_thr.is_alive():
-                                break
-                            print(f"\rGraceful shutdown: {sec:3d}s left …   ", end="", flush=True)
-                            time.sleep(1)
-                        print()
-
-                        if api_thr.is_alive():
-                            print("WARN: graceful exit timed out – forcing uvicorn exit")
-                            server.force_exit = True
-
-                            for sec in range(pause, 0, -1):
-                                api_thr.join(timeout=0)
-                                if not api_thr.is_alive():
-                                    break
-                                print(f"\rForce exit wait:  {sec:3d}s left …   ", end="", flush=True)
-                                time.sleep(1)
-                            print()
+                        try:
+                            server_proc.wait(timeout=pause)
+                        except subprocess.TimeoutExpired:
+                            print("WARN: server did not exit in time, killing…")
+                            server_proc.kill()
+                            server_proc.wait()
 
                         print("Killing any remaining uvicorn workers…")
                         kill_port_8000_tree()

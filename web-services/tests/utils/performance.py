@@ -1,18 +1,17 @@
 import os
-import threading
 import time
-from threading import Thread
-from typing import Tuple
-
+from pathlib import Path
+from subprocess import Popen
 import requests
-from uvicorn import Config, Server
 
 from libs.fastapi.settings import reset_settings_cache
 from tests.utils.configuration import get_performance_custom_path
 from tests.utils.factory import get_create_app_func
 
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
-def setup_api_instance(project_name: str, model_type: str, use_gpu: bool, workers: int = None) -> Tuple[Server, Thread]:
+
+def setup_api_instance(project_name: str, model_type: str, use_gpu: bool, workers: int = None) -> Popen[bytes]:
     # Create the custom config path
     cfg_path = get_performance_custom_path(project_name, model_type)
 
@@ -26,29 +25,45 @@ def setup_api_instance(project_name: str, model_type: str, use_gpu: bool, worker
 
     # Create the app
     create_app = get_create_app_func(project_name, model_type)
-    app = create_app()
 
-    return _start_uvicorn(app, workers)
+    return _start_uvicorn(create_app, workers)
 
 
-def _start_uvicorn(app, workers=None) -> Tuple[Server, Thread]:
-    """
-    Start the Uvicorn server in a separate thread.
+def _start_uvicorn(factory, workers=None) -> Popen[bytes]:
+    cmd = [
+        "uvicorn",
+        f"{factory.__module__}:{factory.__name__}",
+        "--factory",
+        "--app-dir", str(ROOT_DIR),
+        "--host", "0.0.0.0",
+        "--port", "8000",
+    ]
+    if workers:
+        cmd += ["--workers", str(workers)]
 
-    Args:
-        app: The FastAPI application to run.
-        workers (int, optional): Number of worker processes. Defaults to None.
-    """
-    cfg = Config(app=app, host="0.0.0.0", port=8000, workers=workers, reload=False)
-    server = Server(cfg)
+    if workers > 1:
+        print(f"Starting uvicorn with {workers} workers")
+    else:
+        print(f"Starting uvicorn")
 
-    thread = threading.Thread(target=server.run, daemon=True, name="uvicorn-server")
-    thread.start()
-    print(f"INFO:     Uvicorn thread started: {thread.name}")
+    proc = Popen(cmd)
 
-    _wait_for_server_ready()
+    url = "http://localhost:8000/api/v1/live"
+    start = time.time()
+    while True:
+        try:
+            r = requests.get(url, timeout=1.0)
+            if r.status_code == 200:
+                print("INFO:     Server is ready")
+                break
+        except Exception:
+            pass
+        if time.time() - start > 10.0:
+            proc.terminate()
+            raise RuntimeError(f"Server did not respond at {url} within 10s")
+        time.sleep(0.1)
 
-    return server, thread
+    return proc
 
 
 def _wait_for_server_ready(timeout: float = 10.0, interval: float = 0.1) -> None:
