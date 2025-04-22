@@ -51,17 +51,17 @@ def _monitor_system(outfile: Path, stop_event: threading.Event, interval: int = 
     outfile.parent.mkdir(parents=True, exist_ok=True)
     with outfile.open("w", newline="", buffering=1) as f:
         w = csv.writer(f)
-        w.writerow(["ts", "cpu_%", "ram_MiB", "gpu_id", "gpu_util_%", "gpu_mem_MiB"])
+        w.writerow(["ts", "cpu_%", "ram_MiB", "gpu_id", "gpu_util_%", "gpu_mem_MiB", "gpu_mem_total_MiB"])
         while not stop_event.is_set():
             ts = time.time()
             cpu = psutil.cpu_percent()
             ram = psutil.virtual_memory().used // 2 ** 20
             gpus = _query_gpu()
             if not gpus:
-                w.writerow([ts, cpu, ram, None, None, None])
+                w.writerow([ts, cpu, ram, None, None, None, None])
             else:
-                for gid, util, used, _ in gpus:
-                    w.writerow([ts, cpu, ram, gid, util, used])
+                for gid, util, used, total in gpus:
+                    w.writerow([ts, cpu, ram, gid, util, used, total])
             f.flush()
             time.sleep(interval)
 
