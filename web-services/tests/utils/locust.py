@@ -30,7 +30,6 @@ _LOG = logging.getLogger("gpu-monitor")
 
 
 def _fire(name: str, value: float, ts: int) -> None:
-    """Emit a synthetic request so the value shows up in Locust stats."""
     events.request.fire(
         request_type="GPU",
         name=name,
@@ -45,10 +44,6 @@ def _fire(name: str, value: float, ts: int) -> None:
 
 
 def _resource_monitor(environment, interval: int = 5) -> None:
-    """
-    Poll GPU utilization via nvidia-smi every interval_sec seconds
-    and fire custom Locust metrics for GPU utilization and memory.
-    """
     while _monitor_running:
         ts = int(time.time())
         try:
@@ -78,7 +73,6 @@ def _resource_monitor(environment, interval: int = 5) -> None:
 
 @events.init.add_listener
 def on_locust_init(environment, **kwargs):
-    """Start GPU resource monitor thread"""
     thread = threading.Thread(target=_resource_monitor, args=(environment,), daemon=True)
     thread.start()
 
@@ -90,10 +84,6 @@ def on_locust_quit(environment, **kwargs):
 
 
 class APIUser(FastHttpUser):
-    """
-    Locust user for hitting FastAPI via NGINX load‑balanced path.
-    Uses try/except around requests, custom timeouts, and records failures.
-    """
     wait_time = between(0.5, 2)
 
     def _post(self, url: str, files=None):
