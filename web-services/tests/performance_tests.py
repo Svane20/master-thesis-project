@@ -15,9 +15,10 @@ sys.path.insert(0, str(ROOT_DIR))
 TESTS_DIR = Path(__file__).resolve().parent
 REPORTS_DIR = TESTS_DIR / "reports"
 LOCUST_FILE = TESTS_DIR / "utils" / "locust.py"
+LOCUST_FILE_DPT = TESTS_DIR / "utils" / "locust_dpt.py"
 HOST_URL = "http://localhost:8000"
 
-MODELS: Iterable[str] = ("resnet", "swin")
+MODELS: Iterable[str] = ("dpt", "resnet", "swin")
 FORMATS: Iterable[str] = ("pytorch", "onnx", "torchscript")
 WORKER_COUNTS: Iterable[int] = (1, 2, 4)
 
@@ -63,15 +64,18 @@ def _query_gpu() -> List[Tuple[int, float, float]]:
         return []
 
 
-def run_locust(csv_prefix: str) -> None:
+def run_locust(model: str, csv_prefix: str) -> None:
+    locust_file = LOCUST_FILE_DPT if model == "dpt" else LOCUST_FILE
+
     csv_path = REPORTS_DIR / f"{csv_prefix}"
     cmd = [
         "locust",
         "-f",
-        str(LOCUST_FILE),
+        str(locust_file),
         "--headless",
         "--host",
         HOST_URL,
+        "--csv-full-history",
         f"--csv={csv_path}",
     ]
     print("Running:", " \
@@ -101,7 +105,7 @@ def main() -> None:
 
                     # Fire up Locust
                     try:
-                        run_locust(csv_prefix=tag)
+                        run_locust(model=model, csv_prefix=tag)
                     finally:
                         stop_evt.set()
                         mon_thr.join()
