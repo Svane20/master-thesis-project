@@ -1,4 +1,5 @@
 import csv
+import os
 import subprocess
 import sys
 import threading
@@ -22,6 +23,20 @@ HOST_URL = "http://localhost:8000"
 MODELS: Iterable[str] = ("dpt", "resnet", "swin")
 FORMATS: Iterable[str] = ("pytorch", "onnx", "torchscript")
 WORKER_COUNTS: Iterable[int] = (1, 2, 4)
+
+
+def _kill_thread(thr: threading.Thread):
+    """
+    Kill the OS process that owns `thr`. Works for single‑process uvicorn.
+    """
+    pid = thr.native_id
+    if pid is None:
+        return
+
+    try:
+        os.kill(os.getpid(), signal.SIGKILL)
+    except OSError as err:
+        print(f"Could not SIGKILL uvicorn process: {err}")
 
 
 def monitor_system(outfile: Path, stop_event: threading.Event, interval: int = 1) -> None:
@@ -125,16 +140,17 @@ def main() -> None:
 
                         # ask uvicorn to shut down
                         server.should_exit = True
-                        pause = 120 if model == "dpt" else 30
+                        pause = 180 if model == "dpt" else 30
                         api_thr.join(timeout=pause)
 
                         if api_thr.is_alive():
-                            print("Server still alive – forcing exit")
+                            print("WARN: graceful exit timed‑out – forcing uvicorn exit")
                             server.force_exit = True  # uvicorn will break its loop
-                            api_thr.join(timeout=10)
+                            api_thr.join(timeout=60)
 
                         if api_thr.is_alive():
-                            print("ERROR: uvicorn thread did not terminate; continuing anyway")
+                            print("ERROR: uvicorn thread still alive – killing process")
+                            _kill_thread(api_thr)
 
 
 if __name__ == "__main__":
