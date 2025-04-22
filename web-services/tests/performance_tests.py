@@ -123,6 +123,11 @@ def main() -> None:
         for fmt in FORMATS:
             for hw, use_gpu in ("cpu", False), ("gpu", True):
                 for workers in WORKER_COUNTS:
+                    if model == "dpt" and use_gpu and workers == 4:
+                        print(
+                            f"Skipping {model.upper()} with num_workers={workers} since it cannot be on the {hw.upper()}")
+                        continue
+
                     tag = f"{model}_{fmt}_{hw}_{workers}"
                     print(f"\n=== {tag.upper()} ===")
 
@@ -171,18 +176,22 @@ def main() -> None:
                         print("🔪 Killing any remaining uvicorn workers…")
                         kill_port_8000_tree()
 
-                        threshold = 10 * 1024 ** 3  # 10 GiB in bytes
-                        print("⏳ Waiting for memory to fall below 10 GiB…")
+                        threshold = 5 * 1024 ** 3
+                        print("⏳ Waiting for memory to fall below 5 GiB…")
+                        start = time.time()
                         while True:
-                            mem = psutil.virtual_memory().used
-                            if mem <= threshold:
+                            used = psutil.virtual_memory().used
+                            if used <= threshold:
                                 break
-                            used_gib = mem / 1024 ** 3
-                            print(f"\r   currently {used_gib:.1f} GiB used, waiting…", end="", flush=True)
+                            # timeout after 5 minutes to avoid infinite hang
+                            if time.time() - start > 300:
+                                print("\n⚠️  timeout waiting for memory — proceeding anyway")
+                                break
+                            print(f"\r   {used / 1024 ** 3:5.1f} GiB used, waiting…", end="", flush=True)
                             time.sleep(1)
-                        print("\n Memory is now below 10 GiB.")
+                        print("\n✔️  Memory is now under threshold.")
 
-                        print("Cleanup complete, next run starting!")
+                        print("✔️  Cleanup complete, next run starting!")
 
 
 if __name__ == "__main__":
