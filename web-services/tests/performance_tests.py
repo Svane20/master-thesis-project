@@ -39,7 +39,7 @@ def _kill_thread(thr: threading.Thread):
         print(f"Could not SIGKILL uvicorn process: {err}")
 
 
-def monitor_system(outfile: Path, stop_event: threading.Event, interval: int = 1) -> None:
+def _monitor_system(outfile: Path, stop_event: threading.Event, interval: int = 1) -> None:
     outfile.parent.mkdir(parents=True, exist_ok=True)
     with outfile.open("w", newline="", buffering=1) as f:  # line‑buffered
         w = csv.writer(f)
@@ -80,7 +80,7 @@ def _query_gpu() -> List[Tuple[int, float, float]]:
         return []
 
 
-def run_locust(model: str, csv_prefix: str, stop_evt: threading.Event) -> None:
+def _run_locust(model: str, csv_prefix: str, stop_evt: threading.Event) -> None:
     locust_file = LOCUST_FILE_DPT if model == "dpt" else LOCUST_FILE
     csv_path = REPORTS_DIR / csv_prefix
 
@@ -125,7 +125,7 @@ def main() -> None:
                     # Start system‑monitor thread
                     stop_evt = threading.Event()
                     mon_thr = threading.Thread(
-                        target=monitor_system,
+                        target=_monitor_system,
                         args=(REPORTS_DIR / f"{tag}_sys.csv", stop_evt),
                         daemon=True,
                     )
@@ -133,7 +133,7 @@ def main() -> None:
 
                     # Fire up Locust
                     try:
-                        run_locust(model, tag, stop_evt)
+                        _run_locust(model, tag, stop_evt)
                     finally:
                         stop_evt.set()
                         mon_thr.join()
