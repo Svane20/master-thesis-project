@@ -171,8 +171,8 @@ def main() -> None:
                         print("🔪 Killing any remaining uvicorn workers…")
                         kill_port_8000_tree()
 
-                        threshold = 10 * 1024 ** 3  # 5 GiB in bytes
-                        print("⏳ Waiting for memory to fall below 5 GiB…")
+                        threshold = 10 * 1024 ** 3  # 10 GiB in bytes
+                        print("⏳ Waiting for memory to fall below 10 GiB…")
                         while True:
                             mem = psutil.virtual_memory().used
                             if mem <= threshold:
@@ -180,7 +180,7 @@ def main() -> None:
                             used_gib = mem / 1024 ** 3
                             print(f"\r   currently {used_gib:.1f} GiB used, waiting…", end="", flush=True)
                             time.sleep(1)
-                        print("\n Memory is now below 5 GiB.")
+                        print("\n Memory is now below 10 GiB.")
 
                         print("Cleanup complete, next run starting!")
 
