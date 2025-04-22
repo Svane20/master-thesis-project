@@ -138,7 +138,6 @@ def main() -> None:
                         stop_evt.set()
                         mon_thr.join()
 
-                        # ask uvicorn to shut down
                         server.should_exit = True
                         pause = 180 if model == "dpt" else 30
                         api_thr.join(timeout=pause)
