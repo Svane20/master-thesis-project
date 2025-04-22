@@ -111,7 +111,7 @@ def main() -> None:
                         stop_evt.set()
                         mon_thr.join()
                         server.should_exit = True
-                        time.sleep(10)
+                        time.sleep(30)
 
 
 if __name__ == "__main__":
