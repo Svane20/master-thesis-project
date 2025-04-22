@@ -10,7 +10,7 @@ BATCH: List[Path] = [p for p in IMAGE_DIR.glob("*.jpg")][:8]
 
 
 class StepLoadShape(LoadTestShape):
-    steps: List[int] = [5, 10, 20, 40]
+    steps: List[int] = [5, 10, 20, 40, 60, 80, 100]
     step_duration: int = 120
 
     def tick(self):

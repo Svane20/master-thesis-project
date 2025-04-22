@@ -39,7 +39,7 @@ def _kill_thread(thr: threading.Thread):
 
 def _monitor_system(outfile: Path, stop_event: threading.Event, interval: int = 1) -> None:
     outfile.parent.mkdir(parents=True, exist_ok=True)
-    with outfile.open("w", newline="", buffering=1) as f:  # line‑buffered
+    with outfile.open("w", newline="", buffering=1) as f:
         w = csv.writer(f)
         w.writerow(["ts", "cpu_%", "ram_MiB", "gpu_id", "gpu_util_%", "gpu_mem_MiB"])
         while not stop_event.is_set():
@@ -91,7 +91,6 @@ def _run_locust(model: str, csv_prefix: str, stop_evt: threading.Event) -> None:
 
     locust_proc = subprocess.Popen(cmd, text=True)
 
-    # ---- watch memory every second ----------------------------------
     while locust_proc.poll() is None and not stop_evt.is_set():
         if psutil.virtual_memory().percent > 90:
             print("RAM > 90% – stopping this run before OOM")
@@ -145,7 +144,7 @@ def main() -> None:
                                 break
                             print(f"\rGraceful shutdown: {sec:3d}s left …   ", end="", flush=True)
                             time.sleep(1)
-                        print()  # newline after countdown
+                        print()
 
                         if api_thr.is_alive():
                             print("WARN: graceful exit timed out – forcing uvicorn exit")
