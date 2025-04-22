@@ -95,15 +95,14 @@ def main() -> None:
                     )
                     mon_thr.start()
 
-                    # Fire up Locust (step‑load test defined in locustfile.py)
+                    # Fire up Locust
                     try:
                         run_locust(RUN_TIME, csv_prefix=tag)
                     finally:
-                        # Shutdown monitor + API regardless of Locust outcome
                         stop_evt.set()
                         mon_thr.join()
                         server.should_exit = True
-                        time.sleep(10)  # graceful server close
+                        time.sleep(10)
 
 
 if __name__ == "__main__":
