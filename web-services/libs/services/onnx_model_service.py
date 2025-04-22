@@ -68,9 +68,6 @@ class OnnxModelService(BaseModelService):
         try:
             opts = ort.SessionOptions()
             opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-            cpu_threads = max(1, os.cpu_count() - 1)
-            opts.intra_op_num_threads = cpu_threads
-            opts.inter_op_num_threads = cpu_threads
             providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.use_gpu else ["CPUExecutionProvider"]
 
             self.session = ort.InferenceSession(model_path, opts, providers=providers)
