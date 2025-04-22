@@ -139,13 +139,13 @@ def main() -> None:
                         mon_thr.join()
 
                         server.should_exit = True
-                        pause = 180 if model == "dpt" else 30
+                        pause = 180 if model == "dpt" else 60
                         api_thr.join(timeout=pause)
 
                         if api_thr.is_alive():
                             print("WARN: graceful exit timed‑out – forcing uvicorn exit")
-                            server.force_exit = True  # uvicorn will break its loop
-                            api_thr.join(timeout=60)
+                            server.force_exit = True
+                            api_thr.join(timeout=pause)
 
                         if api_thr.is_alive():
                             print("ERROR: uvicorn thread still alive – killing process")
