@@ -6,6 +6,7 @@ from tests.utils.performance import setup_api_instance
 
 # Directories
 root_directory = Path(__file__).parent.parent.parent
+reports_folder = root_directory / "reports"
 current_directory = Path(__file__).parent
 
 # Project and Model Type
@@ -23,6 +24,8 @@ def run_locust(users: str, spawn_rate: str, run_time: str, csv_prefix: str) -> N
         run_time (str): Duration for which the test should run.
         csv_prefix (str): Prefix for the CSV report files.
     """
+    csv_path = reports_folder / project_name / model_type / csv_prefix
+
     subprocess.run([
         "locust",
         "-f", str(root_directory / "utils" / "locust.py"),
@@ -31,7 +34,7 @@ def run_locust(users: str, spawn_rate: str, run_time: str, csv_prefix: str) -> N
         "-r", spawn_rate,
         "--run-time", run_time,
         "--host=http://localhost:8000",
-        f"--csv={csv_prefix}"
+        f"--csv={str(csv_path)}",
     ], check=True)
 
 
@@ -60,7 +63,7 @@ def main():
             users,
             spawn_rate,
             run_time,
-            csv_prefix=f"./reports/{project_name}_{model_type}_{label}_workers_{workers}"
+            csv_prefix=label
         )
 
         # Stop the API server
