@@ -81,8 +81,8 @@ def run_locust(model: str, csv_prefix: str, stop_evt: threading.Event) -> None:
     # ---- watch memory every second ----------------------------------
     while locust_proc.poll() is None and not stop_evt.is_set():
         if psutil.virtual_memory().percent > 90:
-            print("RAM > 90 % – stopping this run before OOM")
-            locust_proc.send_signal(signal.SIGINT)  # graceful shutdown
+            print("RAM > 90% – stopping this run before OOM")
+            locust_proc.send_signal(signal.SIGINT)
             break
         time.sleep(1)
 
