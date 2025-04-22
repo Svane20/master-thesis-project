@@ -56,14 +56,17 @@ def _monitor_system(outfile: Path, stop_event: threading.Event, interval: int = 
             ts = time.time()
             cpu = psutil.cpu_percent()
             ram = psutil.virtual_memory().used // 2 ** 20
-            gpus = _query_gpu() or [(None, None, None)]
-            for gid, util, mem in gpus:
-                w.writerow([ts, cpu, ram, gid, util, mem])
+            gpus = _query_gpu()
+            if not gpus:
+                w.writerow([ts, cpu, ram, None, None, None])
+            else:
+                for gid, util, used, _ in gpus:
+                    w.writerow([ts, cpu, ram, gid, util, used])
             f.flush()
             time.sleep(interval)
 
 
-def _query_gpu() -> List[Tuple[int, float, float]]:
+def _query_gpu() -> List[Tuple[int, float, float, float]]:
     """
     Return [(gpu_id, util%, mem_MiB), …].
     Returns an empty list if nvidia‑smi is unavailable or errors.
@@ -72,15 +75,15 @@ def _query_gpu() -> List[Tuple[int, float, float]]:
         out = subprocess.check_output(
             [
                 "nvidia-smi",
-                "--query-gpu=index,utilization.gpu,memory.used",
+                "--query-gpu=index,utilization.gpu,memory.used,memory.total",
                 "--format=csv,noheader,nounits",
-            ],
-            encoding="utf-8",
+            ], encoding="utf-8"
         )
-        return [
-            (int(gid), float(util), float(mem))
-            for gid, util, mem in (line.split(",") for line in out.strip().splitlines())
-        ]
+        gpus = []
+        for line in out.strip().splitlines():
+            gid, util, used, total = [x.strip() for x in line.split(",")]
+            gpus.append((int(gid), float(util), float(used), float(total)))
+        return gpus
     except (FileNotFoundError, subprocess.CalledProcessError):
         if not getattr(_query_gpu, "_warned", False):
             print("WARN: nvidia-smi not found – GPU metrics will be empty")
@@ -108,13 +111,10 @@ def _run_locust(model: str, csv_prefix: str, stop_evt: threading.Event, use_gpu:
                 break
 
             if use_gpu:
-                gpus = _query_gpu()
-                for gid, util, used, total in gpus:
-                    pct = (used / total * 100) if total else 0.0
-
-                    print(f"GPU{gid} mem: {used}/{total} MiB ({pct:.1f}%)")
-                    if pct > 90.0:
-                        print(f"GPU memory > 90% – stopping this run before OOM")
+                for gid, util, used, total in _query_gpu():
+                    mem_ratio = (used / total) if total else 0.0
+                    if mem_ratio > 0.9:
+                        print("VRAM > 90% – stopping this run before OOM")
                         proc.send_signal(signal.SIGINT)
                         stop_evt.set()
                         break
@@ -196,14 +196,13 @@ def main() -> None:
                             print(" Waiting for GPU memory to fall below 1 GiB…")
                             start = time.time()
                             while True:
-                                gpus = _query_gpu()
-                                total_gpu = sum(mem for _, _, mem in gpus)
-                                if total_gpu <= gpu_threshold:
+                                total_used = sum(mem for _, _, mem, _ in _query_gpu())
+                                if total_used <= gpu_threshold:
                                     break
                                 if time.time() - start > 300:
                                     print("\n  timeout waiting for GPU — proceeding anyway")
                                     break
-                                print(f"\r   GPU used: {total_gpu:6.1f} MiB …", end="", flush=True)
+                                print(f"\r   GPU used: {total_used:6.1f} MiB …", end="", flush=True)
                                 time.sleep(1)
                             print("\n  GPU memory is now under threshold.")
 
