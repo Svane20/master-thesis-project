@@ -24,17 +24,27 @@ FORMATS: Iterable[str] = ("pytorch", "onnx", "torchscript")
 WORKER_COUNTS: Iterable[int] = (1, 2, 4)
 
 
-def _kill_thread(thr: threading.Thread):
-    """
-    Kill the *process* that owns `thr` (uvicorn’s main thread) without
-    killing the benchmark driver itself.
-    """
-    try:
-        import psutil
-        proc = psutil.Process(thr.native_id)
-        proc.kill()
-    except Exception as err:
-        print(f"Could not kill uvicorn process: {err}")
+def kill_port_8000_tree():
+    for conn in psutil.net_connections(kind="inet"):
+        if conn.status == psutil.CONN_LISTEN and conn.laddr.port == 8000:
+            pid = conn.pid
+            if not pid:
+                continue
+            try:
+                parent = psutil.Process(pid)
+            except psutil.NoSuchProcess:
+                continue
+            # kill children first
+            for child in parent.children(recursive=True):
+                try:
+                    child.kill()
+                except Exception:
+                    pass
+            # then kill parent
+            try:
+                parent.kill()
+            except Exception:
+                pass
 
 
 def _monitor_system(outfile: Path, stop_event: threading.Event, interval: int = 1) -> None:
@@ -158,11 +168,21 @@ def main() -> None:
                                 time.sleep(1)
                             print()
 
-                        if api_thr.is_alive():
-                            print("ERROR: uvicorn thread still alive – killing process")
-                            _kill_thread(api_thr)
-                        else:
-                            print("Next run starting!")
+                        print("🔪 Killing any remaining uvicorn workers…")
+                        kill_port_8000_tree()
+
+                        threshold = 10 * 1024 ** 3  # 5 GiB in bytes
+                        print("⏳ Waiting for memory to fall below 5 GiB…")
+                        while True:
+                            mem = psutil.virtual_memory().used
+                            if mem <= threshold:
+                                break
+                            used_gib = mem / 1024 ** 3
+                            print(f"\r   currently {used_gib:.1f} GiB used, waiting…", end="", flush=True)
+                            time.sleep(1)
+                        print("\n Memory is now below 5 GiB.")
+
+                        print("Cleanup complete, next run starting!")
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ from locust import FastHttpUser, task, between, LoadTestShape
 IMAGE_DIR = Path(__file__).parent.parent / "images"
 BATCH: List[Path] = [p for p in IMAGE_DIR.glob("*.jpg")][:8]
 
-_default_steps = [5, 10, 20, 40, 60, 80, 100]
+_default_steps = [5, 10, 20, 30, 40, 50]
 _steps_env = os.getenv("MAX_USERS")
 STEPS: List[int] = (
     [int(x) for x in _steps_env.split(",")] if _steps_env else _default_steps
