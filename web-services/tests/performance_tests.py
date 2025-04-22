@@ -88,7 +88,7 @@ def _query_gpu() -> List[Tuple[int, float, float]]:
         return []
 
 
-def _run_locust(model: str, csv_prefix: str, stop_evt: threading.Event) -> None:
+def _run_locust(model: str, csv_prefix: str, stop_evt: threading.Event, use_gpu: bool) -> None:
     locust_file = LOCUST_FILE_DPT if model == "dpt" else LOCUST_FILE
     csv_path = REPORTS_DIR / csv_prefix
 
@@ -99,23 +99,31 @@ def _run_locust(model: str, csv_prefix: str, stop_evt: threading.Event) -> None:
     ]
     print("Running:\n  " + " \\\n  ".join(cmd))
 
-    locust_proc = subprocess.Popen(cmd, text=True)
+    proc = subprocess.Popen(cmd, text=True)
+    try:
+        while proc.poll() is None and not stop_evt.is_set():
+            if psutil.virtual_memory().percent > 90:
+                print("RAM > 90% – stopping this run before OOM")
+                proc.send_signal(signal.SIGINT)
+                break
 
-    while locust_proc.poll() is None and not stop_evt.is_set():
-        if psutil.virtual_memory().percent > 90:
-            print("RAM > 90% – stopping this run before OOM")
-            locust_proc.send_signal(signal.SIGINT)
-            break
-        time.sleep(1)
+            if use_gpu:
+                gpus = _query_gpu()
+                if any(util > 90 for _, util, _ in gpus):
+                    print("VRAM > 90% – stopping this run before OOM")
+                    proc.send_signal(signal.SIGINT)
+                    break
 
-    code = locust_proc.wait()
-    if code == 0:
-        print("Locust finished OK")
-    elif code == (128 + signal.SIGKILL):
-        print("WARN: Locust was killed by SIGKILL (likely OOM). "
-              "Skipping remaining steps for this combination.")
-    else:
-        print(f"WARN: Locust exited with code {code}")
+            time.sleep(1)
+    finally:
+        code = proc.wait()
+        if code == 0:
+            print("Locust finished OK")
+        elif code == (128 + signal.SIGKILL):
+            print("WARN: Locust was killed by SIGKILL (likely OOM). "
+                  "Skipping remaining steps for this combination.")
+        else:
+            print(f"WARN: Locust exited with code {code}")
 
 
 def main() -> None:
@@ -145,7 +153,7 @@ def main() -> None:
 
                     # Fire up Locust
                     try:
-                        _run_locust(model, tag, stop_evt)
+                        _run_locust(model, tag, stop_evt, use_gpu)
                     finally:
                         stop_evt.set()
                         mon_thr.join()
@@ -173,25 +181,40 @@ def main() -> None:
                                 time.sleep(1)
                             print()
 
-                        print("🔪 Killing any remaining uvicorn workers…")
+                        print("Killing any remaining uvicorn workers…")
                         kill_port_8000_tree()
 
-                        threshold = 5 * 1024 ** 3
-                        print("⏳ Waiting for memory to fall below 5 GiB…")
+                        ram_threshold = 10 * 1024 ** 3
+                        print("Waiting for RAM to fall below 10 GiB…")
                         start = time.time()
                         while True:
                             used = psutil.virtual_memory().used
-                            if used <= threshold:
+                            if used <= ram_threshold:
                                 break
-                            # timeout after 5 minutes to avoid infinite hang
                             if time.time() - start > 300:
-                                print("\n⚠️  timeout waiting for memory — proceeding anyway")
+                                print("\n  timeout waiting for RAM — proceeding anyway")
                                 break
-                            print(f"\r   {used / 1024 ** 3:5.1f} GiB used, waiting…", end="", flush=True)
+                            print(f"\r   RAM used: {used / 1024 ** 3:5.1f} GiB …", end="", flush=True)
                             time.sleep(1)
-                        print("\n✔️  Memory is now under threshold.")
+                        print("\n  RAM is now under threshold.")
 
-                        print("✔️  Cleanup complete, next run starting!")
+                        if use_gpu:
+                            gpu_threshold = 1024  # in MiB
+                            print(" Waiting for GPU memory to fall below 1 GiB…")
+                            start = time.time()
+                            while True:
+                                gpus = _query_gpu()
+                                total_gpu = sum(mem for _, _, mem in gpus)
+                                if total_gpu <= gpu_threshold:
+                                    break
+                                if time.time() - start > 300:
+                                    print("\n  timeout waiting for GPU — proceeding anyway")
+                                    break
+                                print(f"\r   GPU used: {total_gpu:6.1f} MiB …", end="", flush=True)
+                                time.sleep(1)
+                            print("\n  GPU memory is now under threshold.")
+
+                        print("  Cleanup complete, next run starting!")
 
 
 if __name__ == "__main__":
