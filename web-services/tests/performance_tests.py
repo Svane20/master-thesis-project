@@ -132,156 +132,82 @@ def _run_locust(model: str, csv_prefix: str, stop_evt: threading.Event, use_gpu:
 
 
 def main() -> None:
-    for workers in WORKER_COUNTS:
-        model = "dpt"
-        fmt = "onnx"
-        hw = "gpu"
-        use_gpu = True
+    for model in MODELS:
+        for fmt in FORMATS:
+            for hw, use_gpu in ("cpu", False), ("gpu", True):
+                for workers in WORKER_COUNTS:
+                    if model == "dpt" and use_gpu and workers == 4:
+                        print(
+                            f"Skipping {model.upper()} with num_workers={workers} since it cannot be on the {hw.upper()}")
+                        continue
 
-        tag = f"{model}_{fmt}_{hw}_{workers}"
-        print(f"\n=== {tag.upper()} ===")
+                    tag = f"{model}_{fmt}_{hw}_{workers}"
+                    print(f"\n=== {tag.upper()} ===")
 
-        # Launch API instance under test
-        server_proc = setup_api_instance(model, fmt, use_gpu, workers)
+                    # Launch API instance under test
+                    server_proc = setup_api_instance(model, fmt, use_gpu, workers)
 
-        # Start system‑monitor thread
-        stop_evt = threading.Event()
-        mon_thr = threading.Thread(
-            target=_monitor_system,
-            args=(REPORTS_DIR / f"{tag}_sys.csv", stop_evt),
-            daemon=True,
-        )
-        mon_thr.start()
+                    # Start system‑monitor thread
+                    stop_evt = threading.Event()
+                    mon_thr = threading.Thread(
+                        target=_monitor_system,
+                        args=(REPORTS_DIR / f"{tag}_sys.csv", stop_evt),
+                        daemon=True,
+                    )
+                    mon_thr.start()
 
-        # Fire up Locust
-        try:
-            _run_locust(model, tag, stop_evt, use_gpu)
-        finally:
-            stop_evt.set()
-            mon_thr.join()
+                    # Fire up Locust
+                    try:
+                        _run_locust(model, tag, stop_evt, use_gpu)
+                    finally:
+                        stop_evt.set()
+                        mon_thr.join()
 
-            pause = 180 if model == "dpt" else 60
-            print("Shutting down server process…")
-            server_proc.terminate()
+                        pause = 180 if model == "dpt" else 60
+                        print("Shutting down server process…")
+                        server_proc.terminate()
 
-            try:
-                server_proc.wait(timeout=pause)
-            except subprocess.TimeoutExpired:
-                print("WARN: server did not exit in time, killing…")
-                server_proc.kill()
-                server_proc.wait()
+                        try:
+                            server_proc.wait(timeout=pause)
+                        except subprocess.TimeoutExpired:
+                            print("WARN: server did not exit in time, killing…")
+                            server_proc.kill()
+                            server_proc.wait()
 
-            print("Killing any remaining uvicorn workers…")
-            kill_port_8000_tree()
+                        print("Killing any remaining uvicorn workers…")
+                        kill_port_8000_tree()
 
-            ram_threshold = 10 * 1024 ** 3
-            print("Waiting for RAM to fall below 10 GiB…")
-            start = time.time()
-            while True:
-                used = psutil.virtual_memory().used
-                if used <= ram_threshold:
-                    break
-                if time.time() - start > 300:
-                    print("\n  timeout waiting for RAM — proceeding anyway")
-                    break
-                print(f"\r   RAM used: {used / 1024 ** 3:5.1f} GiB …", end="", flush=True)
-                time.sleep(1)
-            print("\n  RAM is now under threshold.")
+                        ram_threshold = 10 * 1024 ** 3
+                        print("Waiting for RAM to fall below 10 GiB…")
+                        start = time.time()
+                        while True:
+                            used = psutil.virtual_memory().used
+                            if used <= ram_threshold:
+                                break
+                            if time.time() - start > 300:
+                                print("\n  timeout waiting for RAM — proceeding anyway")
+                                break
+                            print(f"\r   RAM used: {used / 1024 ** 3:5.1f} GiB …", end="", flush=True)
+                            time.sleep(1)
+                        print("\n  RAM is now under threshold.")
 
-            if use_gpu:
-                gpu_threshold = 1024  # in MiB
-                print(" Waiting for GPU memory to fall below 1 GiB…")
-                start = time.time()
-                while True:
-                    gpus = _query_gpu()
-                    total_gpu = sum(mem for _, _, mem in gpus)
-                    if total_gpu <= gpu_threshold:
-                        break
-                    if time.time() - start > 300:
-                        print("\n  timeout waiting for GPU — proceeding anyway")
-                        break
-                    print(f"\r   GPU used: {total_gpu:6.1f} MiB …", end="", flush=True)
-                    time.sleep(1)
-                print("\n  GPU memory is now under threshold.")
+                        if use_gpu:
+                            gpu_threshold = 1024  # in MiB
+                            print(" Waiting for GPU memory to fall below 1 GiB…")
+                            start = time.time()
+                            while True:
+                                gpus = _query_gpu()
+                                total_gpu = sum(mem for _, _, mem in gpus)
+                                if total_gpu <= gpu_threshold:
+                                    break
+                                if time.time() - start > 300:
+                                    print("\n  timeout waiting for GPU — proceeding anyway")
+                                    break
+                                print(f"\r   GPU used: {total_gpu:6.1f} MiB …", end="", flush=True)
+                                time.sleep(1)
+                            print("\n  GPU memory is now under threshold.")
 
-            print("  Cleanup complete, next run starting!")
-
-    # for model in MODELS:
-    #     for fmt in FORMATS:
-    #         for hw, use_gpu in ("cpu", False), ("gpu", True):
-    #             for workers in WORKER_COUNTS:
-    #                 if model == "dpt" and use_gpu and workers == 4:
-    #                     print(
-    #                         f"Skipping {model.upper()} with num_workers={workers} since it cannot be on the {hw.upper()}")
-    #                     continue
-    #
-    #                 tag = f"{model}_{fmt}_{hw}_{workers}"
-    #                 print(f"\n=== {tag.upper()} ===")
-    #
-    #                 # Launch API instance under test
-    #                 server_proc = setup_api_instance(model, fmt, use_gpu, workers)
-    #
-    #                 # Start system‑monitor thread
-    #                 stop_evt = threading.Event()
-    #                 mon_thr = threading.Thread(
-    #                     target=_monitor_system,
-    #                     args=(REPORTS_DIR / f"{tag}_sys.csv", stop_evt),
-    #                     daemon=True,
-    #                 )
-    #                 mon_thr.start()
-    #
-    #                 # Fire up Locust
-    #                 try:
-    #                     _run_locust(model, tag, stop_evt, use_gpu)
-    #                 finally:
-    #                     stop_evt.set()
-    #                     mon_thr.join()
-    #
-    #                     pause = 180 if model == "dpt" else 60
-    #                     print("Shutting down server process…")
-    #                     server_proc.terminate()
-    #
-    #                     try:
-    #                         server_proc.wait(timeout=pause)
-    #                     except subprocess.TimeoutExpired:
-    #                         print("WARN: server did not exit in time, killing…")
-    #                         server_proc.kill()
-    #                         server_proc.wait()
-    #
-    #                     print("Killing any remaining uvicorn workers…")
-    #                     kill_port_8000_tree()
-    #
-    #                     ram_threshold = 10 * 1024 ** 3
-    #                     print("Waiting for RAM to fall below 10 GiB…")
-    #                     start = time.time()
-    #                     while True:
-    #                         used = psutil.virtual_memory().used
-    #                         if used <= ram_threshold:
-    #                             break
-    #                         if time.time() - start > 300:
-    #                             print("\n  timeout waiting for RAM — proceeding anyway")
-    #                             break
-    #                         print(f"\r   RAM used: {used / 1024 ** 3:5.1f} GiB …", end="", flush=True)
-    #                         time.sleep(1)
-    #                     print("\n  RAM is now under threshold.")
-    #
-    #                     if use_gpu:
-    #                         gpu_threshold = 1024  # in MiB
-    #                         print(" Waiting for GPU memory to fall below 1 GiB…")
-    #                         start = time.time()
-    #                         while True:
-    #                             gpus = _query_gpu()
-    #                             total_gpu = sum(mem for _, _, mem in gpus)
-    #                             if total_gpu <= gpu_threshold:
-    #                                 break
-    #                             if time.time() - start > 300:
-    #                                 print("\n  timeout waiting for GPU — proceeding anyway")
-    #                                 break
-    #                             print(f"\r   GPU used: {total_gpu:6.1f} MiB …", end="", flush=True)
-    #                             time.sleep(1)
-    #                         print("\n  GPU memory is now under threshold.")
-    #
-    #                     print("  Cleanup complete, next run starting!")
+                        print("  Cleanup complete, next run starting!")
 
 
 if __name__ == "__main__":
