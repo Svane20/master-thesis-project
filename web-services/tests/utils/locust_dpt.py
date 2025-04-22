@@ -31,10 +31,12 @@ class StepLoadShape(LoadTestShape):
 
 
 class APIUser(FastHttpUser):
+    network_timeout = 180
+    connection_timeout = 60
     wait_time = between(0.5, 2)
 
     def _post(self, url: str, files):
-        self.client.post(url, files=files, timeout=120)
+        self.client.post(url, files=files)
 
     @task(3)
     def inference(self):
