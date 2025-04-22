@@ -1,6 +1,8 @@
 import os
 import threading
 import time
+from threading import Thread
+from typing import Tuple
 
 import requests
 from uvicorn import Config, Server
@@ -10,7 +12,7 @@ from tests.utils.configuration import get_performance_custom_path
 from tests.utils.factory import get_create_app_func
 
 
-def setup_api_instance(project_name: str, model_type: str, use_gpu: bool, workers: int = None) -> Server:
+def setup_api_instance(project_name: str, model_type: str, use_gpu: bool, workers: int = None) -> Tuple[Server, Thread]:
     # Create the custom config path
     cfg_path = get_performance_custom_path(project_name, model_type)
 
@@ -29,7 +31,7 @@ def setup_api_instance(project_name: str, model_type: str, use_gpu: bool, worker
     return _start_uvicorn(app, workers)
 
 
-def _start_uvicorn(app, workers=None) -> Server:
+def _start_uvicorn(app, workers=None) -> Tuple[Server, Thread]:
     """
     Start the Uvicorn server in a separate thread.
 
@@ -46,7 +48,7 @@ def _start_uvicorn(app, workers=None) -> Server:
 
     _wait_for_server_ready()
 
-    return server
+    return server, thread
 
 
 def _wait_for_server_ready(timeout: float = 10.0, interval: float = 0.1) -> None:

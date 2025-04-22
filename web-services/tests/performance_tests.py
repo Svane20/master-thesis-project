@@ -105,7 +105,7 @@ def main() -> None:
                     print(f"\n=== {tag.upper()} ===")
 
                     # Launch API instance under test
-                    server = setup_api_instance(model, fmt, use_gpu, workers)
+                    server, api_thr = setup_api_instance(model, fmt, use_gpu, workers)
 
                     # Start system‑monitor thread
                     stop_evt = threading.Event()
@@ -122,8 +122,19 @@ def main() -> None:
                     finally:
                         stop_evt.set()
                         mon_thr.join()
+
+                        # ask uvicorn to shut down
                         server.should_exit = True
-                        time.sleep(120 if model == "dpt" else 30)
+                        pause = 120 if model == "dpt" else 30
+                        api_thr.join(timeout=pause)
+
+                        if api_thr.is_alive():
+                            print("Server still alive – forcing exit")
+                            server.force_exit = True  # uvicorn will break its loop
+                            api_thr.join(timeout=10)
+
+                        if api_thr.is_alive():
+                            print("ERROR: uvicorn thread did not terminate; continuing anyway")
 
 
 if __name__ == "__main__":
