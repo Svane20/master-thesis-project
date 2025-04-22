@@ -1,6 +1,7 @@
 import random
 from pathlib import Path
 from typing import List
+import os
 
 from locust import FastHttpUser, task, between, LoadTestShape
 
@@ -8,17 +9,24 @@ from locust import FastHttpUser, task, between, LoadTestShape
 IMAGE_DIR = Path(__file__).parent.parent / "images"
 BATCH: List[Path] = [p for p in IMAGE_DIR.glob("*.jpg")][:8]
 
+_default_steps = [5, 10, 20, 40, 60, 80, 100]
+_steps_env = os.getenv("MAX_USERS")
+STEPS: List[int] = (
+    [int(x) for x in _steps_env.split(",")] if _steps_env else _default_steps
+)
+STEP_DURATION = int(os.getenv("STEP_DURATION", 120))
+
 
 class StepLoadShape(LoadTestShape):
-    steps: List[int] = [5, 10, 20, 40, 60, 80, 100]
-    step_duration: int = 120
-
     def tick(self):
         run_time = self.get_run_time()
-        step_index = int(run_time // self.step_duration)
-        if step_index < len(self.steps):
-            users = self.steps[step_index]
-            return users, max(1, users // 10)
+        idx = int(run_time // STEP_DURATION)
+
+        if idx < len(STEPS):
+            users = STEPS[idx]
+            spawn = max(1, users // 10)
+            return users, spawn
+
         return None
 
 
