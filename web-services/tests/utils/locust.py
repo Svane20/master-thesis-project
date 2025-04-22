@@ -2,6 +2,7 @@ import time
 import threading
 import subprocess
 from pathlib import Path
+import logging
 
 from locust import FastHttpUser, task, between, events
 
@@ -23,41 +24,57 @@ BATCH_PATHS = [
 # Flag for monitor thread to exit cleanly
 _monitor_running = True
 
+# Logging
+_LOG = logging.getLogger("gpu-monitor")
 
-def resource_monitor(environment, interval_sec: int = 5):
+
+def _fire(name: str, value: float, ts: float) -> None:
+    """
+    Record `value` in the response‑time column so it is visible
+    in the Web UI and in the *_stats_history.csv file.
+    """
+    events.request.fire(
+        request_type="GPU",
+        name=name,
+        response_time=value,
+        response_length=0,
+        exception=None,
+        start_time=ts,
+        url="nvidia-smi",
+        context={},
+        response=None,
+    )
+
+
+def resource_monitor(environment, interval: int = 5):
     """
     Poll GPU utilization via nvidia-smi every interval_sec seconds
     and fire custom Locust metrics for GPU utilization and memory.
     """
     while _monitor_running:
+        ts = time.time()
         try:
-            output = subprocess.check_output([
-                "nvidia-smi",
-                "--query-gpu=utilization.gpu,memory.used",
-                "--format=csv,noheader,nounits"
-            ], encoding="utf-8")
-            util_str, mem_str = output.strip().split(", ")
-            util = float(util_str)
-            mem = float(mem_str)
+            out = subprocess.check_output(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=index,utilization.gpu,memory.used",
+                    "--format=csv,noheader,nounits",
+                ],
+                encoding="utf-8",
+            )
+            for line in out.strip().splitlines():
+                gpu_id, util, mem = (x.strip() for x in line.split(","))
+                _fire(f"gpu{gpu_id}_util_%", float(util), ts)
+                _fire(f"gpu{gpu_id}_mem_MiB", float(mem), ts)
 
-            events.request.fire(
-                request_type="GPU",
-                name="gpu_utilization_percent",
-                response_time=0,
-                response_length=int(util),
-                exception=None
-            )
-            events.request.fire(
-                request_type="GPU",
-                name="gpu_memory_used_mib",
-                response_time=0,
-                response_length=int(mem),
-                exception=None
-            )
-        except Exception:
-            # ignore errors
-            pass
-        time.sleep(interval_sec)
+        except subprocess.CalledProcessError as e:
+            _LOG.warning("nvidia-smi failed: %s", e)
+        except ValueError as ve:
+            _LOG.error("Parse error on nvidia‑smi output: %s", ve)
+        except FileNotFoundError:
+            _LOG.error("nvidia-smi not found – skip GPU metrics")
+            return
+        time.sleep(interval)
 
 
 @events.init.add_listener
@@ -103,17 +120,10 @@ class APIUser(FastHttpUser):
         )
         return
 
-    def on_start(self):
-        self.post_request(
-            name="cold_start_latency",
-            url="/api/v1/predict",
-            files={"file": ("0001.jpg", open(IMAGE_DIR / "0001.jpg", "rb"), "image/jpeg")}
-        )
-
     @task(3)
     def inference(self):
         self.post_request(
-            name="warm_latency",
+            name="inference_latency",
             url="/api/v1/predict",
             files={"file": ("0001.jpg", open(IMAGE_DIR / "0001.jpg", "rb"), "image/jpeg")}
         )

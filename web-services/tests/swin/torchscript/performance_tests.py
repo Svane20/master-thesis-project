@@ -36,25 +36,38 @@ def run_locust(users: str, spawn_rate: str, run_time: str, csv_prefix: str) -> N
 
 
 def main():
-    # Locust setup
+    # Locust configuration
     users = "10"
     spawn_rate = "2"
     run_time = "2m"
+
+    # API configuration
+    workers = 1
 
     for label, use_gpu in [("gpu", True), ("cpu", False)]:
         print(f"\n=== Starting {label.upper()} run ===")
 
         # Set up the API instance
-        server = setup_api_instance(project_name, model_type, use_gpu)
+        server = setup_api_instance(
+            project_name,
+            model_type,
+            use_gpu,
+            workers
+        )
 
         # # Run locust performance tests
-        run_locust(users, spawn_rate, run_time, f"./reports/{label}_report")
+        run_locust(
+            users,
+            spawn_rate,
+            run_time,
+            csv_prefix=f"./reports/{project_name}_{model_type}_{label}_workers_{workers}"
+        )
 
         # Stop the API server
         server.should_exit = True
 
         # Wait for the server to exit
-        time.sleep(1)
+        time.sleep(10)
 
 
 if __name__ == "__main__":
