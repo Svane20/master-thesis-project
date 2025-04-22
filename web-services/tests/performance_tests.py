@@ -66,8 +66,8 @@ def _query_gpu() -> List[Tuple[int, float, float]]:
 
 def run_locust(model: str, csv_prefix: str) -> None:
     locust_file = LOCUST_FILE_DPT if model == "dpt" else LOCUST_FILE
-
     csv_path = REPORTS_DIR / f"{csv_prefix}"
+
     cmd = [
         "locust",
         "-f",
@@ -78,9 +78,10 @@ def run_locust(model: str, csv_prefix: str) -> None:
         "--csv-full-history",
         f"--csv={csv_path}",
     ]
-    print("Running:", " \
-    ".join(cmd))
-    subprocess.run(cmd, check=True)
+    print("Running:\n  " + " \\\n  ".join(cmd))
+
+    result = subprocess.run(cmd)
+    print("Locust run finished", result.returncode)
 
 
 def main() -> None:
