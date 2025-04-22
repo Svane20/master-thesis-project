@@ -30,10 +30,9 @@ def _kill_thread(thr: threading.Thread):
     killing the benchmark driver itself.
     """
     try:
-        # psutil makes it easy to find the pid on any platform
-        import psutil  # local import
+        import psutil
         proc = psutil.Process(thr.native_id)
-        proc.kill()  # SIGKILL
+        proc.kill()
     except Exception as err:
         print(f"Could not kill uvicorn process: {err}")
 
