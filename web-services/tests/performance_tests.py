@@ -142,7 +142,7 @@ def main() -> None:
                         pause = 180 if model == "dpt" else 60
 
                         for sec in range(pause, 0, -1):
-                            print(f"\rNext run starts in {sec:3d} s …", end="", flush=True)
+                            print(f"\rNext run starts in {sec:3d} s …", end="", flush=True)
                             time.sleep(1)
 
                         api_thr.join(timeout=10)
