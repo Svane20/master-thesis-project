@@ -1,5 +1,4 @@
 import csv
-import os
 import subprocess
 import sys
 import threading
@@ -27,16 +26,16 @@ WORKER_COUNTS: Iterable[int] = (1, 2, 4)
 
 def _kill_thread(thr: threading.Thread):
     """
-    Kill the OS process that owns `thr`. Works for single‑process uvicorn.
+    Kill the *process* that owns `thr` (uvicorn’s main thread) without
+    killing the benchmark driver itself.
     """
-    pid = thr.native_id
-    if pid is None:
-        return
-
     try:
-        os.kill(os.getpid(), signal.SIGKILL)
-    except OSError as err:
-        print(f"Could not SIGKILL uvicorn process: {err}")
+        # psutil makes it easy to find the pid on any platform
+        import psutil  # local import
+        proc = psutil.Process(thr.native_id)
+        proc.kill()  # SIGKILL
+    except Exception as err:
+        print(f"Could not kill uvicorn process: {err}")
 
 
 def _monitor_system(outfile: Path, stop_event: threading.Event, interval: int = 1) -> None:
@@ -138,25 +137,34 @@ def main() -> None:
                         stop_evt.set()
                         mon_thr.join()
 
-                        server.should_exit = True
                         pause = 180 if model == "dpt" else 60
+                        server.should_exit = True
 
                         for sec in range(pause, 0, -1):
-                            print(f"\rNext run starts in {sec:3d} s …", end="", flush=True)
+                            api_thr.join(timeout=0)
+                            if not api_thr.is_alive():
+                                break
+                            print(f"\rGraceful shutdown: {sec:3d}s left …   ", end="", flush=True)
                             time.sleep(1)
-
-                        api_thr.join(timeout=10)
+                        print()  # newline after countdown
 
                         if api_thr.is_alive():
-                            print("WARN: graceful exit timed‑out – forcing uvicorn exit")
+                            print("WARN: graceful exit timed out – forcing uvicorn exit")
                             server.force_exit = True
-                            api_thr.join(timeout=20)
+
+                            for sec in range(pause, 0, -1):
+                                api_thr.join(timeout=0)
+                                if not api_thr.is_alive():
+                                    break
+                                print(f"\rForce exit wait:  {sec:3d}s left …   ", end="", flush=True)
+                                time.sleep(1)
+                            print()
 
                         if api_thr.is_alive():
                             print("ERROR: uvicorn thread still alive – killing process")
                             _kill_thread(api_thr)
-
-                        print("\rNext run starting!       ")
+                        else:
+                            print("Next run starting!")
 
 
 if __name__ == "__main__":
