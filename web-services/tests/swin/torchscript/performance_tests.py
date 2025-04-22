@@ -1,64 +1,61 @@
-import threading
 import time
 from pathlib import Path
-import os
+import subprocess
 
-import requests
-import uvicorn
+from tests.utils.performance import setup_api_instance
 
-from libs.fastapi.settings import reset_settings_cache
-from tests.utils.configuration import get_performance_custom_path
-from tests.utils.factory import get_create_app_func
+# Directories
+root_directory = Path(__file__).parent.parent.parent
+current_directory = Path(__file__).parent
 
 # Project and Model Type
-current_directory = Path(__file__).parent
 project_name = current_directory.parent.name
 model_type = current_directory.name
-use_gpu = True
 
 
-def start_uvicorn(app, port, workers=None, timeout: float = 10.0, interval: float = 0.1):
-    thread = threading.Thread(
-        target=uvicorn.run,
-        args=(app,),
-        kwargs={
-            "host": "0.0.0.0",
-            "port": port,
-            "workers": workers,
-        },
-        daemon=True,
-    )
-    thread.start()
+def run_locust(users: str, spawn_rate: str, run_time: str, csv_prefix: str) -> None:
+    """
+    Run locust performance tests.
 
-    # Do not return until the server is ready
-    # 2) Poll the health endpoint until it returns 200 or we timeout
-    start = time.monotonic()
-    url = f"http://localhost:{port}/api/v1/live"
-    while True:
-        try:
-            r = requests.get(url, timeout=1.0)
-            if r.status_code == 200:
-                return  # healthy!
-        except requests.RequestException:
-            # server not up yet or other network hiccup
-            pass
-
-        if time.monotonic() - start > timeout:
-            raise RuntimeError(f"Server did not respond 200 at {url} within {timeout}s")
-        time.sleep(interval)
+    Args:
+        users (int): Number of concurrent users.
+        spawn_rate (int): Rate at which users are spawned.
+        run_time (str): Duration for which the test should run.
+        csv_prefix (str): Prefix for the CSV report files.
+    """
+    subprocess.run([
+        "locust",
+        "-f", str(root_directory / "utils" / "locust.py"),
+        "--headless",
+        "-u", users,
+        "-r", spawn_rate,
+        "--run-time", run_time,
+        "--host=http://localhost:8000",
+        f"--csv={csv_prefix}"
+    ], check=True)
 
 
-cfg_path = get_performance_custom_path(project_name, model_type)
-os.environ["CONFIG_PATH"] = cfg_path
-os.environ["USE_GPU"] = "true" if use_gpu else "false"
-os.environ["MAX_BATCH_SIZE"] = "8"
+def main():
+    # Locust setup
+    users = "10"
+    spawn_rate = "2"
+    run_time = "2m"
 
-reset_settings_cache()
+    for label, use_gpu in [("gpu", True), ("cpu", False)]:
+        print(f"\n=== Starting {label.upper()} run ===")
 
-create_app = get_create_app_func(project_name, model_type)
-app = create_app()
+        # Set up the API instance
+        server = setup_api_instance(project_name, model_type, use_gpu)
 
-# Start the Uvicorn server in a separate thread
-start_uvicorn(app, port=8006)
+        # # Run locust performance tests
+        run_locust(users, spawn_rate, run_time, f"./reports/{label}_report")
 
-print(f"Here")
+        # Stop the API server
+        server.should_exit = True
+
+        # Wait for the server to exit
+        time.sleep(1)
+
+
+if __name__ == "__main__":
+    main()
