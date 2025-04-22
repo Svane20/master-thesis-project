@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 from typing import Iterable, Tuple, List
 import psutil
+import signal
 
 from tests.utils.performance import setup_api_instance
 
@@ -64,24 +65,35 @@ def _query_gpu() -> List[Tuple[int, float, float]]:
         return []
 
 
-def run_locust(model: str, csv_prefix: str) -> None:
+def run_locust(model: str, csv_prefix: str, stop_evt: threading.Event) -> None:
     locust_file = LOCUST_FILE_DPT if model == "dpt" else LOCUST_FILE
-    csv_path = REPORTS_DIR / f"{csv_prefix}"
+    csv_path = REPORTS_DIR / csv_prefix
 
     cmd = [
-        "locust",
-        "-f",
-        str(locust_file),
-        "--headless",
-        "--host",
-        HOST_URL,
-        "--csv-full-history",
-        f"--csv={csv_path}",
+        "locust", "-f", str(locust_file),
+        "--headless", "--host", HOST_URL,
+        "--csv-full-history", f"--csv={csv_path}",
     ]
     print("Running:\n  " + " \\\n  ".join(cmd))
 
-    result = subprocess.run(cmd)
-    print("Locust run finished", result.returncode)
+    locust_proc = subprocess.Popen(cmd, text=True)
+
+    # ---- watch memory every second ----------------------------------
+    while locust_proc.poll() is None and not stop_evt.is_set():
+        if psutil.virtual_memory().percent > 90:
+            print("RAM > 90 % – stopping this run before OOM")
+            locust_proc.send_signal(signal.SIGINT)  # graceful shutdown
+            break
+        time.sleep(1)
+
+    code = locust_proc.wait()
+    if code == 0:
+        print("Locust finished OK")
+    elif code == (128 + signal.SIGKILL):
+        print("WARN: Locust was killed by SIGKILL (likely OOM). "
+              "Skipping remaining steps for this combination.")
+    else:
+        print(f"WARN: Locust exited with code {code}")
 
 
 def main() -> None:
@@ -106,12 +118,12 @@ def main() -> None:
 
                     # Fire up Locust
                     try:
-                        run_locust(model=model, csv_prefix=tag)
+                        run_locust(model, tag, stop_evt)
                     finally:
                         stop_evt.set()
                         mon_thr.join()
                         server.should_exit = True
-                        time.sleep(30)
+                        time.sleep(120 if model == "dpt" else 30)
 
 
 if __name__ == "__main__":
