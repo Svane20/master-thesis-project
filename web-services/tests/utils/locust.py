@@ -18,7 +18,7 @@ class StepLoadShape(LoadTestShape):
         step_index = int(run_time // self.step_duration)
         if step_index < len(self.steps):
             users = self.steps[step_index]
-            return users, users
+            return users, max(1, users // 10)
         return None
 
 

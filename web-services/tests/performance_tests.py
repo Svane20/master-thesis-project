@@ -4,7 +4,7 @@ import sys
 import threading
 import time
 from pathlib import Path
-from typing import Iterable, Tuple
+from typing import Iterable, Tuple, List
 import psutil
 
 from tests.utils.performance import setup_api_instance
@@ -20,26 +20,29 @@ HOST_URL = "http://localhost:8000"
 MODELS: Iterable[str] = ("resnet", "swin")
 FORMATS: Iterable[str] = ("pytorch", "onnx", "torchscript")
 WORKER_COUNTS: Iterable[int] = (1, 2, 4)
-RUN_TIME = "10m"
+
 
 def monitor_system(outfile: Path, stop_event: threading.Event, interval: int = 1) -> None:
     outfile.parent.mkdir(parents=True, exist_ok=True)
-    with outfile.open("w", newline="") as f:
+    with outfile.open("w", newline="", buffering=1) as f:  # line‑buffered
         w = csv.writer(f)
         w.writerow(["ts", "cpu_%", "ram_MiB", "gpu_id", "gpu_util_%", "gpu_mem_MiB"])
         while not stop_event.is_set():
             ts = time.time()
             cpu = psutil.cpu_percent()
             ram = psutil.virtual_memory().used // 2 ** 20
-            gpus = list(_query_gpu()) or [(None, None, None)]
-            for gid, gutil, gmem in gpus:
-                w.writerow([ts, cpu, ram, gid, gutil, gmem])
+            gpus = _query_gpu() or [(None, None, None)]
+            for gid, util, mem in gpus:
+                w.writerow([ts, cpu, ram, gid, util, mem])
+            f.flush()
             time.sleep(interval)
 
 
-def _query_gpu() -> Iterable[Tuple[int, float, float]]:
-    """Yield (gpu_id, util%, mem_MiB) for each visible device.
-    Returns empty list if nvidia‑smi not available."""
+def _query_gpu() -> List[Tuple[int, float, float]]:
+    """
+    Return [(gpu_id, util%, mem_MiB), …].
+    Returns an empty list if nvidia‑smi is unavailable or errors.
+    """
     try:
         out = subprocess.check_output(
             [
@@ -49,23 +52,24 @@ def _query_gpu() -> Iterable[Tuple[int, float, float]]:
             ],
             encoding="utf-8",
         )
+        return [
+            (int(gid), float(util), float(mem))
+            for gid, util, mem in (line.split(",") for line in out.strip().splitlines())
+        ]
     except (FileNotFoundError, subprocess.CalledProcessError):
+        if not getattr(_query_gpu, "_warned", False):
+            print("WARN: nvidia-smi not found – GPU metrics will be empty")
+            _query_gpu._warned = True
         return []
 
-    for line in out.strip().splitlines():
-        gpu_id, util, mem = (x.strip() for x in line.split(","))
-        yield int(gpu_id), float(util), float(mem)
 
-
-def run_locust(run_time: str, csv_prefix: str) -> None:
+def run_locust(csv_prefix: str) -> None:
     csv_path = REPORTS_DIR / f"{csv_prefix}"
     cmd = [
         "locust",
         "-f",
         str(LOCUST_FILE),
         "--headless",
-        "--run-time",
-        run_time,
         "--host",
         HOST_URL,
         f"--csv={csv_path}",
@@ -97,7 +101,7 @@ def main() -> None:
 
                     # Fire up Locust
                     try:
-                        run_locust(RUN_TIME, csv_prefix=tag)
+                        run_locust(csv_prefix=tag)
                     finally:
                         stop_evt.set()
                         mon_thr.join()
