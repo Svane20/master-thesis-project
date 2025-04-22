@@ -1,3 +1,4 @@
+import random
 import time
 import threading
 import subprocess
@@ -28,11 +29,8 @@ _monitor_running = True
 _LOG = logging.getLogger("gpu-monitor")
 
 
-def _fire(name: str, value: float, ts: float) -> None:
-    """
-    Record `value` in the response‑time column so it is visible
-    in the Web UI and in the *_stats_history.csv file.
-    """
+def _fire(name: str, value: float, ts: int) -> None:
+    """Emit a synthetic request so the value shows up in Locust stats."""
     events.request.fire(
         request_type="GPU",
         name=name,
@@ -46,13 +44,13 @@ def _fire(name: str, value: float, ts: float) -> None:
     )
 
 
-def resource_monitor(environment, interval: int = 5):
+def _resource_monitor(environment, interval: int = 5) -> None:
     """
     Poll GPU utilization via nvidia-smi every interval_sec seconds
     and fire custom Locust metrics for GPU utilization and memory.
     """
     while _monitor_running:
-        ts = time.time()
+        ts = int(time.time())
         try:
             out = subprocess.check_output(
                 [
@@ -67,20 +65,21 @@ def resource_monitor(environment, interval: int = 5):
                 _fire(f"gpu{gpu_id}_util_%", float(util), ts)
                 _fire(f"gpu{gpu_id}_mem_MiB", float(mem), ts)
 
+        except FileNotFoundError:
+            _LOG.error("nvidia-smi not found – skipping GPU metrics")
+            return
         except subprocess.CalledProcessError as e:
             _LOG.warning("nvidia-smi failed: %s", e)
         except ValueError as ve:
             _LOG.error("Parse error on nvidia‑smi output: %s", ve)
-        except FileNotFoundError:
-            _LOG.error("nvidia-smi not found – skip GPU metrics")
-            return
+
         time.sleep(interval)
 
 
 @events.init.add_listener
 def on_locust_init(environment, **kwargs):
     """Start GPU resource monitor thread"""
-    thread = threading.Thread(target=resource_monitor, args=(environment,), daemon=True)
+    thread = threading.Thread(target=_resource_monitor, args=(environment,), daemon=True)
     thread.start()
 
 
@@ -97,59 +96,29 @@ class APIUser(FastHttpUser):
     """
     wait_time = between(0.5, 2)
 
-    def post_request(self, name: str, url: str, files=None):
-        """
-        Helper to send a POST and record via events.request.fire.
-        """
-        start = time.perf_counter()
-        try:
-            response = self.client.post(url, files=files, timeout=120)
-            response.raise_for_status()
-            length = len(response.content) if response.content is not None else 0
-            exception = None
-        except Exception as e:
-            length = 0
-            exception = e
-        latency = int((time.perf_counter() - start) * 1000)
-        events.request.fire(
-            request_type="POST",
-            name=name,
-            response_time=latency,
-            response_length=length,
-            exception=exception
-        )
-        return
+    def _post(self, url: str, files=None):
+        self.client.post(url, files=files, timeout=120)
 
     @task(3)
     def inference(self):
-        self.post_request(
-            name="inference_latency",
-            url="/api/v1/predict",
-            files={"file": ("0001.jpg", open(IMAGE_DIR / "0001.jpg", "rb"), "image/jpeg")}
-        )
+        path = random.choice(BATCH_PATHS)
+        file = {"file": (path.name, open(path, "rb"), "image/jpeg")}
+        self._post("/api/v1/predict", files=file)
 
     @task(1)
     def batch_inference(self):
-        files = [("files", (path.name, open(path, "rb"), "image/jpeg")) for path in BATCH_PATHS]
-        self.post_request(
-            name="batch_inference_latency",
-            url="/api/v1/batch-predict",
-            files=files
-        )
+        paths = random.sample(BATCH_PATHS, k=len(BATCH_PATHS))
+        files = [("files", (p.name, open(p, "rb"), "image/jpeg")) for p in paths]
+        self._post("/api/v1/batch-predict", files=files)
 
     @task(5)
     def sky_replacement(self):
-        self.post_request(
-            name="sky_replacement_latency",
-            url="/api/v1/sky-replacement",
-            files={"file": ("0001.jpg", open(IMAGE_DIR / "0001.jpg", "rb"), "image/jpeg")}
-        )
+        path = random.choice(BATCH_PATHS)
+        file = {"file": (path.name, open(path, "rb"), "image/jpeg")}
+        self._post("/api/v1/sky-replacement", files=file)
 
     @task(2)
     def batch_sky_replacement(self):
-        files = [("files", (path.name, open(path, "rb"), "image/jpeg")) for path in BATCH_PATHS]
-        self.post_request(
-            name="batch_sky_replacement_latency",
-            url="/api/v1/batch-sky-replacement",
-            files=files
-        )
+        paths = random.sample(BATCH_PATHS, k=len(BATCH_PATHS))
+        files = [("files", (p.name, open(p, "rb"), "image/jpeg")) for p in paths]
+        self._post("/api/v1/batch-sky-replacement", files=files)
