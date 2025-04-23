@@ -1,91 +1,207 @@
-import re, pathlib, pandas as pd, matplotlib.pyplot as plt
+import os
+import glob
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
-root = pathlib.Path.cwd()
-reports = next(p for p in root.rglob('performance') if any(p.rglob('*_stats_history.csv')))
-outdir = root / 'charts' / 'performance'
-outdir.mkdir(exist_ok=True)
+# Configuration
+format_order = ["onnx", "torchscript", "pytorch"]
+format_titles = {"onnx": "ONNX", "torchscript": "TorchScript", "pytorch": "PyTorch"}
+model_titles = {"dpt": "DPT", "resnet": "ResNet", "swin": "Swin"}
 
-tag_re = re.compile(r'^(?P<model>\w+)_(?P<fmt>\w+)_(?P<hw>cpu|gpu)_(?P<workers>\d+)$')
-records = []
+# Paths
+stats_glob = './csvs/performance/*_stats_history.csv'
+sys_glob   = './csvs/performance/*_sys.csv'
+out_dir = './charts/performance'
+os.makedirs(out_dir, exist_ok=True)
 
+# Gather stats and sys file info
+stat_info = []
+for fp in glob.glob(stats_glob):
+    fname = os.path.basename(fp)
+    model, fmt, device, workers = fname.split('_')[0], fname.split('_')[1], fname.split('_')[2], int(fname.split('_')[3])
+    stat_info.append((model, fmt, device, workers, fp))
 
-def first_present(cols, *candidates):
-    for c in candidates:
-        if c in cols:
-            return c
-    raise KeyError(f"None of {candidates} found, columns={list(cols)}")
+sys_info = []
+for fp in glob.glob(sys_glob):
+    fname = os.path.basename(fp)
+    model, fmt, device, workers = fname.split('_')[0], fname.split('_')[1], fname.split('_')[2], int(fname.split('_')[3])
+    sys_info.append((model, fmt, device, workers, fp))
 
+# Median Latency (existing)
+for model in sorted({m for m, *_ in stat_info}):
+    fig, axes = plt.subplots(2, len(format_order), figsize=(14, 8), sharex=True)
+    fig.suptitle(f"{model_titles.get(model, model)}: Median Latency vs Concurrent Users", fontsize=16)
+    # y-limit for GPU
+    gpu_lat = []
+    for m, f, dev, w, fp in stat_info:
+        if m==model and dev=='gpu':
+            df = pd.read_csv(fp).dropna(subset=['50%'])
+            gpu_lat.extend(df.groupby('User Count')['50%'].median().values)
+    ylim_gpu = (0, max(gpu_lat)*1.1) if gpu_lat else None
 
-for hist in reports.rglob('*_stats_history.csv'):
-    tag = hist.stem.replace('_stats_history', '')
-    m = tag_re.match(tag)
-    if not m:
-        continue
-    meta = m.groupdict()
+    for i, device in enumerate(['cpu','gpu']):
+        for j, fmt in enumerate(format_order):
+            ax = axes[i,j]
+            ax.set_title(format_titles[fmt])
+            for m,f,dev,w,fp in stat_info:
+                if m==model and dev==device and f==fmt:
+                    df = pd.read_csv(fp).dropna(subset=['50%'])
+                    grp = df.groupby('User Count')['50%'].median().reset_index()
+                    ax.plot(grp['User Count'], grp['50%'], 'o-', label=f"{w} Worker"+("s" if w!=1 else ""))
+            if j==0: ax.set_ylabel(f"{device.upper()} Median Latency (ms)")
+            if i==1: ax.set_xlabel("Concurrent Users")
+            ax.grid(True)
+            if device=='gpu' and ylim_gpu is not None:
+                ax.set_ylim(ylim_gpu)
+            if ax.get_lines(): ax.legend(title="Workers")
+    plt.tight_layout(rect=[0,0,1,0.96])
+    plt.show()
 
-    df = pd.read_csv(hist)
+# Throughput vs Concurrent Users
+for model in sorted({m for m, *_ in stat_info}):
+    fig, axes = plt.subplots(2, len(format_order), figsize=(14,8), sharex=True, sharey=True)
+    fig.suptitle(f"{model_titles[model]}: Throughput vs Concurrent Users", fontsize=16)
+    for i, device in enumerate(['cpu','gpu']):
+        for j, fmt in enumerate(format_order):
+            ax = axes[i,j]
+            ax.set_title(format_titles[fmt])
+            for m,f,dev,w,fp in stat_info:
+                if m==model and dev==device and f==fmt:
+                    df = pd.read_csv(fp)
+                    thru = df.groupby('User Count')['Requests/s'].mean().reset_index()
+                    ax.plot(thru['User Count'], thru['Requests/s'],'o-', label=f"{w} Workers")
+            if i==1: ax.set_xlabel("Concurrent Users")
+            if j==0: ax.set_ylabel("Req/s")
+            ax.grid(True)
+            if ax.get_lines(): ax.legend()
+    plt.tight_layout(rect=[0,0,1,0.95])
+    plt.show()
 
-    df = df.apply(pd.to_numeric, errors='ignore')
+# Latency Percentiles over Load
+for model in sorted({m for m, *_ in stat_info}):
+    fig, axes = plt.subplots(2, len(format_order), figsize=(14,8), sharex=True, sharey=True)
+    fig.suptitle(f"{model_titles[model]}: Latency Percentiles vs Users", fontsize=16)
+    for i, device in enumerate(['cpu','gpu']):
+        for j, fmt in enumerate(format_order):
+            ax = axes[i,j]
+            ax.set_title(format_titles[fmt])
+            for m,f,dev,w,fp in stat_info:
+                if m==model and dev==device and f==fmt:
+                    df = pd.read_csv(fp).dropna(subset=['50%','90%','99%'])
+                    grp = df.groupby('User Count')[['50%','90%','99%']].median()
+                    for perc in grp.columns:
+                        ax.plot(grp.index, grp[perc],'o-', label=perc)
+            if i==1: ax.set_xlabel("Concurrent Users")
+            if j==0: ax.set_ylabel("Latency (ms)")
+            ax.grid(True)
+            if ax.get_lines(): ax.legend(title="Percentile")
+    plt.tight_layout(rect=[0,0,1,0.95])
+    plt.show()
 
-    users_col = first_present(df.columns, 'User Count', 'Users')
-    rps_col = first_present(df.columns,
-                            'Total RPS', 'Total Requests/s',
-                            'Requests/s', 'RPS')
-    med_col = first_present(df.columns, '50%', 'Median Response Time')
-    p95_col = first_present(df.columns, '95%', '95%ile', 'P95', 'Total 95%')
+# Speedup Ratios vs PyTorch
+for model in sorted({m for m, *_ in stat_info}):
+    fig, axes = plt.subplots(2,2, figsize=(12,8), sharex=True, sharey=True)
+    fig.suptitle(f"{model_titles[model]}: Speedup vs PyTorch", fontsize=16)
+    for i, device in enumerate(['cpu','gpu']):
+        # gather medians per format/worker
+        med = {}
+        for m,f,dev,w,fp in stat_info:
+            if m==model and dev==device:
+                df = pd.read_csv(fp).dropna(subset=['50%'])
+                med[(f,w)] = df.groupby('User Count')['50%'].median()
+        for j, fmt in enumerate(['onnx','torchscript']):
+            ax = axes[i,j]
+            ax.set_title(f"{format_titles[fmt]}/PyTorch")
+            for (f,w), series in med.items():
+                if f==fmt and ('pytorch',w) in med:
+                    ratio = med[('pytorch',w)] / series
+                    ax.plot(ratio.index, ratio.values,'o-', label=f"{w} Workers")
+            if i==1: ax.set_xlabel("Concurrent Users")
+            if j==0: ax.set_ylabel("Speedup")
+            ax.grid(True)
+            if ax.get_lines(): ax.legend()
+    plt.tight_layout(rect=[0,0,1,0.95])
+    plt.show()
 
-    plat = (df[df[users_col] > 0]
-            .dropna(subset=[med_col, p95_col], how='any')
-            .groupby(users_col, as_index=False)
-            .last())
+# Scaling Efficiency at 50 users
+fixed_users = 50
+for model in sorted({m for m, *_ in stat_info}):
+    fig, axes = plt.subplots(1,2, figsize=(12,5), sharey=True)
+    fig.suptitle(f"{model_titles[model]}: Scaling Efficiency @ {fixed_users} Users", fontsize=16)
 
-    sys_path = hist.with_name(tag + '_sys.csv')
-    if sys_path.exists():
-        sys_df = pd.read_csv(sys_path)
-        cpu_mean = sys_df['cpu_%'].tail(30).mean()
-        gpu_mean = sys_df['gpu_util_%'].tail(30).mean()
-    else:
-        cpu_mean = gpu_mean = None
+    for i, device in enumerate(['cpu','gpu']):
+        ax = axes[i]
+        ax.set_title(device.upper()); ax.set_xlabel("Workers")
+        if i == 0: ax.set_ylabel("Speedup")
 
-    for _, row in plat.iterrows():
-        total_req = row.get('Total Request Count', 0)
-        total_fail = row.get('Total Failure Count', 0)
-        records.append({
-            **meta,
-            'users': int(row[users_col]),
-            'rps': row[rps_col],
-            'median': row[med_col],
-            'p95': row[p95_col],
-            'failrate': (total_fail / total_req * 100) if total_req else 0,
-            'cpu': cpu_mean,
-            'gpu': gpu_mean,
-        })
+        # gather latencies
+        lat = {}
+        for m, f, dev, w, fp in stat_info:
+            if m == model and dev == device:
+                df = pd.read_csv(fp)
+                # median at fixed_users
+                med_val = df[df['User Count'] == fixed_users]['50%'].dropna().median()
+                if np.isfinite(med_val) and med_val > 0:
+                    lat.setdefault(f, {})[w] = med_val
 
-df = pd.DataFrame(records)
+        # compute speedup ratios avoiding zero
+        for fmt in format_order:
+            workers_list = sorted(lat.get(fmt, {}).keys())
+            if 1 in workers_list:
+                base = lat[fmt][1]
+                speedups = []
+                for w in workers_list:
+                    val = lat[fmt].get(w, np.nan)
+                    sp = base / val if val and val > 0 else np.nan
+                    speedups.append(sp)
+                ax.plot(workers_list, speedups, 'o-', label=format_titles[fmt])
 
+        ax.grid(True)
+        ax.legend()
 
-def scatter(col, ylabel, fname, logy=False):
-    plt.figure()
-    for (model, fmt, hw), grp in df.groupby(['model', 'fmt', 'hw']):
-        if grp[col].isna().all():
-            continue
-        plt.plot(grp['users'], grp[col], marker='o',
-                 label=f'{model}-{fmt}-{hw}')
-    plt.xlabel('Concurrent users (plateau)')
-    plt.ylabel(ylabel)
-    if logy:
-        plt.yscale('log')
-    if plt.gca().get_legend_handles_labels()[1]:
-        plt.legend(fontsize='small')
-    plt.grid(True, linestyle=':')
+    plt.tight_layout(rect=[0,0,1,0.9])
+    plt.show()
+
+# Resource Utilization vs Load
+for model, fmt, device, workers, fp in sys_info:
+    stats_fp = fp.replace('_sys.csv','_stats_history.csv')
+    if not os.path.exists(stats_fp): continue
+    df_s = pd.read_csv(stats_fp)
+    ucs = df_s['User Count'].unique()
+    if len(ucs)!=1: continue
+    uc = ucs[0]
+    df_u = pd.read_csv(fp)
+    col = 'gpu_util_%' if device=='gpu' else 'cpu_%'
+    if col not in df_u: continue
+    avg = df_u[col].mean()
+    plt.figure(figsize=(4,3))
+    plt.bar([uc],[avg])
+    plt.title(f"{model_titles[model]} {format_titles[fmt]} {device.upper()} {workers}W")
+    plt.xlabel("Users"); plt.ylabel("Avg Util %")
+    plt.grid(True)
     plt.tight_layout()
-    plt.savefig(outdir / fname, dpi=150)
-    plt.close()
+    plt.show()
 
-
-scatter('rps', 'Throughput (req/s)', 'throughput_vs_users.png')
-scatter('median', 'Median latency (ms)', 'median_lat_vs_users.png')
-scatter('p95', 'P95 latency (ms)', 'p95_lat_vs_users.png')
-scatter('failrate', 'Failure rate (%)', 'failrate_vs_users.png')
-
-print("All plots saved to", outdir)
+# Violin Plots of Latency Distributions (1W)
+for model in sorted({m for m, *_ in stat_info}):
+    for device in ['cpu','gpu']:
+        fig, axes = plt.subplots(1,len(format_order), figsize=(14,4), sharey=True)
+        fig.suptitle(f"{model_titles[model]} {device.upper()} Latency (1W)", fontsize=14)
+        for j, fmt in enumerate(format_order):
+            ax = axes[j]
+            data, ucs = [], []
+            for m,f,dev,w,fp in stat_info:
+                if m==model and dev==device and f==fmt and w==1:
+                    df = pd.read_csv(fp).dropna(subset=['50%'])
+                    grp = df.groupby('User Count')['50%'].apply(list)
+                    for uc, vals in grp.items():
+                        data.append(vals); ucs.append(uc)
+            if data:
+                ax.violinplot(data, positions=ucs, showmeans=True)
+            ax.set_title(format_titles[fmt])
+            ax.set_xlabel("Users")
+            if j==0: ax.set_ylabel("Latency (ms)")
+            ax.grid(True)
+        plt.tight_layout(rect=[0,0,1,0.95])
+        plt.show()
