@@ -29,11 +29,6 @@ def deploy_model(
         device=device
     )
 
-    # Apply structured pruning if specified in the configuration
-    if configuration.deployment.optimizations.get("apply_pruning", False):
-        from .optimization import apply_structured_pruning
-        model = apply_structured_pruning(model)
-
     # Export the minimal model checkpoint
     export_minimal_model(
         model=model,
