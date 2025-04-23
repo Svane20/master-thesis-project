@@ -30,6 +30,11 @@ class BaseModelService(ABC):
         self.model_type = self.config.project_info.model_type
         self.hardware = "GPU" if self.use_gpu else "CPU"
         self.device = torch.device('cuda' if self.use_gpu else 'cpu')
+        self.is_model_loaded = False
+
+    def is_ready(self) -> bool:
+        """Check if the model is loaded and ready for inference."""
+        return self.is_model_loaded
 
     @abstractmethod
     def load_model(self) -> None:

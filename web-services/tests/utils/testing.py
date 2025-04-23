@@ -21,6 +21,7 @@ def get_test_client(
     # Reset the settings cache to ensure the new environment variable is picked up
     reset_settings_cache()
 
+    # Create the app
     app = get_create_app_func(project_name, model_type)()
 
     with TestClient(app) as c:

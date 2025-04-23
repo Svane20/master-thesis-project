@@ -70,6 +70,9 @@ class PytorchModelService(BaseModelService):
             logger.error({"event": "model_load_failed", "error": str(e)})
             raise e
 
+        # The model is loaded successfully
+        self.is_model_loaded = self.model is not None
+
         # Log the model load time
         model_load_time = time.perf_counter() - start
         MODEL_LOAD_TIME.labels(
