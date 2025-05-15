@@ -1,17 +1,93 @@
-from fastapi.testclient import TestClient
 import pytest
+from fastapi.testclient import TestClient
+import logging
+from typing import Iterable, Generator, Any
+from pathlib import Path
 import io
-import os
 import zipfile
 from PIL import Image
-from pathlib import Path
-from typing import Generator, Any
+
+from tests.utils.configuration import get_custom_config_path
+from tests.utils.testing import get_test_client
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
+logger = logging.getLogger(__name__)
+
+# Constants
+MODELS: Iterable[str] = ("dpt", "resnet", "swin")
+FORMATS: Iterable[str] = ("onnx", "pytorch", "torchscript")
 
 # Directories
 images_directory = Path(__file__).parent / "images"
 
 
-def run_test_health_endpoint(client: Generator[TestClient, Any, None]):
+@pytest.fixture(params=MODELS)
+def model(request):
+    return request.param
+
+
+@pytest.fixture(params=FORMATS)
+def fmt(request):
+    return request.param
+
+
+@pytest.fixture(scope="function")
+def custom_config_path(tmp_path_factory, model, fmt):
+    return get_custom_config_path(tmp_path_factory, model, fmt)
+
+
+@pytest.fixture
+def client(request, custom_config_path, monkeypatch, model, fmt):
+    yield from get_test_client(request, custom_config_path, monkeypatch, model, fmt)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_health_endpoint(client):
+    _run_test_health_endpoint(client)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_live_endpoint(client):
+    _run_test_live_endpoint(client)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_info_endpoint(client, model, fmt):
+    _run_test_info_endpoint(client, client.use_gpu, model, fmt)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_single_inference(client):
+    _run_test_single_inference(client)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_batch_inference(client):
+    _run_test_batch_inference(client)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_sky_replacement(client):
+    _run_test_sky_replacement(client)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_sky_replacement_extra(client):
+    _run_test_sky_replacement_extra(client)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_batch_sky_replacement(client):
+    _run_test_batch_sky_replacement(client)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_batch_sky_replacement_extra(client):
+    _run_test_batch_sky_replacement_extra(client)
+
+
+def _run_test_health_endpoint(client: Generator[TestClient, Any, None]):
     """
     This test checks the health endpoint of the FastAPI app.
 
@@ -23,7 +99,19 @@ def run_test_health_endpoint(client: Generator[TestClient, Any, None]):
     assert response.json() == {"status": "ok"}
 
 
-def run_test_info_endpoint(client: Generator[TestClient, Any, None]):
+def _run_test_live_endpoint(client: Generator[TestClient, Any, None]):
+    """
+    This test checks the live endpoint of the FastAPI app.
+
+    Args:
+        client (Generator[TestClient, Any, None]): The test client for the FastAPI app.
+    """
+    response = client.get("/api/v1/live")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ready"}
+
+
+def _run_test_info_endpoint(client: Generator[TestClient, Any, None], use_gpu: bool, model: str, fmt: str):
     """
     This test checks the info endpoint of the FastAPI app.
 
@@ -34,15 +122,16 @@ def run_test_info_endpoint(client: Generator[TestClient, Any, None]):
     assert response.status_code == 200
 
     data = response.json()
-    expected_deployment = "cuda" if os.environ["USE_GPU"] == "true" else "cpu"
 
     assert "projectName" in data
     assert "modelType" in data
     assert "deploymentType" in data
-    assert data["deploymentType"] == expected_deployment
+    assert data["projectName"] == model
+    assert data["modelType"] == fmt
+    assert data["deploymentType"] == "cuda" if use_gpu else "cpu"
 
 
-def run_test_single_inference(client: Generator[TestClient, Any, None]):
+def _run_test_single_inference(client: Generator[TestClient, Any, None]):
     """
     This test checks the single inference endpoint of the FastAPI app.
 
@@ -78,7 +167,7 @@ def run_test_single_inference(client: Generator[TestClient, Any, None]):
             pytest.fail(f"Returned file is not a valid image: {e}")
 
 
-def run_test_batch_inference(client: Generator[TestClient, Any, None]):
+def _run_test_batch_inference(client: Generator[TestClient, Any, None]):
     """
     This test checks the batch inference endpoint of the FastAPI app.
 
@@ -134,7 +223,7 @@ def run_test_batch_inference(client: Generator[TestClient, Any, None]):
                     pytest.fail(f"File {name} in the ZIP is not a valid PNG: {e}")
 
 
-def run_test_sky_replacement(client: Generator[TestClient, Any, None]):
+def _run_test_sky_replacement(client: Generator[TestClient, Any, None]):
     """
     This test checks the sky replacement endpoint of the FastAPI app.
 
@@ -170,7 +259,7 @@ def run_test_sky_replacement(client: Generator[TestClient, Any, None]):
             pytest.fail(f"Returned file is not a valid image: {e}")
 
 
-def run_test_sky_replacement_extra(client: Generator[TestClient, Any, None]):
+def _run_test_sky_replacement_extra(client: Generator[TestClient, Any, None]):
     """
     This test checks the sky replacement extra endpoint of the FastAPI app.
 
@@ -215,7 +304,7 @@ def run_test_sky_replacement_extra(client: Generator[TestClient, Any, None]):
                     pytest.fail(f"File {name} in the ZIP is not a valid PNG: {e}")
 
 
-def run_test_batch_sky_replacement(client: Generator[TestClient, Any, None]):
+def _run_test_batch_sky_replacement(client: Generator[TestClient, Any, None]):
     """
     This test checks the batch sky replacement endpoint of the FastAPI app.
 
@@ -271,7 +360,7 @@ def run_test_batch_sky_replacement(client: Generator[TestClient, Any, None]):
                     pytest.fail(f"File {name} in the ZIP is not a valid PNG: {e}")
 
 
-def run_test_batch_sky_replacement_extra(client: Generator[TestClient, Any, None]):
+def _run_test_batch_sky_replacement_extra(client: Generator[TestClient, Any, None]):
     """
     This test checks the batch sky replacement extra endpoint of the FastAPI app.
 

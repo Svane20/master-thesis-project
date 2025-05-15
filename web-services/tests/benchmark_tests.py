@@ -1,25 +1,35 @@
 import pytest
 from fastapi.testclient import TestClient
 import torch
+from typing import Iterable
 import os
 import time
 import csv
 import statistics
-from pathlib import Path
 import logging
+from pathlib import Path
 
 from libs.fastapi.settings import reset_settings_cache
 from tests.utils.configuration import get_custom_config_path
 from tests.utils.factory import get_create_app_func
+from tests.utils.testing import get_test_client
 
-# Set up logging (ensure these messages appear in your console)
+# Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
+
+# Constants
+MODELS: Iterable[str] = ("dpt", "resnet", "swin")
+FORMATS: Iterable[str] = ("onnx", "pytorch", "torchscript")
+MODEL_WARMUP_ITERATIONS = 1
+MODEL_LOAD_ITERATIONS = 10
+WARMUP_EPOCHS = 5
+EPOCHS = 100
 
 # Directories
 images_directory = Path(__file__).parent / "images"
 metrics_directory = Path(__file__).parent / "metrics"
-metrics_directory.mkdir(exist_ok=True)  # ensure directory exists
+metrics_directory.mkdir(exist_ok=True)
 
 # CSV file to store performance metrics
 MODEL_LOAD_TIMES_CSV = metrics_directory / "model_load_times.csv"
@@ -28,15 +38,53 @@ BATCH_INFERENCE_TIMES_CSV = metrics_directory / "batch_inference_times.csv"
 SKY_REPLACEMENT_TIMES_CSV = metrics_directory / "sky_replacement_times.csv"
 BATCH_SKY_REPLACEMENT_TIMES_CSV = metrics_directory / "batch_sky_replacement_times.csv"
 
-# Constants
-MODEL_WARMUP_ITERATIONS = 1
-MODEL_LOAD_ITERATIONS = 10
 
-WARMUP_EPOCHS = 5
-EPOCHS = 100
+@pytest.fixture(params=MODELS)
+def model(request):
+    return request.param
 
 
-def run_model_load_performance_test(use_gpu, tmp_path_factory, monkeypatch, project_name, model_type):
+@pytest.fixture(params=FORMATS)
+def fmt(request):
+    return request.param
+
+
+@pytest.fixture
+def custom_config_path(tmp_path_factory, model, fmt):
+    return get_custom_config_path(tmp_path_factory, model, fmt)
+
+
+@pytest.fixture
+def client(request, custom_config_path, monkeypatch, model, fmt):
+    yield from get_test_client(request, custom_config_path, monkeypatch, model, fmt)
+
+
+@pytest.mark.parametrize("use_gpu", [False, True])
+def test_model_load_performance(use_gpu, tmp_path_factory, monkeypatch, model, fmt):
+    _run_model_load_performance_test(use_gpu, tmp_path_factory, monkeypatch, model, fmt)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_single_inference_performance(client: TestClient, model: str, fmt: str):
+    _run_test_single_inference_performance(client, client.use_gpu, model, fmt)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_batch_inference_performance(client: TestClient, model: str, fmt: str):
+    _run_test_batch_inference_performance(client, client.use_gpu, model, fmt)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_sky_replacement_performance(client: TestClient, model: str, fmt: str):
+    _run_test_sky_replacement_performance(client, client.use_gpu, model, fmt)
+
+
+@pytest.mark.parametrize("client", [False, True], indirect=True)
+def test_batch_sky_replacement_performance(client: TestClient, model: str, fmt: str):
+    _run_test_batch_sky_replacement_performance(client, client.use_gpu, model, fmt)
+
+
+def _run_model_load_performance_test(use_gpu, tmp_path_factory, monkeypatch, project_name, model_type):
     """
     Measures average time to load the model (via create_app()) over multiple iterations,
     for both CPU and GPU. Also logs additional statistics.
@@ -92,7 +140,7 @@ def run_model_load_performance_test(use_gpu, tmp_path_factory, monkeypatch, proj
     file_exists = os.path.exists(MODEL_LOAD_TIMES_CSV)
     with open(MODEL_LOAD_TIMES_CSV, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        # If CSV doesn't exist, write header
+
         if not file_exists:
             writer.writerow([
                 "model_name", "model_type", "hardware", "iteration", "load_time_sec",
@@ -115,7 +163,7 @@ def run_model_load_performance_test(use_gpu, tmp_path_factory, monkeypatch, proj
     print(f"Metrics appended to {MODEL_LOAD_TIMES_CSV}")
 
 
-def run_test_single_inference_performance(client: TestClient, use_gpu, project_name, model_type):
+def _run_test_single_inference_performance(client: TestClient, use_gpu, project_name, model_type):
     """
     Test the performance of single inference for the model.
 
@@ -164,7 +212,7 @@ def run_test_single_inference_performance(client: TestClient, use_gpu, project_n
     file_exists = INFERENCE_TIMES_CSV.exists()
     with open(INFERENCE_TIMES_CSV, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        # Write a header row if the file did not already exist
+
         if not file_exists:
             writer.writerow(["model_name", "model_type", "hardware", "iteration", "inference_time_sec", "avg_time_sec",
                              "min_time_sec", "max_time_sec", "median_time_sec", "stddev_time_sec"])
@@ -175,7 +223,7 @@ def run_test_single_inference_performance(client: TestClient, use_gpu, project_n
     print(f"Metrics appended to {INFERENCE_TIMES_CSV}")
 
 
-def run_test_batch_inference_performance(client: TestClient, use_gpu, project_name, model_type):
+def _run_test_batch_inference_performance(client: TestClient, use_gpu, project_name, model_type):
     """
     Test the performance of batch inference for the model.
 
@@ -237,7 +285,7 @@ def run_test_batch_inference_performance(client: TestClient, use_gpu, project_na
     file_exists = BATCH_INFERENCE_TIMES_CSV.exists()
     with open(BATCH_INFERENCE_TIMES_CSV, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        # Write a header row if the file did not already exist
+
         if not file_exists:
             writer.writerow(["model_name", "model_type", "hardware", "iteration", "inference_time_sec", "avg_time_sec",
                              "min_time_sec", "max_time_sec", "median_time_sec", "stddev_time_sec"])
@@ -248,7 +296,7 @@ def run_test_batch_inference_performance(client: TestClient, use_gpu, project_na
     print(f"Metrics appended to {BATCH_INFERENCE_TIMES_CSV}")
 
 
-def run_test_sky_replacement_performance(client: TestClient, use_gpu, project_name, model_type):
+def _run_test_sky_replacement_performance(client: TestClient, use_gpu, project_name, model_type):
     """
     Test the performance of sky replacement for the model.
 
@@ -297,7 +345,7 @@ def run_test_sky_replacement_performance(client: TestClient, use_gpu, project_na
     file_exists = SKY_REPLACEMENT_TIMES_CSV.exists()
     with open(SKY_REPLACEMENT_TIMES_CSV, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        # Write a header row if the file did not already exist
+
         if not file_exists:
             writer.writerow(["model_name", "model_type", "hardware", "iteration", "inference_time_sec", "avg_time_sec",
                              "min_time_sec", "max_time_sec", "median_time_sec", "stddev_time_sec"])
@@ -308,7 +356,7 @@ def run_test_sky_replacement_performance(client: TestClient, use_gpu, project_na
     print(f"Metrics appended to {SKY_REPLACEMENT_TIMES_CSV}")
 
 
-def run_test_batch_sky_replacement_performance(client: TestClient, use_gpu, project_name, model_type):
+def _run_test_batch_sky_replacement_performance(client: TestClient, use_gpu, project_name, model_type):
     """
     Test the performance of batch sky replacement for the model.
 
@@ -370,7 +418,6 @@ def run_test_batch_sky_replacement_performance(client: TestClient, use_gpu, proj
     file_exists = BATCH_SKY_REPLACEMENT_TIMES_CSV.exists()
     with open(BATCH_SKY_REPLACEMENT_TIMES_CSV, "a", newline="") as csvfile:
         writer = csv.writer(csvfile)
-        # Write a header row if the file did not already exist
         if not file_exists:
             writer.writerow(["model_name", "model_type", "hardware", "iteration", "inference_time_sec", "avg_time_sec",
                              "min_time_sec", "max_time_sec", "median_time_sec", "stddev_time_sec"])
