@@ -9,13 +9,13 @@
 **[Web Services](#web-services)**<br>
 
 ## Dataset Converter
-The [dataset-converter](./dataset-converter) takes the versioned Blender renders (RGBA + α-masks) 
-and builds a training-ready corpus. 
-It also generates key auxiliary inputs—foreground, background and trimaps—and provides validation 
-steps to guarantee integrity.
+The [dataset-converter](./dataset-converter) takes the versioned generated synthetic data and builds a training-ready corpus with validation steps to guarantee integrity. <br> 
+Additionally, generates key auxiliary inputs:
+- **Foreground** (`fg/`) & **Background** (`bg/`) layers (by applying each mask to its source) 
+- **Trimaps** (`trimaps/`) via stochastic erosion of the mask
 
 ## Demos
-The [demos](./demos) contain the deployed ONNX models in HuggingFace Spaces.
+The [demos](./demos) contain interactive demos hosted on HuggingFace Spaces for each exported ONNX model.
 The live demos are available at:
 
 - [U-Net Resnet Sky Replacement](https://huggingface.co/spaces/Svane20/unet-resnet-sky-replacement)
@@ -23,14 +23,22 @@ The live demos are available at:
 - [DPT Sky Replacement](https://huggingface.co/spaces/Svane20/unet-dpt-sky-replacement)
 
 ## Kubernetes
-The [k8s](./k8s) folder contains the Kubernetes deployment files for the models.
+The [k8s](./k8s) contain the Kubernetes deployment files for the models.
 
 ## Machine Learning
-The [machine-learning](./machine-learning) folder contains the training, experiment tracking and evaluation for the ML models.
+The [machine-learning](./machine-learning) contains:
+- ML training
+- Experiment tracking with Weights & Biases
+- Model evaluation and validation
+- Model export to minimal Pytorch checkpoint, ONNX and TorchScript
 
 ## Synthetic Data Generation
-The [synthetic-data-generation](./synthetic-data-generation) folder contains the scripts to generate synthetic data for training the models.
+The [synthetic-data-generation](./synthetic-data-generation) contains the scripts to generate synthetic data for training the models.
 
 ## Web Services
-The [web-services](./web-services) folder contains the web services for the models.
-This includes the REST API's and the associated benchmarks and performance tests.
+The [web-services](./web-services) contain the web services for the models. <br>
+This includes: 
+- The REST API's for the models
+- Dockerfiles for containerization
+- Docker-compose files for local, dev and prod environments
+- Benchmarking and performance tests
